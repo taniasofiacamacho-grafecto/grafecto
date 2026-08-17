@@ -1,0 +1,46 @@
+/* Paleta de marca GRAFECTO — Organic Hair Science */
+:root {
+  /* Primario: ciruela / berenjena apagado */
+  --color-primario: #4d2f40;
+  --color-primario-oscuro: #3a2330;
+  --color-primario-claro: #6b4459;
+
+  /* Acentos: magenta apagado, azul grisáceo */
+  --color-magenta: #a4577a;
+  --color-magenta-suave: #c98aa8;
+  --color-azul-grisaceo: #6c7a89;
+  --color-azul-grisaceo-claro: #a7b3bd;
+
+  /* Grises y superficies */
+  --color-fondo: #f7f5f6;
+  --color-superficie: #ffffff;
+  --color-borde: #e2dde0;
+  --color-texto: #2c2129;
+  --color-texto-suave: #6f6470;
+  --color-texto-invertido: #ffffff;
+
+  /* Estados */
+  --color-exito: #5c8a72;
+  --color-alerta: #b8863f;
+  --color-peligro: #a3453f;
+
+  /* Tipografía */
+  --font-base: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  /* Espaciado (base 8px) para mantener zonas de toque grandes */
+  --espacio-xs: 4px;
+  --espacio-sm: 8px;
+  --espacio-md: 16px;
+  --espacio-lg: 24px;
+  --espacio-xl: 32px;
+
+  /* Radios y sombras */
+  --radio-sm: 8px;
+  --radio-md: 14px;
+  --radio-lg: 20px;
+  --sombra-suave: 0 2px 10px rgba(45, 25, 38, 0.08);
+  --sombra-media: 0 4px 20px rgba(45, 25, 38, 0.16);
+
+  /* Zona de toque mínima recomendada */
+  --toque-min: 48px;
+}
