@@ -3,15 +3,15 @@
 Lista viva de funciones futuras. Se construyen una por una, en este orden aproximado,
 solo cuando se pida explícitamente. Marca `[x]` al completarse y agrega la fecha.
 
-## Fase 1 — Base funcional (en curso)
+## Fase 1 — Base funcional (completa: 2026-08-17)
 
 - [x] Estructura de archivos
 - [x] Capa de datos IndexedDB (`js/db.js`)
 - [x] Lista de clientas + buscador
 - [x] Alta / edición / eliminación de clienta
 - [x] PWA instalable (manifest + service worker)
-- [ ] Confirmado por la usuaria: persistencia probada cerrando/reabriendo en iPhone
-- [ ] Deploy en GitHub Pages / Netlify
+- [x] Deploy en GitHub Pages: https://taniasofiacamacho-grafecto.github.io/grafecto/
+- [x] Confirmado por la usuaria: persistencia probada cerrando/reabriendo Chrome en Samsung Android (2026-08-17)
 
 ## Fase 2 en adelante (pendientes, sin construir todavía)
 
