@@ -310,6 +310,72 @@
   flex: 1;
 }
 
+/* ===== Pantalla de inicio de sesión ===== */
+.pantalla-login {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--espacio-lg);
+  background: var(--color-primario);
+}
+
+.login-tarjeta {
+  width: 100%;
+  max-width: 380px;
+  background: var(--color-superficie);
+  border-radius: var(--radio-lg);
+  padding: var(--espacio-xl) var(--espacio-lg);
+  box-shadow: var(--sombra-media);
+  text-align: center;
+}
+
+.login-tarjeta .encabezado__marca {
+  font-size: 1.6rem;
+}
+
+.login-subtitulo {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-magenta);
+  margin-bottom: var(--espacio-lg);
+}
+
+.login-tarjeta form {
+  text-align: left;
+  margin-top: var(--espacio-md);
+}
+
+.login-error {
+  background: rgba(163, 69, 63, 0.1);
+  color: var(--color-peligro);
+  border-radius: var(--radio-sm);
+  padding: var(--espacio-sm) var(--espacio-md);
+  font-size: 0.85rem;
+  margin-bottom: var(--espacio-md);
+}
+
+/* ===== Botón de cerrar sesión (en el encabezado) ===== */
+.encabezado {
+  position: relative;
+}
+
+.boton-cerrar-sesion {
+  position: absolute;
+  top: var(--espacio-lg);
+  right: var(--espacio-md);
+  background: rgba(255, 255, 255, 0.15);
+  color: var(--color-texto-invertido);
+  border: none;
+  border-radius: var(--radio-sm);
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  min-height: unset;
+}
+
 /* ===== Utilidades de mensaje ===== */
 .mensaje-flotante {
   position: fixed;

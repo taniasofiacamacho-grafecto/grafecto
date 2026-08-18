@@ -18,10 +18,32 @@
   <link rel="stylesheet" href="css/componentes.css" />
 </head>
 <body>
-  <div id="app">
+  <!-- Pantalla de inicio de sesión -->
+  <div id="pantalla-login" class="pantalla-login" hidden>
+    <div class="login-tarjeta">
+      <div class="encabezado__marca" style="color: var(--color-primario);">GRAFECTO</div>
+      <div class="login-subtitulo">Organic Hair Science</div>
+
+      <form id="formulario-login">
+        <div class="campo">
+          <label for="login-correo">Correo</label>
+          <input id="login-correo" type="email" autocomplete="username" required />
+        </div>
+        <div class="campo">
+          <label for="login-contrasena">Contraseña</label>
+          <input id="login-contrasena" type="password" autocomplete="current-password" required />
+        </div>
+        <div id="login-error" class="login-error" hidden></div>
+        <button type="submit" class="boton boton--primario boton--ancho-completo">Entrar</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="app" hidden>
     <header class="encabezado">
       <div class="encabezado__marca">GRAFECTO</div>
       <div class="encabezado__subtitulo">Organic Hair Science</div>
+      <button id="boton-cerrar-sesion" class="boton-cerrar-sesion" aria-label="Cerrar sesión">Salir</button>
     </header>
 
     <div class="buscador">
@@ -78,6 +100,9 @@
     </div>
   </div>
 
+  <script src="lib/supabase.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/db.js"></script>
   <script src="js/clientas.js"></script>

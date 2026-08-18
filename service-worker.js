@@ -1,7 +1,7 @@
 // Cachea el "app shell" para que GRAFECTO funcione sin conexión.
 // Sube CACHE_VERSION cuando cambien los archivos, para forzar la actualización del cache.
 
-const CACHE_VERSION = 'grafecto-v1';
+const CACHE_VERSION = 'grafecto-v2';
 
 const ARCHIVOS_APP_SHELL = [
   './',
@@ -10,6 +10,9 @@ const ARCHIVOS_APP_SHELL = [
   './css/variables.css',
   './css/base.css',
   './css/componentes.css',
+  './lib/supabase.js',
+  './js/config.js',
+  './js/auth.js',
   './js/ui.js',
   './js/db.js',
   './js/clientas.js',
@@ -40,6 +43,13 @@ self.addEventListener('activate', (evento) => {
 
 self.addEventListener('fetch', (evento) => {
   if (evento.request.method !== 'GET') return;
+
+  const url = new URL(evento.request.url);
+
+  // Nunca cachear llamadas a Supabase (datos en vivo, no "app shell").
+  if (url.origin !== self.location.origin) {
+    return;
+  }
 
   evento.respondWith(
     caches.match(evento.request).then((respuestaCache) => {

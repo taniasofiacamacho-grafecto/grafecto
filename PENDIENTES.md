@@ -13,6 +13,19 @@ solo cuando se pida explícitamente. Marca `[x]` al completarse y agrega la fech
 - [x] Deploy en GitHub Pages: https://taniasofiacamacho-grafecto.github.io/grafecto/
 - [x] Confirmado por la usuaria: persistencia probada cerrando/reabriendo Chrome en Samsung Android (2026-08-17)
 
+## Decisión de arquitectura (2026-08-17)
+
+Se cambió de "solo local en el dispositivo" a **Supabase** (base de datos en
+la nube con login), para poder usar la app desde laptop, Samsung y iPad con
+la misma información sincronizada. Esto reemplaza la regla original de
+"los datos nunca salen del dispositivo" — ahora viven en la nube, protegidos
+por usuario/contraseña y Row Level Security. Ver README.md para detalles.
+
+**Pendiente relacionado:** hoy la app necesita internet para leer/guardar
+clientas (no hay modo sin conexión con sincronización posterior). Si esto
+se vuelve un problema real en el día a día, se puede agregar como función
+futura (más compleja: requiere manejar conflictos entre lo local y lo remoto).
+
 ## Fase 2 en adelante (pendientes, sin construir todavía)
 
 1. [ ] Agenda de citas con generación de mensaje de recordatorio para WhatsApp (links `wa.me`)
