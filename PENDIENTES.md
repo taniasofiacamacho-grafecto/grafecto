@@ -54,7 +54,7 @@ correctamente tras cerrar/abrir sesión.
 4. [ ] Dictado por voz para notas clínicas (Web Speech API)
 5. [ ] Indicador de uso de almacenamiento del dispositivo
 6. [ ] Exportar/respaldar datos (JSON descargable + importar) — **crítico, red de seguridad**
-7. [x] Tres mensajes de WhatsApp por cita — 2026-08-18:
+7. [x] Tres mensajes de WhatsApp por cita — 2026-08-18, confirmado por la usuaria:
    - **Confirmación** (al agendar): fecha/hora, dirección del salón, instrucciones de
      preparación (cabello limpio y seco, sin acondicionador, nota sobre tinte)
    - **Deep cleanse** (solo si la cita se agendó con más de 2 días de anticipación):
