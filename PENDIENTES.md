@@ -54,8 +54,15 @@ correctamente tras cerrar/abrir sesión.
 4. [ ] Dictado por voz para notas clínicas (Web Speech API)
 5. [ ] Indicador de uso de almacenamiento del dispositivo
 6. [ ] Exportar/respaldar datos (JSON descargable + importar) — **crítico, red de seguridad**
-7. [ ] Plantilla de mensaje de confirmación con instrucciones de preparación del cabello
-8. [ ] Lista automática de recordatorios del día anterior
+7. [x] Tres mensajes de WhatsApp por cita — 2026-08-18:
+   - **Confirmación** (al agendar): fecha/hora, dirección del salón, instrucciones de
+     preparación (cabello limpio y seco, sin acondicionador, nota sobre tinte)
+   - **Deep cleanse** (solo si la cita se agendó con más de 2 días de anticipación):
+     recomendación de shampoo clarificante con links de Amazon
+   - **Recordatorio** (un día antes): pide confirmar asistencia o reprogramar
+8. [ ] Lista automática de recordatorios del día anterior (vista/aviso automático de
+   a quién le falta enviar el recordatorio de mañana — hoy el botón existe pero se manda
+   uno por uno, a mano)
 9. [ ] Marcar cita como confirmada manualmente
 10. [ ] Calendario visual de disponibilidad (semana/mes)
 11. [ ] Resumen de ingresos diario y mensual

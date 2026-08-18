@@ -34,6 +34,34 @@ async function cargarCitas() {
   }
 }
 
+function crearBotonesWhatsApp(cita) {
+  const botones = [
+    ['Confirmación', WhatsApp.generarEnlaceConfirmacion(cita)],
+    WhatsApp.debeSugerirDeepCleanse(cita.fecha)
+      ? ['Deep cleanse', WhatsApp.generarEnlaceDeepCleanse(cita)]
+      : null,
+    ['Recordatorio', WhatsApp.generarEnlaceRecordatorio(cita)],
+  ].filter(Boolean);
+
+  if (!botones[0][1]) {
+    return crearEl('div', { class: 'tarjeta-cita__sin-telefono', texto: 'Sin teléfono' });
+  }
+
+  return crearEl(
+    'div',
+    { class: 'tarjeta-cita__pie' },
+    botones.map(([etiqueta, enlace]) =>
+      crearEl('a', {
+        class: 'tarjeta-cita__whatsapp',
+        href: enlace,
+        target: '_blank',
+        rel: 'noopener',
+        texto: etiqueta,
+      })
+    )
+  );
+}
+
 function renderizarLista(citas) {
   listaEl.innerHTML = '';
 
@@ -56,8 +84,6 @@ function renderizarLista(citas) {
       fechaAnterior = cita.fecha;
     }
 
-    const enlaceWhatsApp = WhatsApp.generarEnlaceRecordatorio(cita);
-
     const tarjeta = crearEl('div', { class: 'tarjeta-cita' }, [
       crearEl('div', { class: 'tarjeta-cita__cuerpo', onclick: () => abrirHojaCita(cita) }, [
         crearEl('div', { class: 'tarjeta-cita__hora', texto: formatearHora12(cita.hora) }),
@@ -71,15 +97,7 @@ function renderizarLista(citas) {
             : null,
         ]),
       ]),
-      enlaceWhatsApp
-        ? crearEl('a', {
-            class: 'tarjeta-cita__whatsapp',
-            href: enlaceWhatsApp,
-            target: '_blank',
-            rel: 'noopener',
-            texto: 'Recordar por WhatsApp',
-          })
-        : crearEl('div', { class: 'tarjeta-cita__sin-telefono', texto: 'Sin teléfono' }),
+      crearBotonesWhatsApp(cita),
     ]);
 
     listaEl.appendChild(tarjeta);
