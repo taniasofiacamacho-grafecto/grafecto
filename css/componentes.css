@@ -55,10 +55,14 @@
 /* ===== Contenido / listas ===== */
 .contenido {
   flex: 1;
-  padding: var(--espacio-lg) var(--espacio-md) 100px;
+  padding: var(--espacio-lg) var(--espacio-md) 150px;
   display: flex;
   flex-direction: column;
   gap: var(--espacio-sm);
+}
+
+.contenido--sin-buscador {
+  padding-top: var(--espacio-lg);
 }
 
 .lista-clientas {
@@ -141,7 +145,7 @@
 .boton-flotante {
   position: fixed;
   right: var(--espacio-md);
-  bottom: calc(var(--espacio-lg) + env(safe-area-inset-bottom));
+  bottom: calc(80px + env(safe-area-inset-bottom));
   width: 60px;
   height: 60px;
   border-radius: 50%;
@@ -380,7 +384,7 @@
 .mensaje-flotante {
   position: fixed;
   left: 50%;
-  bottom: calc(24px + env(safe-area-inset-bottom));
+  bottom: calc(80px + env(safe-area-inset-bottom));
   transform: translateX(-50%);
   background: var(--color-primario-oscuro);
   color: var(--color-texto-invertido);
@@ -396,4 +400,118 @@
 
 .mensaje-flotante.visible {
   opacity: 1;
+}
+
+/* ===== Barra de pestañas ===== */
+.tabs {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-width: 560px;
+  margin: 0 auto;
+  display: flex;
+  background: var(--color-superficie);
+  border-top: 1px solid var(--color-borde);
+  padding-bottom: env(safe-area-inset-bottom);
+  z-index: 15;
+}
+
+.tabs__boton {
+  flex: 1;
+  border: none;
+  background: none;
+  padding: 12px 0 10px;
+  min-height: var(--toque-min);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-texto-suave);
+}
+
+.tabs__boton--activo {
+  color: var(--color-primario);
+}
+
+/* ===== Agenda ===== */
+.lista-agenda {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-sm);
+}
+
+.agenda-fecha {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: capitalize;
+  color: var(--color-texto-suave);
+  margin: var(--espacio-md) 0 var(--espacio-xs);
+}
+
+.agenda-fecha:first-child {
+  margin-top: 0;
+}
+
+.tarjeta-cita {
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-md);
+  overflow: hidden;
+}
+
+.tarjeta-cita__cuerpo {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-md);
+  padding: var(--espacio-md);
+  min-height: var(--toque-min);
+  cursor: pointer;
+}
+
+.tarjeta-cita__cuerpo:active {
+  background: var(--color-fondo);
+}
+
+.tarjeta-cita__hora {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-primario);
+  flex-shrink: 0;
+  min-width: 64px;
+}
+
+.tarjeta-cita__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.tarjeta-cita__nombre {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--color-texto);
+}
+
+.tarjeta-cita__detalle {
+  font-size: 0.85rem;
+  color: var(--color-texto-suave);
+  margin-top: 2px;
+}
+
+.tarjeta-cita__whatsapp {
+  display: block;
+  text-align: center;
+  padding: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-exito);
+  background: rgba(92, 138, 114, 0.1);
+  border-top: 1px solid var(--color-borde);
+  text-decoration: none;
+}
+
+.tarjeta-cita__sin-telefono {
+  text-align: center;
+  padding: 10px;
+  font-size: 0.8rem;
+  color: var(--color-texto-suave);
+  border-top: 1px solid var(--color-borde);
 }

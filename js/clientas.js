@@ -124,7 +124,6 @@ async function manejarEliminar() {
 
 function inicializarClientas() {
   buscadorInput.addEventListener('input', filtrarClientas);
-  document.getElementById('boton-agregar').addEventListener('click', () => abrirHoja(null));
   document.getElementById('boton-cerrar-hoja').addEventListener('click', cerrarHoja);
   fondoHoja.addEventListener('click', (evento) => {
     if (evento.target === fondoHoja) cerrarHoja();
@@ -136,5 +135,6 @@ function inicializarClientas() {
 }
 
 window.inicializarClientas = inicializarClientas;
+window.ClientasUI = { abrirNuevo: () => abrirHoja(null) };
 
 })();

@@ -26,9 +26,13 @@ clientas (no hay modo sin conexión con sincronización posterior). Si esto
 se vuelve un problema real en el día a día, se puede agregar como función
 futura (más compleja: requiere manejar conflictos entre lo local y lo remoto).
 
+**Confirmado por la usuaria (2026-08-18):** sincronización probada entre
+Samsung y laptop (misma clienta visible en ambos), y sesión persiste
+correctamente tras cerrar/abrir sesión.
+
 ## Fase 2 en adelante (pendientes, sin construir todavía)
 
-1. [ ] Agenda de citas con generación de mensaje de recordatorio para WhatsApp (links `wa.me`)
+1. [x] Agenda de citas con generación de mensaje de recordatorio para WhatsApp (links `wa.me`) — 2026-08-18, pendiente de confirmar por la usuaria
 2. [ ] Catálogo de tratamientos con precios base (varían por largo/densidad + promociones)
 3. [ ] Bitácora de visitas: notas de técnica, precio cobrado, promoción aplicada, foto "antes"
 4. [ ] Dictado por voz para notas clínicas (Web Speech API)

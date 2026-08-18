@@ -51,5 +51,25 @@
     }, 2200);
   }
 
-  window.UI = { crearEl, iniciales, mostrarMensaje };
+  const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+  const MESES = [
+    'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+    'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+  ];
+
+  function formatearFechaLarga(fechaISO) {
+    const [anio, mes, dia] = fechaISO.split('-').map(Number);
+    const fecha = new Date(anio, mes - 1, dia);
+    return `${DIAS[fecha.getDay()]} ${dia} de ${MESES[mes - 1]}`;
+  }
+
+  function formatearHora12(horaISO) {
+    const [horaStr, minutoStr] = horaISO.split(':');
+    let hora = Number(horaStr);
+    const periodo = hora >= 12 ? 'p.m.' : 'a.m.';
+    hora = hora % 12 || 12;
+    return `${hora}:${minutoStr} ${periodo}`;
+  }
+
+  window.UI = { crearEl, iniciales, mostrarMensaje, formatearFechaLarga, formatearHora12 };
 })();
