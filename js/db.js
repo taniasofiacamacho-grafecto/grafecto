@@ -8,6 +8,13 @@
 
 const TABLA_CLIENTAS = 'clientas';
 const TABLA_CITAS = 'citas';
+const TABLA_TRATAMIENTOS = 'tratamientos';
+
+const TRATAMIENTOS_POR_DEFECTO = [
+  { nombre: 'Hair Therapy', duracion_minutos: 180 },
+  { nombre: 'Tratamiento de hidratación', duracion_minutos: 90 },
+  { nombre: 'Retoque de crecimiento', duracion_minutos: 180 },
+];
 
 function normalizarTexto(texto) {
   return (texto || '')
@@ -97,13 +104,17 @@ function filaACita(fila) {
     clientaId: fila.clienta_id,
     clientaNombre: fila.clienta?.nombre || '(clienta eliminada)',
     clientaTelefono: fila.clienta?.telefono || '',
+    tratamientoId: fila.tratamiento_id,
+    tratamientoNombre: fila.tratamiento?.nombre || '',
+    duracionMinutos: fila.tratamiento?.duracion_minutos || null,
     fecha: fila.fecha,
     hora: fila.hora,
     notas: fila.notas || '',
   };
 }
 
-const SELECT_CITA_CON_CLIENTA = '*, clienta:clientas(nombre, telefono)';
+const SELECT_CITA_CON_CLIENTA =
+  '*, clienta:clientas(nombre, telefono), tratamiento:tratamientos(nombre, duracion_minutos)';
 
 async function listarCitas() {
   const { data, error } = await GrafectoAuth.cliente
@@ -121,6 +132,7 @@ async function agregarCita(datos) {
     .from(TABLA_CITAS)
     .insert({
       clienta_id: datos.clientaId,
+      tratamiento_id: datos.tratamientoId || null,
       fecha: datos.fecha,
       hora: datos.hora,
       notas: (datos.notas || '').trim(),
@@ -137,6 +149,7 @@ async function actualizarCita(id, datos) {
     .from(TABLA_CITAS)
     .update({
       clienta_id: datos.clientaId,
+      tratamiento_id: datos.tratamientoId || null,
       fecha: datos.fecha,
       hora: datos.hora,
       notas: (datos.notas || '').trim(),
@@ -154,6 +167,43 @@ async function eliminarCita(id) {
   if (error) throw error;
 }
 
+// ===== Tratamientos =====
+
+function filaATratamiento(fila) {
+  return {
+    id: fila.id,
+    nombre: fila.nombre,
+    duracionMinutos: fila.duracion_minutos,
+  };
+}
+
+async function listarTratamientos() {
+  const { data, error } = await GrafectoAuth.cliente
+    .from(TABLA_TRATAMIENTOS)
+    .select('*')
+    .order('created_at', { ascending: true });
+
+  if (error) throw error;
+  return data.map(filaATratamiento);
+}
+
+// La primera vez que la usuaria entra, crea los 3 tratamientos base
+// si todavía no tiene ninguno (no se siembran por SQL para que respeten RLS).
+async function asegurarTratamientosPorDefecto() {
+  const { count, error } = await GrafectoAuth.cliente
+    .from(TABLA_TRATAMIENTOS)
+    .select('*', { count: 'exact', head: true });
+
+  if (error) throw error;
+  if (count > 0) return;
+
+  const { error: errorInsertar } = await GrafectoAuth.cliente
+    .from(TABLA_TRATAMIENTOS)
+    .insert(TRATAMIENTOS_POR_DEFECTO);
+
+  if (errorInsertar) throw errorInsertar;
+}
+
 window.GrafectoDB = {
   listarClientas,
   obtenerClienta,
@@ -164,6 +214,8 @@ window.GrafectoDB = {
   agregarCita,
   actualizarCita,
   eliminarCita,
+  listarTratamientos,
+  asegurarTratamientosPorDefecto,
   normalizarTexto,
 };
 

@@ -298,6 +298,23 @@
   resize: vertical;
 }
 
+.campo select {
+  width: 100%;
+  min-height: var(--toque-min);
+  border-radius: var(--radio-sm);
+  border: 1px solid var(--color-borde);
+  background: var(--color-superficie);
+  padding: 0 var(--espacio-md);
+  font-size: 1rem;
+  color: var(--color-texto);
+}
+
+.campo__ayuda {
+  font-size: 0.8rem;
+  color: var(--color-texto-suave);
+  margin-top: 4px;
+}
+
 .campo input:focus,
 .campo textarea:focus {
   outline: none;

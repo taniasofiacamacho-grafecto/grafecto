@@ -4,17 +4,20 @@
 
 (function () {
 
-const { crearEl, mostrarMensaje, formatearFechaLarga, formatearHora12 } = window.UI;
+const { crearEl, mostrarMensaje, formatearFechaLarga, formatearHora12, formatearDuracion } = window.UI;
 const DB = window.GrafectoDB;
 
 let idEnEdicion = null;
 let citasCargadas = false;
+let tratamientosCache = [];
 
 const listaEl = document.getElementById('lista-agenda');
 const fondoHoja = document.getElementById('fondo-hoja-cita');
 const hojaTitulo = document.getElementById('hoja-cita-titulo');
 const formulario = document.getElementById('formulario-cita');
 const campoClienta = document.getElementById('cita-clienta');
+const campoTratamiento = document.getElementById('cita-tratamiento');
+const campoTratamientoDuracion = document.getElementById('cita-tratamiento-duracion');
 const campoFecha = document.getElementById('cita-fecha');
 const campoHora = document.getElementById('cita-hora');
 const campoNotas = document.getElementById('cita-notas');
@@ -60,6 +63,9 @@ function renderizarLista(citas) {
         crearEl('div', { class: 'tarjeta-cita__hora', texto: formatearHora12(cita.hora) }),
         crearEl('div', { class: 'tarjeta-cita__info' }, [
           crearEl('div', { class: 'tarjeta-cita__nombre', texto: cita.clientaNombre }),
+          cita.tratamientoNombre
+            ? crearEl('div', { class: 'tarjeta-cita__detalle', texto: cita.tratamientoNombre })
+            : null,
           cita.notas
             ? crearEl('div', { class: 'tarjeta-cita__detalle', texto: cita.notas })
             : null,
@@ -97,11 +103,33 @@ async function llenarSelectClientas(clientaIdSeleccionada) {
   if (clientaIdSeleccionada) campoClienta.value = clientaIdSeleccionada;
 }
 
+async function llenarSelectTratamientos(tratamientoIdSeleccionado) {
+  tratamientosCache = await DB.listarTratamientos();
+  campoTratamiento.innerHTML = '';
+  campoTratamiento.appendChild(crearEl('option', { value: '', texto: '(sin especificar)' }));
+
+  for (const tratamiento of tratamientosCache) {
+    campoTratamiento.appendChild(
+      crearEl('option', { value: tratamiento.id, texto: tratamiento.nombre })
+    );
+  }
+  campoTratamiento.value = tratamientoIdSeleccionado || '';
+  actualizarAyudaDuracion();
+}
+
+function actualizarAyudaDuracion() {
+  const tratamiento = tratamientosCache.find((t) => t.id === campoTratamiento.value);
+  campoTratamientoDuracion.textContent = tratamiento
+    ? `Bloqueo aproximado: ${formatearDuracion(tratamiento.duracionMinutos)}`
+    : '';
+}
+
 async function abrirHojaCita(cita = null) {
   idEnEdicion = cita ? cita.id : null;
   hojaTitulo.textContent = cita ? 'Editar cita' : 'Nueva cita';
 
   await llenarSelectClientas(cita ? cita.clientaId : null);
+  await llenarSelectTratamientos(cita ? cita.tratamientoId : null);
 
   campoFecha.value = cita ? cita.fecha : '';
   campoHora.value = cita ? cita.hora : '';
@@ -127,6 +155,7 @@ async function manejarGuardar(evento) {
 
   const datos = {
     clientaId: campoClienta.value,
+    tratamientoId: campoTratamiento.value || null,
     fecha: campoFecha.value,
     hora: campoHora.value,
     notas: campoNotas.value,
@@ -162,6 +191,7 @@ function inicializarAgenda() {
   });
   formulario.addEventListener('submit', manejarGuardar);
   botonEliminar.addEventListener('click', manejarEliminar);
+  campoTratamiento.addEventListener('change', actualizarAyudaDuracion);
 }
 
 window.AgendaUI = {
