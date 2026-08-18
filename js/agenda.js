@@ -7,6 +7,8 @@
 const { crearEl, mostrarMensaje, formatearFechaLarga, formatearHora12, formatearDuracion, fechaHoyISO } = window.UI;
 const DB = window.GrafectoDB;
 
+const MAX_RESULTADOS_BUSQUEDA = 20;
+
 const ESTADOS = [
   { valor: 'agendada', etiqueta: 'Agendada' },
   { valor: 'llego', etiqueta: 'Llegó' },
@@ -26,12 +28,16 @@ function etiquetaEstado(valor) {
 let idEnEdicion = null;
 let citasCargadas = false;
 let tratamientosCache = [];
+let clientasCache = [];
+let temporizadorOcultarResultados = null;
 
 const listaEl = document.getElementById('lista-agenda');
 const fondoHoja = document.getElementById('fondo-hoja-cita');
 const hojaTitulo = document.getElementById('hoja-cita-titulo');
 const formulario = document.getElementById('formulario-cita');
+const campoClientaBuscar = document.getElementById('cita-clienta-buscar');
 const campoClienta = document.getElementById('cita-clienta');
+const resultadosClienta = document.getElementById('cita-clienta-resultados');
 const campoTratamiento = document.getElementById('cita-tratamiento');
 const campoTratamientoDuracion = document.getElementById('cita-tratamiento-duracion');
 const campoFecha = document.getElementById('cita-fecha');
@@ -147,21 +153,50 @@ function renderizarLista(citas) {
   }
 }
 
-async function llenarSelectClientas(clientaIdSeleccionada) {
-  const clientas = await DB.listarClientas();
-  campoClienta.innerHTML = '';
+async function cargarClientasCache() {
+  clientasCache = await DB.listarClientas();
+}
 
-  if (clientas.length === 0) {
-    campoClienta.appendChild(crearEl('option', { value: '', texto: 'Primero agrega una clienta' }));
-    campoClienta.disabled = true;
-    return;
+function ocultarResultadosClienta() {
+  resultadosClienta.hidden = true;
+  resultadosClienta.innerHTML = '';
+}
+
+function mostrarResultadosClienta(texto) {
+  const filtro = DB.normalizarTexto(texto);
+  const coincidencias = filtro
+    ? clientasCache.filter((c) => c.nombreNormalizado.includes(filtro)).slice(0, MAX_RESULTADOS_BUSQUEDA)
+    : clientasCache.slice(0, MAX_RESULTADOS_BUSQUEDA);
+
+  resultadosClienta.innerHTML = '';
+
+  if (clientasCache.length === 0) {
+    resultadosClienta.appendChild(
+      crearEl('div', { class: 'buscador-resultados__vacio', texto: 'Primero agrega una clienta' })
+    );
+  } else if (coincidencias.length === 0) {
+    resultadosClienta.appendChild(
+      crearEl('div', { class: 'buscador-resultados__vacio', texto: 'No se encontraron clientas' })
+    );
+  } else {
+    for (const clienta of coincidencias) {
+      resultadosClienta.appendChild(
+        crearEl('div', {
+          class: 'buscador-resultados__item',
+          texto: clienta.nombre,
+          onclick: () => seleccionarClienta(clienta),
+        })
+      );
+    }
   }
 
-  campoClienta.disabled = false;
-  for (const clienta of clientas) {
-    campoClienta.appendChild(crearEl('option', { value: clienta.id, texto: clienta.nombre }));
-  }
-  if (clientaIdSeleccionada) campoClienta.value = clientaIdSeleccionada;
+  resultadosClienta.hidden = false;
+}
+
+function seleccionarClienta(clienta) {
+  campoClienta.value = clienta.id;
+  campoClientaBuscar.value = clienta.nombre;
+  ocultarResultadosClienta();
 }
 
 async function llenarSelectTratamientos(tratamientoIdSeleccionado) {
@@ -189,8 +224,12 @@ async function abrirHojaCita(cita = null) {
   idEnEdicion = cita ? cita.id : null;
   hojaTitulo.textContent = cita ? 'Editar cita' : 'Nueva cita';
 
-  await llenarSelectClientas(cita ? cita.clientaId : null);
+  await cargarClientasCache();
   await llenarSelectTratamientos(cita ? cita.tratamientoId : null);
+
+  campoClientaBuscar.value = cita ? cita.clientaNombre : '';
+  campoClienta.value = cita ? cita.clientaId : '';
+  ocultarResultadosClienta();
 
   campoFecha.value = cita ? cita.fecha : '';
   campoHora.value = cita ? cita.hora : '';
@@ -203,14 +242,17 @@ async function abrirHojaCita(cita = null) {
 function cerrarHojaCita() {
   fondoHoja.classList.remove('abierta');
   formulario.reset();
+  ocultarResultadosClienta();
   idEnEdicion = null;
 }
 
 async function manejarGuardar(evento) {
   evento.preventDefault();
 
-  if (!campoClienta.value) {
-    mostrarMensaje('Agrega primero una clienta');
+  const clientaValida = clientasCache.find((c) => c.id === campoClienta.value);
+  if (!clientaValida) {
+    mostrarMensaje('Selecciona una clienta de la lista');
+    campoClientaBuscar.focus();
     return;
   }
 
@@ -263,6 +305,22 @@ function inicializarAgenda() {
   formulario.addEventListener('submit', manejarGuardar);
   botonEliminar.addEventListener('click', manejarEliminar);
   campoTratamiento.addEventListener('change', actualizarAyudaDuracion);
+
+  campoClientaBuscar.addEventListener('input', () => {
+    campoClienta.value = '';
+    mostrarResultadosClienta(campoClientaBuscar.value);
+  });
+  campoClientaBuscar.addEventListener('focus', () => {
+    mostrarResultadosClienta(campoClientaBuscar.value);
+  });
+  campoClientaBuscar.addEventListener('blur', () => {
+    // Retraso para que el clic en un resultado alcance a registrarse antes de ocultarlo.
+    temporizadorOcultarResultados = setTimeout(ocultarResultadosClienta, 200);
+  });
+  resultadosClienta.addEventListener('mousedown', (evento) => {
+    evento.preventDefault();
+    clearTimeout(temporizadorOcultarResultados);
+  });
 }
 
 window.AgendaUI = {

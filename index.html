@@ -120,9 +120,19 @@
       <div class="hoja__titulo" id="hoja-cita-titulo">Nueva cita</div>
 
       <form id="formulario-cita">
-        <div class="campo">
-          <label for="cita-clienta">Clienta *</label>
-          <select id="cita-clienta" required></select>
+        <div class="campo campo--buscador-relativo">
+          <label for="cita-clienta-buscar">Clienta *</label>
+          <input
+            id="cita-clienta-buscar"
+            type="text"
+            placeholder="Escribe el nombre…"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="words"
+            required
+          />
+          <input type="hidden" id="cita-clienta" />
+          <div id="cita-clienta-resultados" class="buscador-resultados" hidden></div>
         </div>
 
         <div class="campo">
