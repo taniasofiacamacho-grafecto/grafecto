@@ -81,4 +81,5 @@ Cosas que se notan al usar la app de verdad (no son funciones nuevas del plan
 original) — se corrigen en cuanto se detectan, no hay que esperar su turno.
 
 - [x] 2026-08-18: Selector de clienta en el formulario de cita cambiado de lista
-  desplegable a buscador con autocompletado (no escala a miles de clientas)
+  desplegable a buscador con autocompletado (no escala a miles de clientas) —
+  confirmado por la usuaria, además ya instaló la PWA en Samsung y Mac
