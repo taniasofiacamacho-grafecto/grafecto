@@ -41,7 +41,7 @@ correctamente tras cerrar/abrir sesión.
 **Flujo de check-in del día (decidido 2026-08-18, se construye en este orden):**
 1. [x] Estado de la cita con color: Agendada → Llegó → En proceso → Checkout (pastilla
    que avanza al tocarla), encabezado "Hoy" resaltado en la agenda, y la agenda ya
-   solo muestra de hoy en adelante — 2026-08-18, pendiente de confirmar por la usuaria
+   solo muestra de hoy en adelante — 2026-08-18, confirmado por la usuaria
 2. [ ] Consentimiento informado por clienta (Firmado/Pendiente + foto del documento
    firmado) — aparece como recordatorio al marcar "Llegó"
 3. [ ] Cobro / Bitácora de visita, se abre al tocar "Checkout": notas de técnica, foto
