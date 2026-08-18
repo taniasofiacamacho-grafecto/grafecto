@@ -33,7 +33,7 @@ correctamente tras cerrar/abrir sesión.
 ## Fase 2 en adelante (pendientes, sin construir todavía)
 
 1. [x] Agenda de citas con generación de mensaje de recordatorio para WhatsApp (links `wa.me`) — 2026-08-18, confirmado por la usuaria
-2. [x] Catálogo de tratamientos — solo 3 servicios, **sin precio fijo**, enlazados a citas — 2026-08-18:
+2. [x] Catálogo de tratamientos — solo 3 servicios, **sin precio fijo**, enlazados a citas — 2026-08-18, confirmado por la usuaria (agenda, selección de tratamiento y recordatorio de WhatsApp probados):
    - Hair Therapy (bloqueo ~3 horas)
    - Tratamiento de hidratación (bloqueo ~1.5 horas)
    - Retoque de crecimiento (bloqueo ~3 horas)
