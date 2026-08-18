@@ -222,16 +222,21 @@ async function manejarGuardar(evento) {
     notas: campoNotas.value,
   };
 
-  if (idEnEdicion) {
-    await DB.actualizarCita(idEnEdicion, datos);
-    mostrarMensaje('Cita actualizada');
-  } else {
-    await DB.agregarCita(datos);
-    mostrarMensaje('Cita guardada');
-  }
+  try {
+    if (idEnEdicion) {
+      await DB.actualizarCita(idEnEdicion, datos);
+      mostrarMensaje('Cita actualizada');
+    } else {
+      await DB.agregarCita(datos);
+      mostrarMensaje('Cita guardada');
+    }
 
-  cerrarHojaCita();
-  await cargarCitas();
+    cerrarHojaCita();
+    await cargarCitas();
+  } catch (error) {
+    mostrarMensaje('No se pudo guardar la cita: ' + (error.message || 'intenta de nuevo'));
+    console.error(error);
+  }
 }
 
 async function manejarEliminar() {
@@ -239,10 +244,15 @@ async function manejarEliminar() {
   const confirmar = window.confirm('¿Eliminar esta cita? Esta acción no se puede deshacer.');
   if (!confirmar) return;
 
-  await DB.eliminarCita(idEnEdicion);
-  mostrarMensaje('Cita eliminada');
-  cerrarHojaCita();
-  await cargarCitas();
+  try {
+    await DB.eliminarCita(idEnEdicion);
+    mostrarMensaje('Cita eliminada');
+    cerrarHojaCita();
+    await cargarCitas();
+  } catch (error) {
+    mostrarMensaje('No se pudo eliminar la cita: ' + (error.message || 'intenta de nuevo'));
+    console.error(error);
+  }
 }
 
 function inicializarAgenda() {
