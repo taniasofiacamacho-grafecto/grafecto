@@ -110,16 +110,20 @@ function filaACita(fila) {
     fecha: fila.fecha,
     hora: fila.hora,
     notas: fila.notas || '',
+    estado: fila.estado || 'agendada',
   };
 }
 
 const SELECT_CITA_CON_CLIENTA =
   '*, clienta:clientas(nombre, telefono), tratamiento:tratamientos(nombre, duracion_minutos)';
 
+// Solo trae de hoy en adelante — el historial de citas pasadas no se necesita
+// para el trabajo del día a día (se puede agregar una vista aparte si hace falta).
 async function listarCitas() {
   const { data, error } = await GrafectoAuth.cliente
     .from(TABLA_CITAS)
     .select(SELECT_CITA_CON_CLIENTA)
+    .gte('fecha', UI.fechaHoyISO())
     .order('fecha', { ascending: true })
     .order('hora', { ascending: true });
 
@@ -164,6 +168,11 @@ async function actualizarCita(id, datos) {
 
 async function eliminarCita(id) {
   const { error } = await GrafectoAuth.cliente.from(TABLA_CITAS).delete().eq('id', id);
+  if (error) throw error;
+}
+
+async function actualizarEstadoCita(id, estado) {
+  const { error } = await GrafectoAuth.cliente.from(TABLA_CITAS).update({ estado }).eq('id', id);
   if (error) throw error;
 }
 
@@ -214,6 +223,7 @@ window.GrafectoDB = {
   agregarCita,
   actualizarCita,
   eliminarCita,
+  actualizarEstadoCita,
   listarTratamientos,
   asegurarTratamientosPorDefecto,
   normalizarTexto,
