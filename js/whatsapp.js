@@ -108,8 +108,7 @@ function generarEnlaceRecordatorio(cita) {
     `¡Hola ${nombre}!\n\n` +
     `Esperamos que estés teniendo un excelente día.\n` +
     `Queremos recordarte que tienes una cita con nosotros programada para mañana, ` +
-    `${UI.formatearFechaLarga(cita.fecha)} a las ${UI.formatearHora12(cita.hora)}, ` +
-    `¡estamos emocionados de verte!\n\n` +
+    `${UI.formatearFechaLarga(cita.fecha)} a las ${UI.formatearHora12(cita.hora)}\n\n` +
     `Por favor, tómate un momento para confirmar tu asistencia. Si por alguna razón necesitas ` +
     `reprogramar o cancelar la cita, agradecemos que nos lo hagas saber con anticipación para poder ` +
     `ajustar nuestro horario y atender a otros clientes.\n\n` +
