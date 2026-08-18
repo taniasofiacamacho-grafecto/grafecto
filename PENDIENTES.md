@@ -33,8 +33,15 @@ correctamente tras cerrar/abrir sesión.
 ## Fase 2 en adelante (pendientes, sin construir todavía)
 
 1. [x] Agenda de citas con generación de mensaje de recordatorio para WhatsApp (links `wa.me`) — 2026-08-18, confirmado por la usuaria
-2. [ ] Catálogo de tratamientos con precios base (varían por largo/densidad + promociones)
-3. [ ] Bitácora de visitas: notas de técnica, precio cobrado, promoción aplicada, foto "antes"
+2. [ ] Catálogo de tratamientos — solo 3 servicios, **sin precio fijo**:
+   - Hair Therapy (bloqueo ~3 horas)
+   - Tratamiento de hidratación (bloqueo ~1.5 horas)
+   - Retoque de crecimiento (bloqueo ~3 horas)
+3. [ ] Bitácora de visitas: notas de técnica, foto "antes", y a la hora de cobrar:
+   - **Precio cobrado**: lo escribe ella a mano (varía por largo/densidad, no se calcula solo)
+   - **Promoción aplicada**: selector simple — *Ninguna / Descuento / Producto gratis* (categoría,
+     no monto automático) — para poder contar cuántas visitas usaron cada una y, a fin de mes,
+     descontar el costo de los productos regalados (ver #13 y #14)
 4. [ ] Dictado por voz para notas clínicas (Web Speech API)
 5. [ ] Check-in: marcar clienta como "en proceso"
 6. [ ] Consentimiento informado por clienta (Firmado/Pendiente + foto del documento firmado)
