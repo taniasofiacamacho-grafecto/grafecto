@@ -80,7 +80,7 @@ const ETIQUETAS_PROMOCION = {
 
 // Cada visita se ve resumida (fecha, tratamiento, precio) y se toca para
 // desplegar todo lo que se capturó en el cobro: longitud, promoción, notas.
-function crearItemHistorial(visita) {
+function crearItemHistorial(visita, clientaId) {
   const detalle = [visita.tratamientoNombre, visita.estilista].filter(Boolean).join(' · ');
 
   const detallesExpandidos = [
@@ -103,6 +103,23 @@ function crearItemHistorial(visita) {
       ...(detallesExpandidos.length > 0
         ? detallesExpandidos.map((texto) => crearEl('div', { class: 'historial-item__expandido-linea', texto }))
         : [crearEl('div', { class: 'historial-item__expandido-linea', texto: 'Sin más detalles capturados.' })]),
+      crearEl('button', {
+        type: 'button',
+        class: 'boton boton--peligro',
+        texto: 'Eliminar este registro',
+        style: 'margin-top: 8px; min-height: 40px;',
+        onclick: async () => {
+          if (!window.confirm('¿Eliminar esta visita? Esta acción no se puede deshacer.')) return;
+          try {
+            await DB.eliminarVisita(visita.id);
+            mostrarMensaje('Registro eliminado');
+            await mostrarHistorial(clientaId);
+          } catch (error) {
+            mostrarMensaje('No se pudo eliminar el registro');
+            console.error(error);
+          }
+        },
+      }),
     ]
   );
 
@@ -155,7 +172,7 @@ async function mostrarHistorial(clientaId) {
     }
 
     for (const visita of visitas) {
-      historialLista.appendChild(crearItemHistorial(visita));
+      historialLista.appendChild(crearItemHistorial(visita, clientaId));
     }
   } catch (error) {
     historialLista.innerHTML = '';

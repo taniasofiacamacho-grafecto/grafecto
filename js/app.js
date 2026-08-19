@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     hoy: document.getElementById('vista-hoy'),
     agenda: document.getElementById('vista-agenda'),
     calendario: document.getElementById('vista-calendario'),
+    reportes: document.getElementById('vista-reportes'),
   };
 
   let appInicializada = false;
@@ -29,6 +30,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       window.CobroUI.inicializar();
       window.NotasVisitaUI.inicializar();
       window.HorarioUI.inicializar();
+      window.ReportesUI.inicializar();
       window.GrafectoDB.asegurarTratamientosPorDefecto().catch((error) => {
         console.warn('No se pudieron crear los tratamientos por defecto:', error);
       });
@@ -53,8 +55,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (vista === 'agenda') window.AgendaUI.mostrar();
     if (vista === 'hoy') window.HoyUI.mostrar();
     if (vista === 'calendario') window.HorarioUI.mostrar();
+    if (vista === 'reportes') window.ReportesUI.mostrar();
 
-    botonAgregar.hidden = vista === 'calendario';
+    botonAgregar.hidden = vista === 'calendario' || vista === 'reportes';
   }
 
   tabs.forEach((tab) => {

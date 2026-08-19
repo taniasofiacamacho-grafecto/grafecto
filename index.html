@@ -95,6 +95,16 @@
       </main>
     </section>
 
+    <section id="vista-reportes" hidden>
+      <main class="contenido contenido--sin-buscador">
+        <div class="calendario-seccion">
+          <div class="calendario-seccion__titulo">Ventas</div>
+          <p class="campo__ayuda">¿Te falta capturar una venta de un día anterior? Regístrala aquí, sin necesidad de una cita.</p>
+          <button type="button" id="boton-registrar-venta-pasada" class="boton boton--primario boton--ancho-completo">+ Registrar venta pasada</button>
+        </div>
+      </main>
+    </section>
+
     <div class="contenedor-flotante">
       <button id="boton-agregar" class="boton-flotante" aria-label="Agregar">+</button>
     </div>
@@ -104,6 +114,7 @@
       <button id="tab-hoy" class="tabs__boton" data-vista="hoy">Hoy</button>
       <button id="tab-agenda" class="tabs__boton" data-vista="agenda">Agenda</button>
       <button id="tab-calendario" class="tabs__boton" data-vista="calendario">Horario</button>
+      <button id="tab-reportes" class="tabs__boton" data-vista="reportes">Reportes</button>
     </nav>
   </div>
 
@@ -355,6 +366,76 @@
     </div>
   </div>
 
+  <!-- Hoja modal: registrar una venta pasada (sin necesidad de una cita) -->
+  <div id="fondo-hoja-venta-pasada" class="fondo-hoja">
+    <div class="hoja">
+      <div class="hoja__manija"></div>
+      <div class="hoja__titulo">Registrar venta pasada</div>
+
+      <form id="formulario-venta-pasada">
+        <div class="campo campo--buscador-relativo">
+          <label for="venta-clienta-buscar">Clienta *</label>
+          <input id="venta-clienta-buscar" type="text" placeholder="Escribe el nombre…" autocomplete="off" autocorrect="off" autocapitalize="words" required />
+          <input type="hidden" id="venta-clienta" />
+          <div id="venta-clienta-resultados" class="buscador-resultados" hidden></div>
+        </div>
+
+        <div class="campo">
+          <label for="venta-fecha">Fecha *</label>
+          <input id="venta-fecha" type="date" required />
+        </div>
+
+        <div class="campo">
+          <label for="venta-tratamiento">Tratamiento</label>
+          <select id="venta-tratamiento"></select>
+        </div>
+
+        <div class="campo">
+          <label for="venta-precio">Precio cobrado *</label>
+          <input id="venta-precio" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" required />
+        </div>
+
+        <div class="campo">
+          <label for="venta-longitud">Longitud</label>
+          <select id="venta-longitud"></select>
+        </div>
+
+        <div class="campo">
+          <label>Promoción aplicada</label>
+          <div id="venta-promocion" class="grupo-pastillas">
+            <button type="button" class="pastilla-opcion pastilla-opcion--activa" data-valor="ninguna">Ninguna</button>
+            <button type="button" class="pastilla-opcion" data-valor="descuento">Descuento</button>
+            <button type="button" class="pastilla-opcion" data-valor="producto">Producto gratis</button>
+          </div>
+        </div>
+
+        <div class="campo">
+          <label>Atendió</label>
+          <div id="venta-estilista" class="grupo-pastillas">
+            <button type="button" class="pastilla-opcion" data-valor="Alma">Alma</button>
+            <button type="button" class="pastilla-opcion" data-valor="Betty">Betty</button>
+            <button type="button" class="pastilla-opcion" data-valor="Isabel">Isabel</button>
+            <button type="button" class="pastilla-opcion" data-valor="otra">Otra</button>
+          </div>
+          <input id="venta-estilista-otra" type="text" placeholder="Nombre" autocapitalize="words" hidden style="margin-top: 8px;" />
+        </div>
+
+        <div class="campo">
+          <div class="campo__encabezado">
+            <label for="venta-notas">Notas</label>
+            <button type="button" id="venta-notas-dictado" class="boton-dictado" aria-label="Dictar por voz" hidden>🎤</button>
+          </div>
+          <textarea id="venta-notas" placeholder="Observaciones…"></textarea>
+        </div>
+
+        <div class="fila-botones">
+          <button type="button" id="boton-cerrar-hoja-venta-pasada" class="boton boton--secundario">Cancelar</button>
+          <button type="submit" class="boton boton--primario">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script src="lib/supabase.js"></script>
   <script src="js/config.js"></script>
   <script src="js/auth.js"></script>
@@ -369,6 +450,7 @@
   <script src="js/agenda.js"></script>
   <script src="js/hoy.js"></script>
   <script src="js/horario.js"></script>
+  <script src="js/reportes.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

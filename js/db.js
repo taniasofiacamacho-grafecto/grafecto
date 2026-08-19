@@ -432,6 +432,11 @@ async function listarVisitasEnRango(fechaInicio, fechaFin) {
   return data.map(filaAVisita);
 }
 
+async function eliminarVisita(id) {
+  const { error } = await GrafectoAuth.cliente.from(TABLA_VISITAS).delete().eq('id', id);
+  if (error) throw error;
+}
+
 window.GrafectoDB = {
   listarClientas,
   obtenerClienta,
@@ -458,6 +463,7 @@ window.GrafectoDB = {
   agregarVisita,
   listarVisitasDeClienta,
   listarVisitasEnRango,
+  eliminarVisita,
   normalizarTexto,
 };
 
