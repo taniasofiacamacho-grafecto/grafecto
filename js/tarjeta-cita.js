@@ -1,0 +1,112 @@
+// Construye la tarjeta visual de una cita (usada en Agenda y en Hoy),
+// con su pastilla de estado y los botones de WhatsApp. Compartido para que
+// el comportamiento de avanzar estado / abrir cobro sea idéntico en ambas vistas.
+// Todo envuelto en un IIFE para no ensuciar el scope global.
+
+(function () {
+
+const { crearEl, mostrarMensaje, formatearHora12 } = window.UI;
+const DB = window.GrafectoDB;
+
+const ESTADOS = [
+  { valor: 'agendada', etiqueta: 'Agendada' },
+  { valor: 'llego', etiqueta: 'Llegó' },
+  { valor: 'en_proceso', etiqueta: 'En proceso' },
+  { valor: 'checkout', etiqueta: 'Checkout' },
+];
+
+function siguienteEstado(actual) {
+  const indice = ESTADOS.findIndex((e) => e.valor === actual);
+  return ESTADOS[(indice + 1) % ESTADOS.length].valor;
+}
+
+function etiquetaEstado(valor) {
+  return ESTADOS.find((e) => e.valor === valor)?.etiqueta || valor;
+}
+
+function crearBotonesWhatsApp(cita) {
+  const botones = [
+    ['Confirmación', WhatsApp.generarEnlaceConfirmacion(cita)],
+    WhatsApp.debeSugerirDeepCleanse(cita.fecha)
+      ? ['Deep cleanse', WhatsApp.generarEnlaceDeepCleanse(cita)]
+      : null,
+    ['Recordatorio', WhatsApp.generarEnlaceRecordatorio(cita)],
+  ].filter(Boolean);
+
+  if (!botones[0][1]) {
+    return crearEl('div', { class: 'tarjeta-cita__sin-telefono', texto: 'Sin teléfono' });
+  }
+
+  return crearEl(
+    'div',
+    { class: 'tarjeta-cita__pie' },
+    botones.map(([etiqueta, enlace]) =>
+      crearEl('a', {
+        class: 'tarjeta-cita__whatsapp',
+        href: enlace,
+        target: '_blank',
+        rel: 'noopener',
+        texto: etiqueta,
+      })
+    )
+  );
+}
+
+// onCambio se llama después de actualizar el estado (o de guardar el cobro),
+// para que quien mandó a construir la tarjeta vuelva a cargar su lista.
+function crearPastillaEstado(cita, onCambio) {
+  return crearEl('button', {
+    type: 'button',
+    class: `pastilla-estado pastilla-estado--${cita.estado}`,
+    texto: etiquetaEstado(cita.estado),
+    onclick: async (evento) => {
+      evento.stopPropagation();
+      const nuevo = siguienteEstado(cita.estado);
+
+      // Al llegar a "Checkout" se abre el cobro; el estado se marca solo
+      // hasta que se guarde el cobro (así no se pierde el paso de cobrar).
+      if (nuevo === 'checkout') {
+        window.CobroUI.abrir(cita, onCambio);
+        return;
+      }
+
+      try {
+        await DB.actualizarEstadoCita(cita.id, nuevo);
+        onCambio();
+      } catch (error) {
+        mostrarMensaje('No se pudo actualizar el estado');
+        console.error(error);
+      }
+    },
+  });
+}
+
+// opciones: { colorFondo: boolean, onEditar: (cita) => void, onCambio: () => void }
+function crear(cita, opciones = {}) {
+  const clases = ['tarjeta-cita'];
+  if (opciones.colorFondo) clases.push(`tarjeta-cita--${cita.estado}`);
+
+  const onCambio = opciones.onCambio || (() => {});
+  const onEditar = opciones.onEditar || (() => {});
+
+  return crearEl('div', { class: clases.join(' ') }, [
+    crearEl('div', { class: 'tarjeta-cita__cuerpo', onclick: () => onEditar(cita) }, [
+      crearEl('div', { class: 'tarjeta-cita__hora', texto: formatearHora12(cita.hora) }),
+      crearEl('div', { class: 'tarjeta-cita__info' }, [
+        crearEl('div', { class: 'tarjeta-cita__nombre', texto: cita.clientaNombre }),
+        cita.tratamientoNombre
+          ? crearEl('div', { class: 'tarjeta-cita__detalle', texto: cita.tratamientoNombre })
+          : null,
+        cita.notas
+          ? crearEl('div', { class: 'tarjeta-cita__detalle', texto: cita.notas })
+          : null,
+      ]),
+    ]),
+    crearEl('div', { class: 'tarjeta-cita__estado' }, [crearPastillaEstado(cita, onCambio)]),
+    crearBotonesWhatsApp(cita),
+  ]);
+}
+
+window.TarjetaCita = { crear, etiquetaEstado, ESTADOS };
+
+})();

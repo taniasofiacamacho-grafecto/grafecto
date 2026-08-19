@@ -9,10 +9,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   const loginError = document.getElementById('login-error');
   const botonSalir = document.getElementById('boton-cerrar-sesion');
   const botonAgregar = document.getElementById('boton-agregar');
-  const vistaClientas = document.getElementById('vista-clientas');
-  const vistaAgenda = document.getElementById('vista-agenda');
-  const tabClientas = document.getElementById('tab-clientas');
-  const tabAgenda = document.getElementById('tab-agenda');
+  const tabs = document.querySelectorAll('.tabs__boton');
+  const vistas = {
+    clientas: document.getElementById('vista-clientas'),
+    hoy: document.getElementById('vista-hoy'),
+    agenda: document.getElementById('vista-agenda'),
+  };
 
   let appInicializada = false;
   let vistaActiva = 'clientas';
@@ -38,16 +40,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function cambiarVista(vista) {
     vistaActiva = vista;
-    vistaClientas.hidden = vista !== 'clientas';
-    vistaAgenda.hidden = vista !== 'agenda';
-    tabClientas.classList.toggle('tabs__boton--activo', vista === 'clientas');
-    tabAgenda.classList.toggle('tabs__boton--activo', vista === 'agenda');
+    for (const [nombre, elemento] of Object.entries(vistas)) {
+      elemento.hidden = nombre !== vista;
+    }
+    tabs.forEach((tab) => {
+      tab.classList.toggle('tabs__boton--activo', tab.dataset.vista === vista);
+    });
 
     if (vista === 'agenda') window.AgendaUI.mostrar();
+    if (vista === 'hoy') window.HoyUI.mostrar();
   }
 
-  tabClientas.addEventListener('click', () => cambiarVista('clientas'));
-  tabAgenda.addEventListener('click', () => cambiarVista('agenda'));
+  tabs.forEach((tab) => {
+    tab.addEventListener('click', () => cambiarVista(tab.dataset.vista));
+  });
 
   botonAgregar.addEventListener('click', () => {
     if (vistaActiva === 'clientas') window.ClientasUI.abrirNuevo();

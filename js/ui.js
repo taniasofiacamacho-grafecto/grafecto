@@ -80,6 +80,10 @@
     return `${horas} h ${mins} min`;
   }
 
+  function formatearMoneda(numero) {
+    return '$' + Math.round(numero).toLocaleString('es-MX');
+  }
+
   function fechaHoyISO() {
     const hoy = new Date();
     const mes = String(hoy.getMonth() + 1).padStart(2, '0');
@@ -94,6 +98,7 @@
     formatearFechaLarga,
     formatearHora12,
     formatearDuracion,
+    formatearMoneda,
     fechaHoyISO,
   };
 })();

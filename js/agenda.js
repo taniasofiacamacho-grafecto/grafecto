@@ -4,26 +4,10 @@
 
 (function () {
 
-const { crearEl, mostrarMensaje, formatearFechaLarga, formatearHora12, formatearDuracion, fechaHoyISO } = window.UI;
+const { crearEl, mostrarMensaje, formatearFechaLarga, formatearDuracion, fechaHoyISO } = window.UI;
 const DB = window.GrafectoDB;
 
 const MAX_RESULTADOS_BUSQUEDA = 20;
-
-const ESTADOS = [
-  { valor: 'agendada', etiqueta: 'Agendada' },
-  { valor: 'llego', etiqueta: 'Llegó' },
-  { valor: 'en_proceso', etiqueta: 'En proceso' },
-  { valor: 'checkout', etiqueta: 'Checkout' },
-];
-
-function siguienteEstado(actual) {
-  const indice = ESTADOS.findIndex((e) => e.valor === actual);
-  return ESTADOS[(indice + 1) % ESTADOS.length].valor;
-}
-
-function etiquetaEstado(valor) {
-  return ESTADOS.find((e) => e.valor === valor)?.etiqueta || valor;
-}
 
 let idEnEdicion = null;
 let citasCargadas = false;
@@ -56,63 +40,6 @@ async function cargarCitas() {
   }
 }
 
-function crearBotonesWhatsApp(cita) {
-  const botones = [
-    ['Confirmación', WhatsApp.generarEnlaceConfirmacion(cita)],
-    WhatsApp.debeSugerirDeepCleanse(cita.fecha)
-      ? ['Deep cleanse', WhatsApp.generarEnlaceDeepCleanse(cita)]
-      : null,
-    ['Recordatorio', WhatsApp.generarEnlaceRecordatorio(cita)],
-  ].filter(Boolean);
-
-  if (!botones[0][1]) {
-    return crearEl('div', { class: 'tarjeta-cita__sin-telefono', texto: 'Sin teléfono' });
-  }
-
-  return crearEl(
-    'div',
-    { class: 'tarjeta-cita__pie' },
-    botones.map(([etiqueta, enlace]) =>
-      crearEl('a', {
-        class: 'tarjeta-cita__whatsapp',
-        href: enlace,
-        target: '_blank',
-        rel: 'noopener',
-        texto: etiqueta,
-      })
-    )
-  );
-}
-
-function crearPastillaEstado(cita) {
-  return crearEl('button', {
-    type: 'button',
-    class: `pastilla-estado pastilla-estado--${cita.estado}`,
-    texto: etiquetaEstado(cita.estado),
-    onclick: async (evento) => {
-      evento.stopPropagation();
-      const nuevo = siguienteEstado(cita.estado);
-
-      // Al llegar a "Checkout" se abre el cobro; el estado se marca solo
-      // hasta que se guarde el cobro (así no se pierde el paso de cobrar).
-      if (nuevo === 'checkout') {
-        window.CobroUI.abrir(cita, () => cargarCitas());
-        return;
-      }
-
-      try {
-        await DB.actualizarEstadoCita(cita.id, nuevo);
-        cita.estado = nuevo;
-        evento.target.textContent = etiquetaEstado(nuevo);
-        evento.target.className = `pastilla-estado pastilla-estado--${nuevo}`;
-      } catch (error) {
-        mostrarMensaje('No se pudo actualizar el estado');
-        console.error(error);
-      }
-    },
-  });
-}
-
 function renderizarLista(citas) {
   listaEl.innerHTML = '';
 
@@ -140,24 +67,9 @@ function renderizarLista(citas) {
       fechaAnterior = cita.fecha;
     }
 
-    const tarjeta = crearEl('div', { class: 'tarjeta-cita' }, [
-      crearEl('div', { class: 'tarjeta-cita__cuerpo', onclick: () => abrirHojaCita(cita) }, [
-        crearEl('div', { class: 'tarjeta-cita__hora', texto: formatearHora12(cita.hora) }),
-        crearEl('div', { class: 'tarjeta-cita__info' }, [
-          crearEl('div', { class: 'tarjeta-cita__nombre', texto: cita.clientaNombre }),
-          cita.tratamientoNombre
-            ? crearEl('div', { class: 'tarjeta-cita__detalle', texto: cita.tratamientoNombre })
-            : null,
-          cita.notas
-            ? crearEl('div', { class: 'tarjeta-cita__detalle', texto: cita.notas })
-            : null,
-        ]),
-      ]),
-      crearEl('div', { class: 'tarjeta-cita__estado' }, [crearPastillaEstado(cita)]),
-      crearBotonesWhatsApp(cita),
-    ]);
-
-    listaEl.appendChild(tarjeta);
+    listaEl.appendChild(
+      TarjetaCita.crear(cita, { onEditar: abrirHojaCita, onCambio: cargarCitas })
+    );
   }
 }
 
@@ -334,6 +246,7 @@ function inicializarAgenda() {
 window.AgendaUI = {
   inicializar: inicializarAgenda,
   abrirNuevo: () => abrirHojaCita(null),
+  editar: (cita) => abrirHojaCita(cita),
   mostrar: () => cargarCitas(),
 };
 

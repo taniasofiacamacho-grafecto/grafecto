@@ -63,6 +63,13 @@
       </main>
     </section>
 
+    <section id="vista-hoy" hidden>
+      <main class="contenido contenido--sin-buscador">
+        <div id="resumen-hoy" class="resumen-ingresos"></div>
+        <div id="lista-hoy" class="lista-agenda"></div>
+      </main>
+    </section>
+
     <section id="vista-agenda" hidden>
       <main class="contenido contenido--sin-buscador">
         <div id="lista-agenda" class="lista-agenda"></div>
@@ -75,6 +82,7 @@
 
     <nav class="tabs">
       <button id="tab-clientas" class="tabs__boton tabs__boton--activo" data-vista="clientas">Clientas</button>
+      <button id="tab-hoy" class="tabs__boton" data-vista="hoy">Hoy</button>
       <button id="tab-agenda" class="tabs__boton" data-vista="agenda">Agenda</button>
     </nav>
   </div>
@@ -110,6 +118,11 @@
           Eliminar clienta
         </button>
       </form>
+
+      <div id="clienta-historial" class="clienta-historial" hidden>
+        <div class="clienta-historial__titulo">Historial de visitas</div>
+        <div id="clienta-historial-lista"></div>
+      </div>
     </div>
   </div>
 
@@ -231,7 +244,9 @@
   <script src="js/db.js"></script>
   <script src="js/clientas.js"></script>
   <script src="js/cobro.js"></script>
+  <script src="js/tarjeta-cita.js"></script>
   <script src="js/agenda.js"></script>
+  <script src="js/hoy.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

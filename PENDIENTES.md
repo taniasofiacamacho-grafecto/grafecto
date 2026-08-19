@@ -54,8 +54,8 @@ correctamente tras cerrar/abrir sesión.
    de confirmar por la usuaria.
    - [ ] Foto "antes" en la visita (queda para cuando construyamos fotos, junto
      con el consentimiento informado — necesitan almacenamiento de archivos)
-3. [ ] Historial de visitas en la ficha de la clienta (cuántas veces ha venido,
-   cuánto pagó cada vez)
+3. [x] Historial de visitas en la ficha de la clienta (fecha, tratamiento, quién
+   atendió, precio) — 2026-08-18, pendiente de confirmar por la usuaria
 4. [ ] Consentimiento informado por clienta (Firmado/Pendiente + foto del documento
    firmado) — aparece como recordatorio al marcar "Llegó"
 
@@ -75,7 +75,11 @@ correctamente tras cerrar/abrir sesión.
    uno por uno, a mano)
 10. [ ] Marcar cita como confirmada manualmente
 11. [ ] Calendario visual de disponibilidad (semana/mes)
-12. [ ] Resumen de ingresos diario y mensual
+12. [x] Resumen de ingresos diario y mensual — 2026-08-18: nueva pestaña **"Hoy"**
+    con resumen de Hoy/Semana/Mes (monto y cantidad de servicios), y las citas
+    del día en tarjetas con **fondo de color completo según su estado**
+    (Agendada/Llegó/En proceso/Checkout, a petición de la usuaria) — pendiente
+    de confirmar por la usuaria
 13. [ ] Catálogo de gastos fijos mensuales + gráfica de fin de mes
 14. [ ] Campo de método de pago (efectivo/tarjeta) + campo de fórmula con dictado por voz
 15. [ ] Catálogo de hallazgos de tricoscopía ligado a recomendaciones de producto (links Amazon)

@@ -405,6 +405,51 @@
   flex: 1;
 }
 
+/* ===== Historial de visitas (ficha de clienta) ===== */
+.clienta-historial {
+  margin-top: var(--espacio-lg);
+  padding-top: var(--espacio-lg);
+  border-top: 1px solid var(--color-borde);
+}
+
+.clienta-historial__titulo {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-texto);
+  margin-bottom: var(--espacio-sm);
+}
+
+.historial-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-sm);
+  padding: var(--espacio-sm) 0;
+}
+
+.historial-item + .historial-item {
+  border-top: 1px solid var(--color-borde);
+}
+
+.historial-item__fecha {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-texto);
+}
+
+.historial-item__detalle {
+  font-size: 0.8rem;
+  color: var(--color-texto-suave);
+  margin-top: 2px;
+}
+
+.historial-item__precio {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-primario);
+  flex-shrink: 0;
+}
+
 /* ===== Pantalla de inicio de sesión ===== */
 .pantalla-login {
   min-height: 100vh;
@@ -533,9 +578,13 @@
 .agenda-fecha {
   font-size: 0.85rem;
   font-weight: 700;
-  text-transform: capitalize;
   color: var(--color-texto-suave);
   margin: var(--espacio-md) 0 var(--espacio-xs);
+}
+
+.agenda-fecha::first-letter,
+.historial-item__fecha::first-letter {
+  text-transform: uppercase;
 }
 
 .agenda-fecha:first-child {
@@ -645,6 +694,64 @@
 .pastilla-estado--checkout {
   background: rgba(92, 138, 114, 0.15);
   color: var(--color-exito);
+}
+
+/* ===== Tarjeta de cita con fondo completo por estado (vista Hoy) ===== */
+.tarjeta-cita--agendada {
+  background: rgba(108, 122, 137, 0.16);
+  border-color: rgba(108, 122, 137, 0.45);
+}
+
+.tarjeta-cita--llego {
+  background: rgba(164, 87, 122, 0.2);
+  border-color: rgba(164, 87, 122, 0.5);
+}
+
+.tarjeta-cita--en_proceso {
+  background: rgba(77, 47, 64, 0.16);
+  border-color: rgba(77, 47, 64, 0.5);
+}
+
+.tarjeta-cita--checkout {
+  background: rgba(92, 138, 114, 0.2);
+  border-color: rgba(92, 138, 114, 0.5);
+}
+
+/* ===== Resumen de ingresos (vista Hoy) ===== */
+.resumen-ingresos {
+  display: flex;
+  gap: var(--espacio-sm);
+  margin-bottom: var(--espacio-lg);
+}
+
+.resumen-ingresos__tarjeta {
+  flex: 1;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-md);
+  padding: var(--espacio-sm);
+  text-align: center;
+}
+
+.resumen-ingresos__etiqueta {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-texto-suave);
+}
+
+.resumen-ingresos__monto {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-primario);
+  margin-top: 2px;
+}
+
+.resumen-ingresos__cantidad {
+  font-size: 0.75rem;
+  color: var(--color-texto-suave);
+  margin-top: 2px;
 }
 
 /* ===== Grupo de pastillas seleccionables (ej. promoción del cobro) ===== */

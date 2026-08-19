@@ -3,7 +3,7 @@
 
 (function () {
 
-const { crearEl, iniciales, mostrarMensaje } = window.UI;
+const { crearEl, iniciales, mostrarMensaje, formatearFechaLarga, formatearMoneda } = window.UI;
 const DB = window.GrafectoDB;
 
 let todasLasClientas = [];
@@ -18,6 +18,8 @@ const campoNombre = document.getElementById('campo-nombre');
 const campoTelefono = document.getElementById('campo-telefono');
 const campoNotas = document.getElementById('campo-notas');
 const botonEliminar = document.getElementById('boton-eliminar');
+const historialContenedor = document.getElementById('clienta-historial');
+const historialLista = document.getElementById('clienta-historial-lista');
 
 async function cargarClientas() {
   todasLasClientas = await DB.listarClientas();
@@ -66,13 +68,56 @@ function filtrarClientas() {
   renderizarLista(filtradas);
 }
 
-function abrirHoja(clienta = null) {
+async function mostrarHistorial(clientaId) {
+  historialContenedor.hidden = false;
+  historialLista.innerHTML = '';
+  historialLista.appendChild(crearEl('div', { class: 'campo__ayuda', texto: 'Cargando…' }));
+
+  try {
+    const visitas = await DB.listarVisitasDeClienta(clientaId);
+    historialLista.innerHTML = '';
+
+    if (visitas.length === 0) {
+      historialLista.appendChild(
+        crearEl('div', { class: 'campo__ayuda', texto: 'Todavía no tiene visitas registradas.' })
+      );
+      return;
+    }
+
+    for (const visita of visitas) {
+      const detalle = [visita.tratamientoNombre, visita.estilista].filter(Boolean).join(' · ');
+      historialLista.appendChild(
+        crearEl('div', { class: 'historial-item' }, [
+          crearEl('div', { class: 'historial-item__info' }, [
+            crearEl('div', { class: 'historial-item__fecha', texto: formatearFechaLarga(visita.fecha) }),
+            detalle ? crearEl('div', { class: 'historial-item__detalle', texto: detalle }) : null,
+          ]),
+          crearEl('div', { class: 'historial-item__precio', texto: formatearMoneda(visita.precio) }),
+        ])
+      );
+    }
+  } catch (error) {
+    historialLista.innerHTML = '';
+    historialLista.appendChild(
+      crearEl('div', { class: 'campo__ayuda', texto: 'No se pudo cargar el historial.' })
+    );
+    console.error(error);
+  }
+}
+
+async function abrirHoja(clienta = null) {
   idEnEdicion = clienta ? clienta.id : null;
   hojaTitulo.textContent = clienta ? 'Editar clienta' : 'Nueva clienta';
   campoNombre.value = clienta ? clienta.nombre : '';
   campoTelefono.value = clienta ? clienta.telefono : '';
   campoNotas.value = clienta ? clienta.notas : '';
   botonEliminar.hidden = !clienta;
+
+  if (clienta) {
+    await mostrarHistorial(clienta.id);
+  } else {
+    historialContenedor.hidden = true;
+  }
 
   fondoHoja.classList.add('abierta');
   setTimeout(() => campoNombre.focus(), 250);
