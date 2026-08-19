@@ -286,6 +286,148 @@ async function asegurarTratamientosPorDefecto() {
   if (errorInsertar) throw errorInsertar;
 }
 
+// ===== Horario base y excepciones (disponibilidad) =====
+
+const TABLA_HORARIO_SEMANAL = 'horario_semanal';
+const TABLA_HORARIO_EXCEPCIONES = 'horario_excepciones';
+
+function filaAHorarioDia(fila) {
+  return {
+    id: fila.id,
+    diaSemana: fila.dia_semana,
+    abierto: fila.abierto,
+    horaInicio: fila.hora_inicio,
+    horaFin: fila.hora_fin,
+  };
+}
+
+async function listarHorarioSemanal() {
+  const { data, error } = await GrafectoAuth.cliente
+    .from(TABLA_HORARIO_SEMANAL)
+    .select('*')
+    .order('dia_semana', { ascending: true });
+
+  if (error) throw error;
+  return data.map(filaAHorarioDia);
+}
+
+// La primera vez, crea los 7 días (todos cerrados por defecto) para que
+// siempre haya algo que editar, sin necesitar un insert manual por SQL.
+async function asegurarHorarioPorDefecto() {
+  const { count, error } = await GrafectoAuth.cliente
+    .from(TABLA_HORARIO_SEMANAL)
+    .select('*', { count: 'exact', head: true });
+
+  if (error) throw error;
+  if (count > 0) return;
+
+  const filas = [0, 1, 2, 3, 4, 5, 6].map((dia) => ({
+    dia_semana: dia,
+    abierto: false,
+    hora_inicio: '10:00',
+    hora_fin: '18:00',
+  }));
+
+  const { error: errorInsertar } = await GrafectoAuth.cliente
+    .from(TABLA_HORARIO_SEMANAL)
+    .insert(filas);
+
+  if (errorInsertar) throw errorInsertar;
+}
+
+async function actualizarDiaHorario(diaSemana, { abierto, horaInicio, horaFin }) {
+  const { error } = await GrafectoAuth.cliente
+    .from(TABLA_HORARIO_SEMANAL)
+    .update({ abierto, hora_inicio: horaInicio, hora_fin: horaFin })
+    .eq('dia_semana', diaSemana);
+
+  if (error) throw error;
+}
+
+function filaAExcepcion(fila) {
+  return {
+    id: fila.id,
+    fecha: fila.fecha,
+    abierto: fila.abierto,
+    horaInicio: fila.hora_inicio,
+    horaFin: fila.hora_fin,
+  };
+}
+
+async function listarExcepciones() {
+  const { data, error } = await GrafectoAuth.cliente
+    .from(TABLA_HORARIO_EXCEPCIONES)
+    .select('*')
+    .gte('fecha', UI.fechaHoyISO())
+    .order('fecha', { ascending: true });
+
+  if (error) throw error;
+  return data.map(filaAExcepcion);
+}
+
+async function agregarExcepcion(datos) {
+  const { error } = await GrafectoAuth.cliente
+    .from(TABLA_HORARIO_EXCEPCIONES)
+    .upsert(
+      {
+        fecha: datos.fecha,
+        abierto: datos.abierto,
+        hora_inicio: datos.abierto ? datos.horaInicio : null,
+        hora_fin: datos.abierto ? datos.horaFin : null,
+      },
+      { onConflict: 'user_id,fecha' }
+    );
+
+  if (error) throw error;
+}
+
+async function eliminarExcepcion(id) {
+  const { error } = await GrafectoAuth.cliente.from(TABLA_HORARIO_EXCEPCIONES).delete().eq('id', id);
+  if (error) throw error;
+}
+
+// Bloqueos manuales: una hora que la usuaria aparta sin que haya una cita
+// (comida, algo personal, etc.) — cuenta como "ocupado" igual que una cita.
+const TABLA_HORARIO_BLOQUEOS = 'horario_bloqueos';
+
+function filaABloqueo(fila) {
+  return {
+    id: fila.id,
+    fecha: fila.fecha,
+    horaInicio: fila.hora_inicio,
+    horaFin: fila.hora_fin,
+    motivo: fila.motivo || '',
+  };
+}
+
+async function listarBloqueos() {
+  const { data, error } = await GrafectoAuth.cliente
+    .from(TABLA_HORARIO_BLOQUEOS)
+    .select('*')
+    .gte('fecha', UI.fechaHoyISO())
+    .order('fecha', { ascending: true })
+    .order('hora_inicio', { ascending: true });
+
+  if (error) throw error;
+  return data.map(filaABloqueo);
+}
+
+async function agregarBloqueo(datos) {
+  const { error } = await GrafectoAuth.cliente.from(TABLA_HORARIO_BLOQUEOS).insert({
+    fecha: datos.fecha,
+    hora_inicio: datos.horaInicio,
+    hora_fin: datos.horaFin,
+    motivo: (datos.motivo || '').trim(),
+  });
+
+  if (error) throw error;
+}
+
+async function eliminarBloqueo(id) {
+  const { error } = await GrafectoAuth.cliente.from(TABLA_HORARIO_BLOQUEOS).delete().eq('id', id);
+  if (error) throw error;
+}
+
 // ===== Visitas (bitácora / cobro) =====
 
 function filaAVisita(fila) {
@@ -368,6 +510,15 @@ window.GrafectoDB = {
   obtenerUrlFoto,
   listarTratamientos,
   asegurarTratamientosPorDefecto,
+  listarHorarioSemanal,
+  asegurarHorarioPorDefecto,
+  actualizarDiaHorario,
+  listarExcepciones,
+  agregarExcepcion,
+  eliminarExcepcion,
+  listarBloqueos,
+  agregarBloqueo,
+  eliminarBloqueo,
   agregarVisita,
   listarVisitasDeClienta,
   listarVisitasEnRango,

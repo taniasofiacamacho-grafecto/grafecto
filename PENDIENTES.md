@@ -90,15 +90,20 @@ la usuaria
    a quién le falta enviar el recordatorio de mañana — hoy el botón existe pero se manda
    uno por uno, a mano)
 10. [ ] Marcar cita como confirmada manualmente
-11. [ ] Calendario visual de disponibilidad (semana/mes) — **detalle del flujo real
-    (2026-08-18)**: la usuaria no abre todos los días ni siempre el mismo horario;
-    antes llevaba una lista aparte en Notes con los horarios disponibles de las
-    próximas ~3 semanas, y al agendar una cita borraba ese horario de la lista a
-    mano (copy-paste). La solución: ella define sus horarios disponibles por
-    semana dentro de la app (ej. "lunes 10am–2pm, miércoles 3–7pm", variable
-    semana a semana), y la app calcula solo los horarios que siguen libres
-    restando las citas ya agendadas — automático, sin lista aparte ni borrar nada
-    a mano.
+11. Calendario visual de disponibilidad (semana/mes) — reemplaza la lista aparte
+    en Notes que llevaba antes (~3 semanas con copy-paste manual). Se construye
+    en partes:
+    - [x] **Horario base + excepciones + bloqueos manuales** (2026-08-19): nueva
+      pestaña "Horario" — 7 días de la semana (on/off + hora, se repite cada
+      semana, se guarda solo sin botón), excepciones para fechas puntuales
+      (cerrar un día normal, o abrir uno extra), y bloqueos manuales de una hora
+      sin necesidad de cita (comida, personal, etc. — se apartan igual que una
+      cita) — pendiente de confirmar por la usuaria
+    - [ ] Calendario visual de semana (ver de un vistazo qué está libre/ocupado)
+    - [ ] Vista de mes
+    - [ ] Lista de horarios libres formateada para compartir por WhatsApp (la
+      usuaria la copia/manda manualmente; la clienta contesta y ella agenda —
+      **sin auto-reservación por ahora**, esa se evaluará aparte más adelante)
 12. [x] Resumen de ingresos diario y mensual — 2026-08-18: nueva pestaña **"Hoy"**
     con resumen de Hoy/Semana/Mes (monto y cantidad de servicios), y las citas
     del día en tarjetas con **fondo de color completo según su estado**

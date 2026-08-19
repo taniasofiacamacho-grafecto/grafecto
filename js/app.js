@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     clientas: document.getElementById('vista-clientas'),
     hoy: document.getElementById('vista-hoy'),
     agenda: document.getElementById('vista-agenda'),
+    calendario: document.getElementById('vista-calendario'),
   };
 
   let appInicializada = false;
@@ -27,6 +28,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       window.AgendaUI.inicializar();
       window.CobroUI.inicializar();
       window.NotasVisitaUI.inicializar();
+      window.HorarioUI.inicializar();
       window.GrafectoDB.asegurarTratamientosPorDefecto().catch((error) => {
         console.warn('No se pudieron crear los tratamientos por defecto:', error);
       });
@@ -50,6 +52,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (vista === 'agenda') window.AgendaUI.mostrar();
     if (vista === 'hoy') window.HoyUI.mostrar();
+    if (vista === 'calendario') window.HorarioUI.mostrar();
+
+    botonAgregar.hidden = vista === 'calendario';
   }
 
   tabs.forEach((tab) => {
@@ -58,7 +63,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   botonAgregar.addEventListener('click', () => {
     if (vistaActiva === 'clientas') window.ClientasUI.abrirNuevo();
-    else window.AgendaUI.abrirNuevo();
+    else if (vistaActiva === 'agenda' || vistaActiva === 'hoy') window.AgendaUI.abrirNuevo();
   });
 
   GrafectoAuth.alCambiarSesion((sesion) => {

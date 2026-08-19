@@ -854,3 +854,124 @@
   color: var(--color-texto-suave);
   border-top: 1px solid var(--color-borde);
 }
+
+/* ===== Horario base / excepciones / bloqueos ===== */
+.calendario-seccion {
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-md);
+  padding: var(--espacio-md);
+  margin-bottom: var(--espacio-lg);
+}
+
+.calendario-seccion__titulo {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-texto);
+  margin-bottom: 4px;
+}
+
+.calendario-seccion .campo__ayuda {
+  margin-bottom: var(--espacio-md);
+}
+
+.horario-dia {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-sm);
+  padding: var(--espacio-sm) 0;
+  flex-wrap: wrap;
+}
+
+.horario-dia + .horario-dia {
+  border-top: 1px solid var(--color-borde);
+}
+
+.horario-dia__nombre {
+  width: 90px;
+  flex-shrink: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-texto);
+}
+
+.horario-dia__horas {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-xs);
+  flex: 1;
+}
+
+.horario-dia__horas input[type="time"] {
+  min-height: 40px;
+  border-radius: var(--radio-sm);
+  border: 1px solid var(--color-borde);
+  padding: 0 8px;
+  font-size: 0.9rem;
+  color: var(--color-texto);
+  flex: 1;
+  min-width: 0;
+}
+
+.horario-dia__horas span {
+  color: var(--color-texto-suave);
+  font-size: 0.85rem;
+}
+
+.fila-horas {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-sm);
+}
+
+.fila-horas input[type="time"] {
+  flex: 1;
+  min-height: var(--toque-min);
+  border-radius: var(--radio-sm);
+  border: 1px solid var(--color-borde);
+  padding: 0 var(--espacio-sm);
+  font-size: 1rem;
+  color: var(--color-texto);
+}
+
+.fila-horas span {
+  color: var(--color-texto-suave);
+}
+
+.horario-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-sm);
+  padding: var(--espacio-sm) 0;
+}
+
+.horario-item + .horario-item {
+  border-top: 1px solid var(--color-borde);
+}
+
+.horario-item__fecha {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-texto);
+  text-transform: capitalize;
+}
+
+.horario-item__detalle {
+  font-size: 0.8rem;
+  color: var(--color-texto-suave);
+  margin-top: 2px;
+}
+
+.horario-item__eliminar {
+  width: 32px;
+  height: 32px;
+  min-height: unset;
+  border-radius: 50%;
+  border: none;
+  background: rgba(163, 69, 63, 0.1);
+  color: var(--color-peligro);
+  font-size: 0.9rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}

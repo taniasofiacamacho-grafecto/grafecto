@@ -74,6 +74,30 @@
       </main>
     </section>
 
+    <section id="vista-calendario" hidden>
+      <main class="contenido contenido--sin-buscador">
+        <div class="calendario-seccion">
+          <div class="calendario-seccion__titulo">Horario base</div>
+          <p class="campo__ayuda">Se repite cada semana. Los cambios se guardan solos, no hace falta botón de Guardar.</p>
+          <div id="horario-semanal-lista"></div>
+        </div>
+
+        <div class="calendario-seccion">
+          <div class="calendario-seccion__titulo">Excepciones</div>
+          <p class="campo__ayuda">Para un día puntual distinto a tu horario normal (cerrar uno abierto, o abrir uno extra).</p>
+          <div id="excepciones-lista"></div>
+          <button type="button" id="boton-agregar-excepcion" class="boton boton--secundario boton--ancho-completo">+ Agregar excepción</button>
+        </div>
+
+        <div class="calendario-seccion">
+          <div class="calendario-seccion__titulo">Bloqueos manuales</div>
+          <p class="campo__ayuda">Aparta una hora aunque no haya cita (comida, algo personal, etc.)</p>
+          <div id="bloqueos-lista"></div>
+          <button type="button" id="boton-agregar-bloqueo" class="boton boton--secundario boton--ancho-completo">+ Bloquear una hora</button>
+        </div>
+      </main>
+    </section>
+
     <div class="contenedor-flotante">
       <button id="boton-agregar" class="boton-flotante" aria-label="Agregar">+</button>
     </div>
@@ -82,6 +106,7 @@
       <button id="tab-clientas" class="tabs__boton tabs__boton--activo" data-vista="clientas">Clientas</button>
       <button id="tab-hoy" class="tabs__boton" data-vista="hoy">Hoy</button>
       <button id="tab-agenda" class="tabs__boton" data-vista="agenda">Agenda</button>
+      <button id="tab-calendario" class="tabs__boton" data-vista="calendario">Horario</button>
     </nav>
   </div>
 
@@ -271,6 +296,77 @@
     </div>
   </div>
 
+  <!-- Hoja modal: agregar excepción de horario -->
+  <div id="fondo-hoja-excepcion" class="fondo-hoja">
+    <div class="hoja">
+      <div class="hoja__manija"></div>
+      <div class="hoja__titulo">Nueva excepción</div>
+
+      <form id="formulario-excepcion">
+        <div class="campo">
+          <label for="excepcion-fecha">Fecha *</label>
+          <input id="excepcion-fecha" type="date" required />
+        </div>
+
+        <div class="campo">
+          <label>¿Qué pasa ese día?</label>
+          <div id="excepcion-tipo" class="grupo-pastillas">
+            <button type="button" class="pastilla-opcion pastilla-opcion--activa" data-valor="cerrado">Cerrar todo el día</button>
+            <button type="button" class="pastilla-opcion" data-valor="abierto">Horario distinto</button>
+          </div>
+        </div>
+
+        <div id="excepcion-horas" class="campo" hidden>
+          <label>Horario ese día</label>
+          <div class="fila-horas">
+            <input id="excepcion-hora-inicio" type="time" />
+            <span>a</span>
+            <input id="excepcion-hora-fin" type="time" />
+          </div>
+        </div>
+
+        <div class="fila-botones">
+          <button type="button" id="boton-cerrar-hoja-excepcion" class="boton boton--secundario">Cancelar</button>
+          <button type="submit" class="boton boton--primario">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Hoja modal: agregar bloqueo manual -->
+  <div id="fondo-hoja-bloqueo" class="fondo-hoja">
+    <div class="hoja">
+      <div class="hoja__manija"></div>
+      <div class="hoja__titulo">Bloquear una hora</div>
+
+      <form id="formulario-bloqueo">
+        <div class="campo">
+          <label for="bloqueo-fecha">Fecha *</label>
+          <input id="bloqueo-fecha" type="date" required />
+        </div>
+
+        <div class="campo">
+          <label>Horario *</label>
+          <div class="fila-horas">
+            <input id="bloqueo-hora-inicio" type="time" required />
+            <span>a</span>
+            <input id="bloqueo-hora-fin" type="time" required />
+          </div>
+        </div>
+
+        <div class="campo">
+          <label for="bloqueo-motivo">Motivo (opcional)</label>
+          <input id="bloqueo-motivo" type="text" placeholder="Comida, personal…" />
+        </div>
+
+        <div class="fila-botones">
+          <button type="button" id="boton-cerrar-hoja-bloqueo" class="boton boton--secundario">Cancelar</button>
+          <button type="submit" class="boton boton--primario">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script src="lib/supabase.js"></script>
   <script src="js/config.js"></script>
   <script src="js/auth.js"></script>
@@ -284,6 +380,7 @@
   <script src="js/tarjeta-cita.js"></script>
   <script src="js/agenda.js"></script>
   <script src="js/hoy.js"></script>
+  <script src="js/horario.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
