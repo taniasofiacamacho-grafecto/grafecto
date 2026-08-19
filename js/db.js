@@ -33,6 +33,7 @@ function filaAClienta(fila) {
     telefono: fila.telefono || '',
     notas: fila.notas || '',
     fechaAlta: fila.fecha_alta,
+    consentimientoFecha: fila.consentimiento_fecha || null,
   };
 }
 
@@ -92,6 +93,15 @@ async function actualizarClienta(id, datos) {
 
 async function eliminarClienta(id) {
   const { error } = await GrafectoAuth.cliente.from(TABLA_CLIENTAS).delete().eq('id', id);
+  if (error) throw error;
+}
+
+async function actualizarConsentimiento(id, fecha) {
+  const { error } = await GrafectoAuth.cliente
+    .from(TABLA_CLIENTAS)
+    .update({ consentimiento_fecha: fecha })
+    .eq('id', id);
+
   if (error) throw error;
 }
 
@@ -284,6 +294,7 @@ window.GrafectoDB = {
   agregarClienta,
   actualizarClienta,
   eliminarClienta,
+  actualizarConsentimiento,
   listarCitas,
   agregarCita,
   actualizarCita,

@@ -397,6 +397,30 @@
   flex: 1;
 }
 
+/* ===== Consentimiento informado (ficha de clienta) ===== */
+.consentimiento-estado {
+  display: inline-block;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.consentimiento-estado--pendiente {
+  background: rgba(108, 122, 137, 0.15);
+  color: var(--color-azul-grisaceo);
+}
+
+.consentimiento-estado--firmado {
+  background: rgba(92, 138, 114, 0.15);
+  color: var(--color-exito);
+}
+
+.consentimiento-estado--vencido {
+  background: rgba(184, 134, 63, 0.15);
+  color: var(--color-alerta);
+}
+
 /* ===== Historial de visitas (ficha de clienta) ===== */
 .clienta-historial {
   margin-top: var(--espacio-lg);

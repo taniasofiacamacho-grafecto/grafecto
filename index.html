@@ -107,6 +107,14 @@
           <textarea id="campo-notas" placeholder="Preferencias, alergias, historial general…"></textarea>
         </div>
 
+        <div id="campo-consentimiento" class="campo" hidden>
+          <label>Consentimiento informado</label>
+          <div id="consentimiento-estado" class="consentimiento-estado"></div>
+          <button type="button" id="boton-marcar-consentimiento" class="boton boton--secundario boton--ancho-completo" style="margin-top: 8px;">
+            Marcar como firmado hoy
+          </button>
+        </div>
+
         <div class="fila-botones">
           <button type="button" id="boton-cerrar-hoja" class="boton boton--secundario">Cancelar</button>
           <button type="submit" class="boton boton--primario">Guardar</button>

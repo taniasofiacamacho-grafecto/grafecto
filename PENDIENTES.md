@@ -52,12 +52,24 @@ correctamente tras cerrar/abrir sesión.
    (Alma/Betty/Isabel/Otra) y notas de técnica **con dictado por voz**. Queda
    guardado como "visita" ligada a la clienta y a la cita — 2026-08-18, pendiente
    de confirmar por la usuaria.
-   - [ ] Foto "antes" en la visita (queda para cuando construyamos fotos, junto
-     con el consentimiento informado — necesitan almacenamiento de archivos)
+   - [ ] Foto "antes" en la visita — ver nueva sección de "Notas y foto durante
+     la visita" más abajo (2026-08-19), necesita almacenamiento de archivos
 3. [x] Historial de visitas en la ficha de la clienta (fecha, tratamiento, quién
-   atendió, precio) — 2026-08-18, pendiente de confirmar por la usuaria
-4. [ ] Consentimiento informado por clienta (Firmado/Pendiente + foto del documento
-   firmado) — aparece como recordatorio al marcar "Llegó"
+   atendió, precio; toca cada registro para desplegar longitud/promoción/notas
+   completas) — 2026-08-18, confirmado por la usuaria
+4. [x] Consentimiento informado — **simplificado (2026-08-19):** la usuaria
+   guarda el documento firmado en papel, no hace falta foto. Solo una casilla
+   en la ficha de la clienta con la fecha en que se marcó como firmado; si pasa
+   más de un año se muestra como **vencido** (la vigencia real es de 1 año) —
+   pendiente de confirmar por la usuaria
+
+**Notas y foto durante la visita (2026-08-19, a petición de la usuaria):**
+Antes solo se podían capturar notas/foto hasta el checkout, y para entonces ya
+había atendido a varias clientas y se le olvidaba. Se necesita poder abrir una
+ficha rápida desde que la cita está en "Llegó" o "En proceso" para anotar la
+técnica (con dictado) y subir una foto desde la galería del celular, en el
+momento — sin esperar al cobro. Requiere almacenamiento de archivos (Supabase
+Storage). — [ ] por construir
 
 5. [x] Dictado por voz (Web Speech API) — 2026-08-18: módulo reutilizable
    (`js/dictado.js`), conectado por ahora a las notas de técnica del cobro;

@@ -3,11 +3,14 @@
 
 (function () {
 
-const { crearEl, iniciales, mostrarMensaje, formatearFechaLarga, formatearMoneda } = window.UI;
+const { crearEl, iniciales, mostrarMensaje, formatearFechaLarga, formatearMoneda, fechaHoyISO } = window.UI;
 const DB = window.GrafectoDB;
+
+const VIGENCIA_CONSENTIMIENTO_DIAS = 365;
 
 let todasLasClientas = [];
 let idEnEdicion = null;
+let consentimientoFechaActual = null;
 
 const listaEl = document.getElementById('lista-clientas');
 const buscadorInput = document.getElementById('buscador-input');
@@ -20,6 +23,9 @@ const campoNotas = document.getElementById('campo-notas');
 const botonEliminar = document.getElementById('boton-eliminar');
 const historialContenedor = document.getElementById('clienta-historial');
 const historialLista = document.getElementById('clienta-historial-lista');
+const campoConsentimiento = document.getElementById('campo-consentimiento');
+const consentimientoEstado = document.getElementById('consentimiento-estado');
+const botonMarcarConsentimiento = document.getElementById('boton-marcar-consentimiento');
 
 async function cargarClientas() {
   todasLasClientas = await DB.listarClientas();
@@ -143,6 +149,46 @@ async function mostrarHistorial(clientaId) {
   }
 }
 
+function diasEntreISO(fechaInicioISO, fechaFinISO) {
+  const [a1, m1, d1] = fechaInicioISO.split('-').map(Number);
+  const [a2, m2, d2] = fechaFinISO.split('-').map(Number);
+  const msPorDia = 24 * 60 * 60 * 1000;
+  return Math.round((Date.UTC(a2, m2 - 1, d2) - Date.UTC(a1, m1 - 1, d1)) / msPorDia);
+}
+
+function renderizarEstadoConsentimiento() {
+  if (!consentimientoFechaActual) {
+    consentimientoEstado.textContent = 'Pendiente';
+    consentimientoEstado.className = 'consentimiento-estado consentimiento-estado--pendiente';
+    return;
+  }
+
+  const dias = diasEntreISO(consentimientoFechaActual, fechaHoyISO());
+  const vencido = dias > VIGENCIA_CONSENTIMIENTO_DIAS;
+
+  consentimientoEstado.textContent = vencido
+    ? `Vencido desde ${formatearFechaLarga(consentimientoFechaActual)} — hay que renovarlo`
+    : `Firmado el ${formatearFechaLarga(consentimientoFechaActual)}`;
+  consentimientoEstado.className = vencido
+    ? 'consentimiento-estado consentimiento-estado--vencido'
+    : 'consentimiento-estado consentimiento-estado--firmado';
+}
+
+async function manejarMarcarConsentimiento() {
+  if (!idEnEdicion) return;
+
+  try {
+    const hoy = fechaHoyISO();
+    await DB.actualizarConsentimiento(idEnEdicion, hoy);
+    consentimientoFechaActual = hoy;
+    renderizarEstadoConsentimiento();
+    mostrarMensaje('Consentimiento marcado como firmado');
+  } catch (error) {
+    mostrarMensaje('No se pudo actualizar el consentimiento');
+    console.error(error);
+  }
+}
+
 async function abrirHoja(clienta = null) {
   idEnEdicion = clienta ? clienta.id : null;
   hojaTitulo.textContent = clienta ? 'Editar clienta' : 'Nueva clienta';
@@ -153,8 +199,12 @@ async function abrirHoja(clienta = null) {
 
   if (clienta) {
     await mostrarHistorial(clienta.id);
+    consentimientoFechaActual = clienta.consentimientoFecha;
+    renderizarEstadoConsentimiento();
+    campoConsentimiento.hidden = false;
   } else {
     historialContenedor.hidden = true;
+    campoConsentimiento.hidden = true;
   }
 
   fondoHoja.classList.add('abierta');
@@ -213,6 +263,7 @@ function inicializarClientas() {
   });
   formulario.addEventListener('submit', manejarGuardar);
   botonEliminar.addEventListener('click', manejarEliminar);
+  botonMarcarConsentimiento.addEventListener('click', manejarMarcarConsentimiento);
 
   cargarClientas();
 }
