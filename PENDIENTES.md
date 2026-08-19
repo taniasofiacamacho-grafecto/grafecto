@@ -176,6 +176,10 @@ original) — se corrigen en cuanto se detectan, no hay que esperar su turno.
   (monto y cantidad de servicios) y una gráfica de barras sencilla con las
   ventas de cada día de la semana actual (lunes a domingo), resaltando el día
   de hoy. Se actualiza sola al registrar una venta pasada, sin salir de la
-  pestaña — pendiente de confirmar por la usuaria. Sigue pendiente (no
-  empezar sin su confirmación primero): desglose por estilista (clientas
-  atendidas + ventas totales por cada una).
+  pestaña — confirmado por la usuaria.
+- [x] 2026-08-19: **Servicios por estilista** dentro de Reportes: nombre de
+  cada estilista y cuántos servicios hizo, con pastillas para alternar entre
+  Hoy / Semana / Mes (mismos periodos que las tarjetas de arriba — el mes
+  siempre va del día 1 al último día del mes calendario). Las visitas sin
+  estilista capturado se agrupan bajo "(sin especificar)" — pendiente de
+  confirmar por la usuaria.
