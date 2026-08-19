@@ -139,6 +139,15 @@ function generarTextoDisponibilidad(gruposPorFecha) {
   );
 }
 
+// No va dirigido a un teléfono en particular (no hay número): WhatsApp abre
+// su selector de a quién mandárselo. Puede llegar marcado como "reenviado"
+// por no tener un destinatario fijo — es una limitación de WhatsApp, no de la app.
+function generarEnlaceDisponibilidad(gruposPorFecha) {
+  const texto = generarTextoDisponibilidad(gruposPorFecha);
+  if (!texto) return null;
+  return `https://wa.me/?text=${encodeURIComponent(texto)}`;
+}
+
 window.WhatsApp = {
   formatearTelefonoWhatsApp,
   debeSugerirDeepCleanse,
@@ -146,6 +155,7 @@ window.WhatsApp = {
   generarEnlaceDeepCleanse,
   generarEnlaceRecordatorio,
   generarTextoDisponibilidad,
+  generarEnlaceDisponibilidad,
 };
 
 })();
