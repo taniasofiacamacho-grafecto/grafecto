@@ -81,6 +81,22 @@ function crearPastillaEstado(cita, onCambio) {
   });
 }
 
+// Disponible desde que la clienta llega (no hace falta esperar al cobro).
+function crearBotonNotas(cita, onCambio) {
+  if (cita.estado === 'agendada') return null;
+
+  const tieneContenido = Boolean(cita.notasVisita || cita.fotoPath);
+  return crearEl('button', {
+    type: 'button',
+    class: tieneContenido ? 'boton-notas-visita boton-notas-visita--con-datos' : 'boton-notas-visita',
+    texto: tieneContenido ? '📝 Notas' : '📝 Agregar notas',
+    onclick: (evento) => {
+      evento.stopPropagation();
+      window.NotasVisitaUI.abrir(cita, onCambio);
+    },
+  });
+}
+
 // opciones: { colorFondo: boolean, onEditar: (cita) => void, onCambio: () => void }
 function crear(cita, opciones = {}) {
   const clases = ['tarjeta-cita'];
@@ -102,7 +118,10 @@ function crear(cita, opciones = {}) {
           : null,
       ]),
     ]),
-    crearEl('div', { class: 'tarjeta-cita__estado' }, [crearPastillaEstado(cita, onCambio)]),
+    crearEl('div', { class: 'tarjeta-cita__estado' }, [
+      crearPastillaEstado(cita, onCambio),
+      crearBotonNotas(cita, onCambio),
+    ]),
     crearBotonesWhatsApp(cita),
   ]);
 }

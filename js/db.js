@@ -122,6 +122,8 @@ function filaACita(fila) {
     hora: fila.hora,
     notas: fila.notas || '',
     estado: fila.estado || 'agendada',
+    notasVisita: fila.notas_visita || '',
+    fotoPath: fila.foto_path || null,
   };
 }
 
@@ -187,6 +189,66 @@ async function actualizarEstadoCita(id, estado) {
   if (error) throw error;
 }
 
+// Notas y foto capturadas durante la visita (antes del cobro). fotoPath puede
+// ser null si no se cambió la foto (para no borrarla al solo editar notas).
+async function actualizarNotasVisita(id, { notas, fotoPath }) {
+  const cambios = { notas_visita: notas };
+  if (fotoPath !== undefined) cambios.foto_path = fotoPath;
+
+  const { error } = await GrafectoAuth.cliente.from(TABLA_CITAS).update(cambios).eq('id', id);
+  if (error) throw error;
+}
+
+// ===== Fotos (Supabase Storage, bucket privado "fotos") =====
+
+const BUCKET_FOTOS = 'fotos';
+
+// Comprime la imagen en el navegador antes de subirla (máximo 1280px de lado,
+// calidad 0.7) para no gastar espacio ni datos móviles.
+function comprimirImagen(archivo) {
+  return new Promise((resolve, reject) => {
+    const lector = new FileReader();
+    lector.onerror = () => reject(new Error('No se pudo leer la imagen'));
+    lector.onload = () => {
+      const imagen = new Image();
+      imagen.onerror = () => reject(new Error('No se pudo procesar la imagen'));
+      imagen.onload = () => {
+        const maxLado = 1280;
+        const escala = Math.min(1, maxLado / Math.max(imagen.width, imagen.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(imagen.width * escala);
+        canvas.height = Math.round(imagen.height * escala);
+        canvas.getContext('2d').drawImage(imagen, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.7);
+      };
+      imagen.src = lector.result;
+    };
+    lector.readAsDataURL(archivo);
+  });
+}
+
+async function subirFotoVisita(citaId, archivo) {
+  const sesion = await GrafectoAuth.obtenerSesion();
+  const blob = await comprimirImagen(archivo);
+  const ruta = `${sesion.user.id}/${citaId}-${Date.now()}.jpg`;
+
+  const { error } = await GrafectoAuth.cliente.storage
+    .from(BUCKET_FOTOS)
+    .upload(ruta, blob, { contentType: 'image/jpeg' });
+
+  if (error) throw error;
+  return ruta;
+}
+
+async function obtenerUrlFoto(ruta) {
+  const { data, error } = await GrafectoAuth.cliente.storage
+    .from(BUCKET_FOTOS)
+    .createSignedUrl(ruta, 3600);
+
+  if (error) throw error;
+  return data.signedUrl;
+}
+
 // ===== Tratamientos =====
 
 function filaATratamiento(fila) {
@@ -239,10 +301,11 @@ function filaAVisita(fila) {
     longitud: fila.longitud || '',
     estilista: fila.estilista || '',
     notas: fila.notas || '',
+    fotoPath: fila.cita?.foto_path || null,
   };
 }
 
-const SELECT_VISITA_CON_TRATAMIENTO = '*, tratamiento:tratamientos(nombre)';
+const SELECT_VISITA_CON_TRATAMIENTO = '*, tratamiento:tratamientos(nombre), cita:citas(foto_path)';
 
 async function agregarVisita(datos) {
   const { data, error } = await GrafectoAuth.cliente
@@ -300,6 +363,9 @@ window.GrafectoDB = {
   actualizarCita,
   eliminarCita,
   actualizarEstadoCita,
+  actualizarNotasVisita,
+  subirFotoVisita,
+  obtenerUrlFoto,
   listarTratamientos,
   asegurarTratamientosPorDefecto,
   agregarVisita,

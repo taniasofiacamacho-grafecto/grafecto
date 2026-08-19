@@ -68,8 +68,12 @@ Antes solo se podían capturar notas/foto hasta el checkout, y para entonces ya
 había atendido a varias clientas y se le olvidaba. Se necesita poder abrir una
 ficha rápida desde que la cita está en "Llegó" o "En proceso" para anotar la
 técnica (con dictado) y subir una foto desde la galería del celular, en el
-momento — sin esperar al cobro. Requiere almacenamiento de archivos (Supabase
-Storage). — [ ] por construir
+momento — sin esperar al cobro. Botón "📝 Agregar notas" en cada tarjeta de
+cita (visible desde "Llegó"), foto comprimida automáticamente antes de subirse
+a Supabase Storage (bucket privado "fotos"). El cobro precarga esas notas para
+no volver a escribirlas, y la foto se puede ver después en el historial de la
+clienta (se toca el registro para desplegarla) — 2026-08-19, pendiente de
+confirmar por la usuaria
 
 5. [x] Dictado por voz (Web Speech API) — 2026-08-18: módulo reutilizable
    (`js/dictado.js`), conectado por ahora a las notas de técnica del cobro;

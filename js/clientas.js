@@ -93,20 +93,39 @@ function crearItemHistorial(visita) {
     visita.notas ? `Notas: ${visita.notas}` : null,
   ].filter(Boolean);
 
+  const fotoImg = visita.fotoPath
+    ? crearEl('img', { class: 'notas-visita-foto-preview', hidden: true })
+    : null;
+
   const expandido = crearEl(
     'div',
     { class: 'historial-item__expandido', hidden: true },
-    detallesExpandidos.length > 0
-      ? detallesExpandidos.map((texto) => crearEl('div', { class: 'historial-item__expandido-linea', texto }))
-      : [crearEl('div', { class: 'historial-item__expandido-linea', texto: 'Sin más detalles capturados.' })]
+    [
+      fotoImg,
+      ...(detallesExpandidos.length > 0
+        ? detallesExpandidos.map((texto) => crearEl('div', { class: 'historial-item__expandido-linea', texto }))
+        : [crearEl('div', { class: 'historial-item__expandido-linea', texto: 'Sin más detalles capturados.' })]),
+    ]
   );
+
+  let fotoCargada = false;
 
   const resumen = crearEl(
     'div',
     {
       class: 'historial-item__resumen',
-      onclick: () => {
+      onclick: async () => {
         expandido.hidden = !expandido.hidden;
+
+        if (!expandido.hidden && visita.fotoPath && !fotoCargada) {
+          fotoCargada = true;
+          try {
+            fotoImg.src = await DB.obtenerUrlFoto(visita.fotoPath);
+            fotoImg.hidden = false;
+          } catch (error) {
+            console.error(error);
+          }
+        }
       },
     },
     [

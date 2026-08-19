@@ -695,7 +695,37 @@
 }
 
 .tarjeta-cita__estado {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-sm);
   padding: 0 var(--espacio-md) var(--espacio-sm);
+}
+
+.boton-notas-visita {
+  border: 1px dashed var(--color-borde);
+  background: transparent;
+  color: var(--color-texto-suave);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  min-height: unset;
+  cursor: pointer;
+}
+
+.boton-notas-visita--con-datos {
+  border: none;
+  border-style: solid;
+  background: rgba(77, 47, 64, 0.1);
+  color: var(--color-primario);
+}
+
+.notas-visita-foto-preview {
+  width: 100%;
+  max-height: 240px;
+  object-fit: cover;
+  border-radius: var(--radio-md);
+  margin-bottom: var(--espacio-sm);
 }
 
 .pastilla-estado {

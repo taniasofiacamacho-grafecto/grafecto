@@ -52,7 +52,9 @@ function abrir(cita, onGuardado) {
     (cita.tratamientoNombre ? ` — ${cita.tratamientoNombre}` : '');
 
   campoPrecio.value = '';
-  campoNotas.value = '';
+  // Si ya se capturaron notas durante la visita (botón "Notas y foto"), se
+  // precargan aquí para no volver a escribirlas — solo se completan con precio/promo.
+  campoNotas.value = cita.notasVisita || '';
   poblarLongitud(cita.tratamientoNombre);
 
   botonesPromocion.forEach((boton) => {

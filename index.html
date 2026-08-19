@@ -241,6 +241,36 @@
     </div>
   </div>
 
+  <!-- Hoja modal: notas y foto durante la visita (antes del cobro) -->
+  <div id="fondo-hoja-notas-visita" class="fondo-hoja">
+    <div class="hoja">
+      <div class="hoja__manija"></div>
+      <div class="hoja__titulo">Notas de la visita</div>
+      <div id="notas-visita-resumen" class="cobro-resumen"></div>
+
+      <form id="formulario-notas-visita">
+        <div class="campo">
+          <div class="campo__encabezado">
+            <label for="notas-visita-texto">Notas técnicas</label>
+            <button type="button" id="notas-visita-dictado" class="boton-dictado" aria-label="Dictar por voz" hidden>🎤</button>
+          </div>
+          <textarea id="notas-visita-texto" placeholder="Técnica, fórmula, observaciones…"></textarea>
+        </div>
+
+        <div class="campo">
+          <label>Foto</label>
+          <img id="notas-visita-foto-preview" class="notas-visita-foto-preview" hidden />
+          <input id="notas-visita-foto" type="file" accept="image/*" />
+        </div>
+
+        <div class="fila-botones">
+          <button type="button" id="boton-cerrar-hoja-notas-visita" class="boton boton--secundario">Cancelar</button>
+          <button type="submit" class="boton boton--primario">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script src="lib/supabase.js"></script>
   <script src="js/config.js"></script>
   <script src="js/auth.js"></script>
@@ -250,6 +280,7 @@
   <script src="js/db.js"></script>
   <script src="js/clientas.js"></script>
   <script src="js/cobro.js"></script>
+  <script src="js/notas-visita.js"></script>
   <script src="js/tarjeta-cita.js"></script>
   <script src="js/agenda.js"></script>
   <script src="js/hoy.js"></script>
