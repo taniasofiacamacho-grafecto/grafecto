@@ -61,7 +61,7 @@ correctamente tras cerrar/abrir sesión.
    guarda el documento firmado en papel, no hace falta foto. Solo una casilla
    en la ficha de la clienta con la fecha en que se marcó como firmado; si pasa
    más de un año se muestra como **vencido** (la vigencia real es de 1 año) —
-   pendiente de confirmar por la usuaria
+   confirmado por la usuaria
 
 **Notas y foto durante la visita (2026-08-19, a petición de la usuaria):**
 Antes solo se podían capturar notas/foto hasta el checkout, y para entonces ya
@@ -72,8 +72,8 @@ momento — sin esperar al cobro. Botón "📝 Agregar notas" en cada tarjeta de
 cita (visible desde "Llegó"), foto comprimida automáticamente antes de subirse
 a Supabase Storage (bucket privado "fotos"). El cobro precarga esas notas para
 no volver a escribirlas, y la foto se puede ver después en el historial de la
-clienta (se toca el registro para desplegarla) — 2026-08-19, pendiente de
-confirmar por la usuaria
+clienta (se toca el registro para desplegarla) — 2026-08-19, confirmado por
+la usuaria
 
 5. [x] Dictado por voz (Web Speech API) — 2026-08-18: módulo reutilizable
    (`js/dictado.js`), conectado por ahora a las notas de técnica del cobro;
