@@ -203,7 +203,7 @@ async function manejarMarcarConsentimiento() {
     renderizarEstadoConsentimiento();
     mostrarMensaje('Consentimiento marcado como firmado');
   } catch (error) {
-    mostrarMensaje('No se pudo actualizar el consentimiento');
+    mostrarMensaje('No se pudo actualizar el consentimiento: ' + (error.message || 'intenta de nuevo'));
     console.error(error);
   }
 }
