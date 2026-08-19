@@ -28,6 +28,10 @@ const campoFecha = document.getElementById('cita-fecha');
 const campoHora = document.getElementById('cita-hora');
 const campoNotas = document.getElementById('cita-notas');
 const botonEliminar = document.getElementById('boton-eliminar-cita');
+const postGuardado = document.getElementById('cita-post-guardado');
+const postGuardadoTexto = document.getElementById('cita-post-guardado-texto');
+const postGuardadoBotones = document.getElementById('cita-post-guardado-botones');
+const botonPostGuardadoListo = document.getElementById('boton-cita-post-guardado-listo');
 
 async function cargarCitas() {
   try {
@@ -162,8 +166,48 @@ async function abrirHojaCita(cita = null) {
 function cerrarHojaCita() {
   fondoHoja.classList.remove('abierta');
   formulario.reset();
+  formulario.hidden = false;
+  postGuardado.hidden = true;
   ocultarResultadosClienta();
   idEnEdicion = null;
+}
+
+// Tras agendar una cita nueva (no al editar), ofrece mandar de una vez los
+// mensajes de WhatsApp de esa cita, sin tener que ir a buscarla después en
+// la agenda — a petición de la usuaria.
+function mostrarPostGuardado(cita) {
+  hojaTitulo.textContent = '¡Cita guardada!';
+  formulario.hidden = true;
+
+  postGuardadoBotones.innerHTML = '';
+
+  if (!cita.clientaTelefono) {
+    postGuardadoTexto.textContent = `${cita.clientaNombre} no tiene teléfono capturado, así que no se le puede mandar WhatsApp.`;
+  } else {
+    postGuardadoTexto.textContent = `¿Le mandamos los mensajes de WhatsApp a ${cita.clientaNombre.split(' ')[0]}?`;
+
+    const botones = [
+      ['Confirmación', WhatsApp.generarEnlaceConfirmacion(cita)],
+      WhatsApp.debeSugerirDeepCleanse(cita.fecha)
+        ? ['Deep cleanse', WhatsApp.generarEnlaceDeepCleanse(cita)]
+        : null,
+      ['Recordatorio', WhatsApp.generarEnlaceRecordatorio(cita)],
+    ].filter(Boolean);
+
+    postGuardadoBotones.append(
+      ...botones.map(([etiqueta, enlace]) =>
+        crearEl('a', {
+          class: 'cita-post-guardado__boton',
+          href: enlace,
+          target: '_blank',
+          rel: 'noopener',
+          texto: etiqueta,
+        })
+      )
+    );
+  }
+
+  postGuardado.hidden = false;
 }
 
 function manejarCancelarCita() {
@@ -194,12 +238,12 @@ async function manejarGuardar(evento) {
     if (idEnEdicion) {
       await DB.actualizarCita(idEnEdicion, datos);
       mostrarMensaje('Cita actualizada');
+      cerrarHojaCita();
     } else {
-      await DB.agregarCita(datos);
-      mostrarMensaje('Cita guardada');
+      const citaNueva = await DB.agregarCita(datos);
+      mostrarPostGuardado(citaNueva);
     }
 
-    cerrarHojaCita();
     await cargarCitas();
   } catch (error) {
     mostrarMensaje('No se pudo guardar la cita: ' + (error.message || 'intenta de nuevo'));
@@ -227,6 +271,7 @@ function inicializarAgenda() {
   document.getElementById('boton-cerrar-hoja-cita').addEventListener('click', manejarCancelarCita);
   formulario.addEventListener('submit', manejarGuardar);
   botonEliminar.addEventListener('click', manejarEliminar);
+  botonPostGuardadoListo.addEventListener('click', cerrarHojaCita);
   campoTratamiento.addEventListener('change', actualizarAyudaDuracion);
 
   campoClientaBuscar.addEventListener('input', () => {
