@@ -128,7 +128,7 @@ function generarTextoDisponibilidad(gruposPorFecha) {
   if (!gruposPorFecha || gruposPorFecha.length === 0) return null;
 
   const bloques = gruposPorFecha.map((grupo) => {
-    const horas = grupo.horas.map((h) => UI.formatearHora12(h)).join(', ');
+    const horas = grupo.horas.map((h) => UI.formatearHora12(h)).join('\n');
     return `*${UI.formatearFechaLarga(grupo.fecha)}*\n${horas}`;
   });
 
