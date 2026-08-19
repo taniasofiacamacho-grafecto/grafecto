@@ -74,7 +74,15 @@ correctamente tras cerrar/abrir sesión.
    a quién le falta enviar el recordatorio de mañana — hoy el botón existe pero se manda
    uno por uno, a mano)
 10. [ ] Marcar cita como confirmada manualmente
-11. [ ] Calendario visual de disponibilidad (semana/mes)
+11. [ ] Calendario visual de disponibilidad (semana/mes) — **detalle del flujo real
+    (2026-08-18)**: la usuaria no abre todos los días ni siempre el mismo horario;
+    antes llevaba una lista aparte en Notes con los horarios disponibles de las
+    próximas ~3 semanas, y al agendar una cita borraba ese horario de la lista a
+    mano (copy-paste). La solución: ella define sus horarios disponibles por
+    semana dentro de la app (ej. "lunes 10am–2pm, miércoles 3–7pm", variable
+    semana a semana), y la app calcula solo los horarios que siguen libres
+    restando las citas ya agendadas — automático, sin lista aparte ni borrar nada
+    a mano.
 12. [x] Resumen de ingresos diario y mensual — 2026-08-18: nueva pestaña **"Hoy"**
     con resumen de Hoy/Semana/Mes (monto y cantidad de servicios), y las citas
     del día en tarjetas con **fondo de color completo según su estado**
