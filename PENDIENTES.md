@@ -147,9 +147,10 @@ original) — se corrigen en cuanto se detectan, no hay que esperar su turno.
   "ciruela/berenjena" — la usuaria decidió dejar ciruela por ahora y revisar
   la paleta completa en una pasada de diseño dedicada más adelante.
 - [x] 2026-08-19: Formato del mensaje de disponibilidad corregido a una hora
-  por renglón (antes iban separadas por comas en una sola línea), y cambiado
-  de "abrir WhatsApp directo" a "copiar mensaje" porque el enlace sin número
-  específico lo mandaba marcado como reenviado
+  por renglón (antes iban separadas por comas en una sola línea). Se probó
+  cambiar de "abrir WhatsApp directo" a "copiar mensaje" porque el enlace sin
+  número específico lo manda marcado como reenviado, pero la usuaria pidió
+  regresarlo a abrir WhatsApp directo pese a esa limitación
 - [x] 2026-08-19: Las horas habilitadas ahora se cruzan con las citas ya
   agendadas — en cuanto una hora tiene cita, desaparece sola de "Fechas
   habilitadas" y del mensaje de disponibilidad (antes eran dos listas
@@ -161,3 +162,16 @@ original) — se corrigen en cuanto se detectan, no hay que esperar su turno.
   tarjeta de cita (Hoy y Agenda), junto al nombre de la clienta — verde si
   está firmado y vigente, en aviso si falta o venció, y se puede marcar como
   firmado ahí mismo sin abrir la ficha completa de la clienta
+- [x] 2026-08-19: Nueva pestaña **"Reportes"** (5ª pestaña). Primer contenido:
+  botón **"+ Registrar venta pasada"**, para capturar ventas de días
+  anteriores sin necesidad de una cita — la Agenda solo muestra citas de hoy
+  en adelante, así que una cita con fecha pasada desaparecía sola y nunca se
+  podía cobrar. El formulario reutiliza los mismos campos del Cobro (clienta,
+  tratamiento, precio, longitud, promoción, estilista, notas) pero con fecha
+  libre y sin ligar a una cita. También se agregó poder **eliminar un
+  registro de visita** desde el historial de la clienta (se necesitaba para
+  borrar dos capturas de prueba) — pendiente de confirmar por la usuaria.
+  Lo siguiente ya acordado para esta pestaña: resumen de ventas por
+  día/semana/mes con gráfica sencilla, y después desglose por estilista
+  (clientas atendidas + ventas totales) — no empezar sin que la usuaria
+  confirme primero que esto funciona.
