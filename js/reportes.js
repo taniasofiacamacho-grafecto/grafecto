@@ -1,14 +1,15 @@
-// Reportes: por ahora, registrar una venta pasada (sin necesidad de una
-// cita) para poder capturar historial de días anteriores. Los reportes de
-// ventas por día/semana/mes se agregan en un siguiente paso.
+// Reportes: resumen de ventas (hoy/semana/mes) con gráfica de ventas por día
+// de la semana actual, y registro de ventas pasadas (sin necesidad de una
+// cita) para poder capturar historial de días anteriores.
 // Todo envuelto en un IIFE para no ensuciar el scope global.
 
 (function () {
 
-const { crearEl, mostrarMensaje } = window.UI;
+const { crearEl, mostrarMensaje, fechaHoyISO, formatearMoneda } = window.UI;
 const DB = window.GrafectoDB;
 
 const MAX_RESULTADOS_BUSQUEDA = 20;
+const ETIQUETAS_DIA_CORTA = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
 const OPCIONES_LONGITUD_POR_TRATAMIENTO = {
   'Hair Therapy': ['8"', '10"', '12"', '14"', '16"', '18"', '20"'],
@@ -36,6 +37,120 @@ const botonDictado = document.getElementById('venta-notas-dictado');
 const botonesPromocion = document.querySelectorAll('#venta-promocion .pastilla-opcion');
 const botonesEstilista = document.querySelectorAll('#venta-estilista .pastilla-opcion');
 const campoEstilistaOtra = document.getElementById('venta-estilista-otra');
+const resumenEl = document.getElementById('reportes-resumen');
+const graficaEl = document.getElementById('reportes-grafica');
+
+// ===== Resumen de ventas (día / semana / mes) + gráfica de la semana =====
+
+function fechaISODesdeDate(fecha) {
+  const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+  const dia = String(fecha.getDate()).padStart(2, '0');
+  return `${fecha.getFullYear()}-${mes}-${dia}`;
+}
+
+function sumarDiasISO(fechaISO, delta) {
+  const [anio, mes, dia] = fechaISO.split('-').map(Number);
+  const fecha = new Date(anio, mes - 1, dia);
+  fecha.setDate(fecha.getDate() + delta);
+  return fechaISODesdeDate(fecha);
+}
+
+// La semana empieza en lunes.
+function inicioSemanaISO(fechaISO) {
+  const [anio, mes, dia] = fechaISO.split('-').map(Number);
+  const fecha = new Date(anio, mes - 1, dia);
+  const diaSemana = fecha.getDay();
+  const diferencia = diaSemana === 0 ? -6 : 1 - diaSemana;
+  fecha.setDate(fecha.getDate() + diferencia);
+  return fechaISODesdeDate(fecha);
+}
+
+function finSemanaISO(fechaISO) {
+  return sumarDiasISO(inicioSemanaISO(fechaISO), 6);
+}
+
+function inicioMesISO(fechaISO) {
+  const [anio, mes] = fechaISO.split('-');
+  return `${anio}-${mes}-01`;
+}
+
+function finMesISO(fechaISO) {
+  const [anio, mes] = fechaISO.split('-').map(Number);
+  const ultimoDia = new Date(anio, mes, 0).getDate();
+  return `${anio}-${String(mes).padStart(2, '0')}-${String(ultimoDia).padStart(2, '0')}`;
+}
+
+function crearTarjetaResumen(etiqueta, visitas) {
+  const total = visitas.reduce((acumulado, visita) => acumulado + visita.precio, 0);
+  return crearEl('div', { class: 'resumen-ingresos__tarjeta' }, [
+    crearEl('div', { class: 'resumen-ingresos__etiqueta', texto: etiqueta }),
+    crearEl('div', { class: 'resumen-ingresos__monto', texto: formatearMoneda(total) }),
+    crearEl('div', {
+      class: 'resumen-ingresos__cantidad',
+      texto: `${visitas.length} ${visitas.length === 1 ? 'servicio' : 'servicios'}`,
+    }),
+  ]);
+}
+
+function crearColumnaGrafica(fecha, monto, maxMonto, esHoy) {
+  const [anio, mes, dia] = fecha.split('-').map(Number);
+  const fechaObj = new Date(anio, mes - 1, dia);
+  const pctAltura = maxMonto > 0 ? Math.max(4, Math.round((monto / maxMonto) * 100)) : 2;
+
+  return crearEl(
+    'div',
+    { class: 'grafica-barras__columna' + (esHoy ? ' grafica-barras__columna--hoy' : '') },
+    [
+      crearEl('div', { class: 'grafica-barras__monto', texto: monto > 0 ? formatearMoneda(monto) : '' }),
+      crearEl('div', { class: 'grafica-barras__barra', style: `height: ${pctAltura}%` }),
+      crearEl('div', {
+        class: 'grafica-barras__etiqueta',
+        texto: `${ETIQUETAS_DIA_CORTA[fechaObj.getDay()]} ${dia}`,
+      }),
+    ]
+  );
+}
+
+function renderizarGraficaSemana(visitasSemana, inicioSemana, hoy) {
+  const montosPorFecha = {};
+  for (const visita of visitasSemana) {
+    montosPorFecha[visita.fecha] = (montosPorFecha[visita.fecha] || 0) + visita.precio;
+  }
+  const maxMonto = Math.max(0, ...Object.values(montosPorFecha));
+
+  graficaEl.innerHTML = '';
+  for (let i = 0; i < 7; i++) {
+    const fecha = sumarDiasISO(inicioSemana, i);
+    const monto = montosPorFecha[fecha] || 0;
+    graficaEl.appendChild(crearColumnaGrafica(fecha, monto, maxMonto, fecha === hoy));
+  }
+}
+
+async function cargarResumen() {
+  const hoy = fechaHoyISO();
+
+  try {
+    const [visitasHoy, visitasSemana, visitasMes] = await Promise.all([
+      DB.listarVisitasEnRango(hoy, hoy),
+      DB.listarVisitasEnRango(inicioSemanaISO(hoy), finSemanaISO(hoy)),
+      DB.listarVisitasEnRango(inicioMesISO(hoy), finMesISO(hoy)),
+    ]);
+
+    resumenEl.innerHTML = '';
+    resumenEl.append(
+      crearTarjetaResumen('Hoy', visitasHoy),
+      crearTarjetaResumen('Semana', visitasSemana),
+      crearTarjetaResumen('Mes', visitasMes)
+    );
+
+    renderizarGraficaSemana(visitasSemana, inicioSemanaISO(hoy), hoy);
+  } catch (error) {
+    resumenEl.innerHTML = '';
+    resumenEl.appendChild(crearEl('div', { class: 'campo__ayuda', texto: 'No se pudo cargar el resumen.' }));
+    graficaEl.innerHTML = '';
+    console.error(error);
+  }
+}
 
 function ocultarResultadosClienta() {
   resultadosClienta.hidden = true;
@@ -158,6 +273,7 @@ async function manejarGuardar(evento) {
 
     mostrarMensaje('Venta registrada');
     cerrar();
+    await cargarResumen();
   } catch (error) {
     mostrarMensaje('No se pudo guardar: ' + (error.message || 'intenta de nuevo'));
     console.error(error);
@@ -218,7 +334,7 @@ function inicializar() {
 }
 
 async function mostrar() {
-  // Nada que cargar todavía — cuando se agreguen las gráficas, van aquí.
+  await cargarResumen();
 }
 
 window.ReportesUI = { inicializar, mostrar };
