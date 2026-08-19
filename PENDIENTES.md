@@ -170,8 +170,12 @@ original) — se corrigen en cuanto se detectan, no hay que esperar su turno.
   tratamiento, precio, longitud, promoción, estilista, notas) pero con fecha
   libre y sin ligar a una cita. También se agregó poder **eliminar un
   registro de visita** desde el historial de la clienta (se necesitaba para
-  borrar dos capturas de prueba) — pendiente de confirmar por la usuaria.
-  Lo siguiente ya acordado para esta pestaña: resumen de ventas por
-  día/semana/mes con gráfica sencilla, y después desglose por estilista
-  (clientas atendidas + ventas totales) — no empezar sin que la usuaria
-  confirme primero que esto funciona.
+  borrar dos capturas de prueba) — confirmado por la usuaria, ambas funciones
+  probadas.
+- [x] 2026-08-19: Dentro de Reportes, resumen de ventas **Hoy / Semana / Mes**
+  (monto y cantidad de servicios) y una gráfica de barras sencilla con las
+  ventas de cada día de la semana actual (lunes a domingo), resaltando el día
+  de hoy. Se actualiza sola al registrar una venta pasada, sin salir de la
+  pestaña — pendiente de confirmar por la usuaria. Sigue pendiente (no
+  empezar sin su confirmación primero): desglose por estilista (clientas
+  atendidas + ventas totales por cada una).
