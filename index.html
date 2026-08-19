@@ -78,7 +78,7 @@
       <main class="contenido contenido--sin-buscador">
         <div class="calendario-seccion">
           <div class="calendario-seccion__titulo">Horario base</div>
-          <p class="campo__ayuda">Se repite cada semana. Los cambios se guardan solos, no hace falta botón de Guardar.</p>
+          <p class="campo__ayuda">Las horas exactas en que reciben clienta cada día. Se repite cada semana; agregar o quitar una hora se guarda solo.</p>
           <div id="horario-semanal-lista"></div>
         </div>
 
@@ -317,11 +317,11 @@
         </div>
 
         <div id="excepcion-horas" class="campo" hidden>
-          <label>Horario ese día</label>
-          <div class="fila-horas">
-            <input id="excepcion-hora-inicio" type="time" />
-            <span>a</span>
-            <input id="excepcion-hora-fin" type="time" />
+          <label>Horas de ese día</label>
+          <div id="excepcion-horas-chips" class="chips-horas"></div>
+          <div class="fila-agregar-hora">
+            <input id="excepcion-nueva-hora" type="time" />
+            <button type="button" id="excepcion-agregar-hora" class="boton boton--secundario">+ Agregar</button>
           </div>
         </div>
 

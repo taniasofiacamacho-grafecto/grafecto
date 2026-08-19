@@ -1,5 +1,6 @@
-// Horario base (se repite cada semana), excepciones puntuales, y bloqueos
-// manuales de horas sin cita. Es la base para calcular disponibilidad.
+// Horario: lista exacta de horas en que se recibe clienta, por día de la
+// semana (se repite), más excepciones puntuales (cerrar un día, u horario
+// distinto solo para una fecha) y bloqueos manuales de horas sin cita.
 // Todo envuelto en un IIFE para no ensuciar el scope global.
 
 (function () {
@@ -14,61 +15,75 @@ const listaHorario = document.getElementById('horario-semanal-lista');
 const listaExcepciones = document.getElementById('excepciones-lista');
 const listaBloqueos = document.getElementById('bloqueos-lista');
 
-// ===== Horario semanal =====
-
-function crearFilaDia(dia) {
-  const toggle = crearEl('button', {
-    type: 'button',
-    class: dia.abierto ? 'pastilla-opcion pastilla-opcion--activa' : 'pastilla-opcion',
-    texto: dia.abierto ? 'Abierto' : 'Cerrado',
-  });
-
-  const campoInicio = crearEl('input', { type: 'time', value: dia.horaInicio || '10:00' });
-  const campoFin = crearEl('input', { type: 'time', value: dia.horaFin || '18:00' });
-  const horas = crearEl('div', { class: 'horario-dia__horas', hidden: !dia.abierto }, [
-    campoInicio,
-    crearEl('span', { texto: 'a' }),
-    campoFin,
+function crearChipHora(hora, onEliminar) {
+  return crearEl('span', { class: 'chip-hora' }, [
+    crearEl('span', { texto: formatearHora12(hora) }),
+    crearEl('button', { type: 'button', texto: '✕', 'aria-label': 'Quitar hora', onclick: onEliminar }),
   ]);
+}
 
-  async function guardar() {
-    try {
-      await DB.actualizarDiaHorario(dia.diaSemana, {
-        abierto: toggle.classList.contains('pastilla-opcion--activa'),
-        horaInicio: campoInicio.value,
-        horaFin: campoFin.value,
-      });
-    } catch (error) {
-      mostrarMensaje('No se pudo guardar el horario');
-      console.error(error);
+// ===== Horario semanal (recurrente) =====
+
+function crearFilaDia(diaSemana, slots) {
+  const chips = crearEl('div', { class: 'chips-horas' });
+  const campoHora = crearEl('input', { type: 'time' });
+  const botonAgregar = crearEl('button', { type: 'button', class: 'boton boton--secundario', texto: '+ Agregar' });
+
+  function pintarChips(lista) {
+    chips.innerHTML = '';
+    if (lista.length === 0) {
+      chips.appendChild(crearEl('span', { class: 'campo__ayuda', texto: 'Sin horas — este día queda cerrado.' }));
+      return;
+    }
+    for (const slot of lista) {
+      chips.appendChild(
+        crearChipHora(slot.hora, async () => {
+          try {
+            await DB.eliminarSlot(slot.id);
+            await recargar();
+          } catch (error) {
+            mostrarMensaje('No se pudo quitar la hora');
+            console.error(error);
+          }
+        })
+      );
     }
   }
 
-  toggle.addEventListener('click', () => {
-    const activo = !toggle.classList.contains('pastilla-opcion--activa');
-    toggle.classList.toggle('pastilla-opcion--activa', activo);
-    toggle.textContent = activo ? 'Abierto' : 'Cerrado';
-    horas.hidden = !activo;
-    guardar();
+  let slotsActuales = slots;
+  async function recargar() {
+    const todos = await DB.listarSlotsSemanales();
+    slotsActuales = todos.filter((s) => s.diaSemana === diaSemana);
+    pintarChips(slotsActuales);
+  }
+
+  botonAgregar.addEventListener('click', async () => {
+    if (!campoHora.value) return;
+    try {
+      await DB.agregarSlotSemanal(diaSemana, campoHora.value);
+      campoHora.value = '';
+      await recargar();
+    } catch (error) {
+      mostrarMensaje('No se pudo agregar la hora');
+      console.error(error);
+    }
   });
-  campoInicio.addEventListener('change', guardar);
-  campoFin.addEventListener('change', guardar);
+
+  pintarChips(slotsActuales);
 
   return crearEl('div', { class: 'horario-dia' }, [
-    crearEl('div', { class: 'horario-dia__nombre', texto: NOMBRES_DIA[dia.diaSemana] }),
-    toggle,
-    horas,
+    crearEl('div', { class: 'horario-dia__nombre', texto: NOMBRES_DIA[diaSemana] }),
+    chips,
+    crearEl('div', { class: 'fila-agregar-hora' }, [campoHora, botonAgregar]),
   ]);
 }
 
 async function cargarHorarioSemanal() {
   listaHorario.innerHTML = '';
   try {
-    await DB.asegurarHorarioPorDefecto();
-    const dias = await DB.listarHorarioSemanal();
-    const porDia = Object.fromEntries(dias.map((d) => [d.diaSemana, d]));
-    for (const numeroDia of ORDEN_DIAS) {
-      listaHorario.appendChild(crearFilaDia(porDia[numeroDia]));
+    const slots = await DB.listarSlotsSemanales();
+    for (const diaSemana of ORDEN_DIAS) {
+      listaHorario.appendChild(crearFilaDia(diaSemana, slots.filter((s) => s.diaSemana === diaSemana)));
     }
   } catch (error) {
     listaHorario.appendChild(crearEl('div', { class: 'campo__ayuda', texto: 'No se pudo cargar el horario.' }));
@@ -76,7 +91,7 @@ async function cargarHorarioSemanal() {
   }
 }
 
-// ===== Excepciones =====
+// ===== Excepciones (días cerrados puntuales + horarios distintos puntuales) =====
 
 function crearItemLista(fecha, detalle, onEliminar) {
   return crearEl('div', { class: 'horario-item' }, [
@@ -97,21 +112,43 @@ function crearItemLista(fecha, detalle, onEliminar) {
 async function cargarExcepciones() {
   listaExcepciones.innerHTML = '';
   try {
-    const excepciones = await DB.listarExcepciones();
-    if (excepciones.length === 0) {
+    const [diasCerrados, slotsExcepcion] = await Promise.all([
+      DB.listarDiasCerrados(),
+      DB.listarSlotsDeExcepciones(),
+    ]);
+
+    if (diasCerrados.length === 0 && slotsExcepcion.length === 0) {
       listaExcepciones.appendChild(
         crearEl('div', { class: 'campo__ayuda', texto: 'No tienes excepciones próximas.' })
       );
       return;
     }
-    for (const excepcion of excepciones) {
-      const detalle = excepcion.abierto
-        ? `${formatearHora12(excepcion.horaInicio)} a ${formatearHora12(excepcion.horaFin)}`
-        : 'Cerrado todo el día';
+
+    for (const dia of diasCerrados) {
       listaExcepciones.appendChild(
-        crearItemLista(excepcion.fecha, detalle, async () => {
+        crearItemLista(dia.fecha, 'Cerrado todo el día', async () => {
           try {
-            await DB.eliminarExcepcion(excepcion.id);
+            await DB.eliminarDiaCerrado(dia.id);
+            await cargarExcepciones();
+          } catch (error) {
+            mostrarMensaje('No se pudo eliminar');
+            console.error(error);
+          }
+        })
+      );
+    }
+
+    // Agrupa las horas puntuales por fecha para mostrar una tarjeta por día.
+    const porFecha = {};
+    for (const slot of slotsExcepcion) {
+      (porFecha[slot.fecha] ||= []).push(slot);
+    }
+    for (const [fecha, slots] of Object.entries(porFecha)) {
+      const detalle = slots.map((s) => formatearHora12(s.hora)).join(', ');
+      listaExcepciones.appendChild(
+        crearItemLista(fecha, `Horario distinto: ${detalle}`, async () => {
+          try {
+            await Promise.all(slots.map((s) => DB.eliminarSlot(s.id)));
             await cargarExcepciones();
           } catch (error) {
             mostrarMensaje('No se pudo eliminar');
@@ -171,17 +208,45 @@ const formExcepcion = document.getElementById('formulario-excepcion');
 const campoExcepcionFecha = document.getElementById('excepcion-fecha');
 const botonesExcepcionTipo = document.querySelectorAll('#excepcion-tipo .pastilla-opcion');
 const campoExcepcionHoras = document.getElementById('excepcion-horas');
-const campoExcepcionInicio = document.getElementById('excepcion-hora-inicio');
-const campoExcepcionFin = document.getElementById('excepcion-hora-fin');
+const chipsExcepcionHoras = document.getElementById('excepcion-horas-chips');
+const campoExcepcionNuevaHora = document.getElementById('excepcion-nueva-hora');
+const botonExcepcionAgregarHora = document.getElementById('excepcion-agregar-hora');
 let excepcionAbierta = false;
+let horasAgregadasEnSesion = [];
+
+function pintarChipsExcepcion() {
+  chipsExcepcionHoras.innerHTML = '';
+  if (horasAgregadasEnSesion.length === 0) {
+    chipsExcepcionHoras.appendChild(
+      crearEl('span', { class: 'campo__ayuda', texto: 'Agrega al menos una hora.' })
+    );
+    return;
+  }
+  for (const slot of horasAgregadasEnSesion) {
+    chipsExcepcionHoras.appendChild(
+      crearChipHora(slot.hora, async () => {
+        try {
+          await DB.eliminarSlot(slot.id);
+          horasAgregadasEnSesion = horasAgregadasEnSesion.filter((s) => s.id !== slot.id);
+          pintarChipsExcepcion();
+        } catch (error) {
+          mostrarMensaje('No se pudo quitar la hora');
+          console.error(error);
+        }
+      })
+    );
+  }
+}
 
 function abrirHojaExcepcion() {
   formExcepcion.reset();
   excepcionAbierta = false;
+  horasAgregadasEnSesion = [];
   botonesExcepcionTipo.forEach((b) =>
     b.classList.toggle('pastilla-opcion--activa', b.dataset.valor === 'cerrado')
   );
   campoExcepcionHoras.hidden = true;
+  pintarChipsExcepcion();
   fondoHojaExcepcion.classList.add('abierta');
 }
 
@@ -189,17 +254,34 @@ function cerrarHojaExcepcion() {
   fondoHojaExcepcion.classList.remove('abierta');
 }
 
+async function manejarAgregarHoraExcepcion() {
+  if (!campoExcepcionFecha.value) {
+    mostrarMensaje('Elige primero la fecha');
+    return;
+  }
+  if (!campoExcepcionNuevaHora.value) return;
+
+  try {
+    await DB.agregarSlotExcepcion(campoExcepcionFecha.value, campoExcepcionNuevaHora.value);
+    // Volvemos a leer para tener el id real del slot recién creado.
+    const todas = await DB.listarSlotsDeExcepciones();
+    horasAgregadasEnSesion = todas.filter((s) => s.fecha === campoExcepcionFecha.value);
+    campoExcepcionNuevaHora.value = '';
+    pintarChipsExcepcion();
+  } catch (error) {
+    mostrarMensaje('No se pudo agregar la hora');
+    console.error(error);
+  }
+}
+
 async function manejarGuardarExcepcion(evento) {
   evento.preventDefault();
   if (!campoExcepcionFecha.value) return;
 
   try {
-    await DB.agregarExcepcion({
-      fecha: campoExcepcionFecha.value,
-      abierto: excepcionAbierta,
-      horaInicio: campoExcepcionInicio.value,
-      horaFin: campoExcepcionFin.value,
-    });
+    if (!excepcionAbierta) {
+      await DB.agregarDiaCerrado(campoExcepcionFecha.value);
+    }
     mostrarMensaje('Excepción guardada');
     cerrarHojaExcepcion();
     await cargarExcepciones();
@@ -251,6 +333,7 @@ function inicializar() {
   document.getElementById('boton-agregar-excepcion').addEventListener('click', abrirHojaExcepcion);
   document.getElementById('boton-cerrar-hoja-excepcion').addEventListener('click', cerrarHojaExcepcion);
   formExcepcion.addEventListener('submit', manejarGuardarExcepcion);
+  botonExcepcionAgregarHora.addEventListener('click', manejarAgregarHoraExcepcion);
   botonesExcepcionTipo.forEach((boton) => {
     boton.addEventListener('click', () => {
       botonesExcepcionTipo.forEach((b) => b.classList.remove('pastilla-opcion--activa'));

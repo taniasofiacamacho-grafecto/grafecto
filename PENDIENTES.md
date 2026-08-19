@@ -93,12 +93,15 @@ la usuaria
 11. Calendario visual de disponibilidad (semana/mes) — reemplaza la lista aparte
     en Notes que llevaba antes (~3 semanas con copy-paste manual). Se construye
     en partes:
-    - [x] **Horario base + excepciones + bloqueos manuales** (2026-08-19): nueva
-      pestaña "Horario" — 7 días de la semana (on/off + hora, se repite cada
-      semana, se guarda solo sin botón), excepciones para fechas puntuales
-      (cerrar un día normal, o abrir uno extra), y bloqueos manuales de una hora
-      sin necesidad de cita (comida, personal, etc. — se apartan igual que una
-      cita) — pendiente de confirmar por la usuaria
+    - [x] **Horario base + excepciones + bloqueos manuales** (2026-08-19,
+      rehecho el mismo día tras aclarar el diseño): nueva pestaña "Horario" —
+      **lista de horas exactas por día** (no un rango: ej. Lunes 9:00, 9:30,
+      10:00, 10:45… la cadencia real varía en el día, más seguida en la mañana),
+      se repite cada semana, agregar/quitar hora se guarda solo. Excepciones
+      para fechas puntuales: cerrar un día normal, o dar de alta una lista de
+      horas distinta solo para esa fecha. Bloqueos manuales de una hora sin
+      necesidad de cita (comida, personal, etc.) — pendiente de confirmar por
+      la usuaria
     - [ ] Calendario visual de semana (ver de un vistazo qué está libre/ocupado)
     - [ ] Vista de mes
     - [ ] Lista de horarios libres formateada para compartir por WhatsApp (la
