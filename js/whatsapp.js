@@ -121,9 +121,10 @@ function generarEnlaceRecordatorio(cita) {
 
 // ===== Disponibilidad (fechas habilitadas) para compartir manualmente =====
 // gruposPorFecha: [{ fecha: '2026-08-27', horas: ['12:30','13:00',...] }, ...]
-// No va dirigido a un teléfono en particular: abre WhatsApp para elegir a quién mandárselo.
+// Se copia al portapapeles (no se abre WhatsApp directo) para que se pegue
+// como texto normal en la conversación que la usuaria elija, no como reenviado.
 
-function generarEnlaceDisponibilidad(gruposPorFecha) {
+function generarTextoDisponibilidad(gruposPorFecha) {
   if (!gruposPorFecha || gruposPorFecha.length === 0) return null;
 
   const bloques = gruposPorFecha.map((grupo) => {
@@ -131,12 +132,11 @@ function generarEnlaceDisponibilidad(gruposPorFecha) {
     return `*${UI.formatearFechaLarga(grupo.fecha)}*\n${horas}`;
   });
 
-  const mensaje =
+  return (
     `Hola, estas son las próximas fechas y horarios disponibles en GRAFECTO:\n\n` +
     bloques.join('\n\n') +
-    `\n\n¿Cuál te gustaría? Contéstame con la fecha y hora y te la aparto. 💜`;
-
-  return `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
+    `\n\n¿Cuál te gustaría? Contéstame con la fecha y hora y te la aparto. 💜`
+  );
 }
 
 window.WhatsApp = {
@@ -145,7 +145,7 @@ window.WhatsApp = {
   generarEnlaceConfirmacion,
   generarEnlaceDeepCleanse,
   generarEnlaceRecordatorio,
-  generarEnlaceDisponibilidad,
+  generarTextoDisponibilidad,
 };
 
 })();

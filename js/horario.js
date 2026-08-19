@@ -37,11 +37,22 @@ function crearItemLista(fecha, detalle, onEliminar) {
 // ===== Fechas habilitadas =====
 
 const botonCompartirDisponibilidad = document.getElementById('boton-compartir-disponibilidad');
+let textoDisponibilidadActual = null;
 
 function actualizarBotonCompartir(gruposPorFecha) {
-  const enlace = WhatsApp.generarEnlaceDisponibilidad(gruposPorFecha);
-  botonCompartirDisponibilidad.hidden = !enlace;
-  if (enlace) botonCompartirDisponibilidad.href = enlace;
+  textoDisponibilidadActual = WhatsApp.generarTextoDisponibilidad(gruposPorFecha);
+  botonCompartirDisponibilidad.hidden = !textoDisponibilidadActual;
+}
+
+async function manejarCopiarDisponibilidad() {
+  if (!textoDisponibilidadActual) return;
+  try {
+    await navigator.clipboard.writeText(textoDisponibilidadActual);
+    mostrarMensaje('Mensaje copiado — pégalo en WhatsApp');
+  } catch (error) {
+    mostrarMensaje('No se pudo copiar. Mantén presionado el texto para copiarlo a mano.');
+    console.error(error);
+  }
 }
 
 async function cargarFechas() {
@@ -235,6 +246,7 @@ function inicializar() {
   document.getElementById('boton-agregar-excepcion').addEventListener('click', abrirHojaExcepcion);
   document.getElementById('boton-cerrar-hoja-excepcion').addEventListener('click', cerrarHojaExcepcion);
   botonExcepcionAgregarHora.addEventListener('click', manejarAgregarHoraExcepcion);
+  botonCompartirDisponibilidad.addEventListener('click', manejarCopiarDisponibilidad);
 
   document.getElementById('boton-agregar-bloqueo').addEventListener('click', abrirHojaBloqueo);
   document.getElementById('boton-cerrar-hoja-bloqueo').addEventListener('click', cerrarHojaBloqueo);
