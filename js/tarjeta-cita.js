@@ -5,7 +5,7 @@
 
 (function () {
 
-const { crearEl, mostrarMensaje, formatearHora12 } = window.UI;
+const { crearEl, mostrarMensaje, formatearHora12, estadoConsentimiento, fechaHoyISO } = window.UI;
 const DB = window.GrafectoDB;
 
 const ESTADOS = [
@@ -97,6 +97,35 @@ function crearBotonNotas(cita, onCambio) {
   });
 }
 
+// Se firma solo una vez al año, así que aquí se ve de un vistazo si a esta
+// clienta ya le toca — y si le falta, se marca sin tener que abrir su ficha.
+function crearBadgeConsentimiento(cita, onCambio) {
+  const estado = estadoConsentimiento(cita.clientaConsentimientoFecha);
+
+  return crearEl('button', {
+    type: 'button',
+    class: `badge-consentimiento badge-consentimiento--${estado.clase}`,
+    texto: estado.vigente ? '✓ Consentimiento' : `⚠ Consentimiento: ${estado.texto}`,
+    onclick: async (evento) => {
+      evento.stopPropagation();
+      if (estado.vigente) return;
+
+      const confirmar = window.confirm(
+        `¿Marcar el consentimiento informado de ${cita.clientaNombre} como firmado hoy?`
+      );
+      if (!confirmar) return;
+
+      try {
+        await DB.actualizarConsentimiento(cita.clientaId, fechaHoyISO());
+        onCambio();
+      } catch (error) {
+        mostrarMensaje('No se pudo actualizar el consentimiento');
+        console.error(error);
+      }
+    },
+  });
+}
+
 // opciones: { colorFondo: boolean, onEditar: (cita) => void, onCambio: () => void }
 function crear(cita, opciones = {}) {
   const clases = ['tarjeta-cita'];
@@ -110,6 +139,7 @@ function crear(cita, opciones = {}) {
       crearEl('div', { class: 'tarjeta-cita__hora', texto: formatearHora12(cita.hora) }),
       crearEl('div', { class: 'tarjeta-cita__info' }, [
         crearEl('div', { class: 'tarjeta-cita__nombre', texto: cita.clientaNombre }),
+        crearBadgeConsentimiento(cita, onCambio),
         cita.tratamientoNombre
           ? crearEl('div', { class: 'tarjeta-cita__detalle', texto: cita.tratamientoNombre })
           : null,

@@ -91,6 +91,28 @@
     return `${hoy.getFullYear()}-${mes}-${dia}`;
   }
 
+  function diasEntreISO(fechaInicioISO, fechaFinISO) {
+    const [a1, m1, d1] = fechaInicioISO.split('-').map(Number);
+    const [a2, m2, d2] = fechaFinISO.split('-').map(Number);
+    const msPorDia = 24 * 60 * 60 * 1000;
+    return Math.round((Date.UTC(a2, m2 - 1, d2) - Date.UTC(a1, m1 - 1, d1)) / msPorDia);
+  }
+
+  const VIGENCIA_CONSENTIMIENTO_DIAS = 365;
+
+  // Estado del consentimiento informado de una clienta, a partir de la fecha
+  // en que se marcó como firmado (null = nunca firmado). Vigencia: 1 año.
+  function estadoConsentimiento(fechaConsentimiento) {
+    if (!fechaConsentimiento) {
+      return { clase: 'pendiente', texto: 'Sin firmar', vigente: false };
+    }
+    const dias = diasEntreISO(fechaConsentimiento, fechaHoyISO());
+    if (dias > VIGENCIA_CONSENTIMIENTO_DIAS) {
+      return { clase: 'vencido', texto: 'Vencido', vigente: false };
+    }
+    return { clase: 'firmado', texto: 'Firmado', vigente: true };
+  }
+
   window.UI = {
     crearEl,
     iniciales,
@@ -100,5 +122,7 @@
     formatearDuracion,
     formatearMoneda,
     fechaHoyISO,
+    diasEntreISO,
+    estadoConsentimiento,
   };
 })();

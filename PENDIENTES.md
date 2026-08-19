@@ -146,3 +146,18 @@ original) — se corrigen en cuanto se detectan, no hay que esperar su turno.
   colores son Magenta/Lila suave/Gris claro/Rosa pálido/Blanco, no
   "ciruela/berenjena" — la usuaria decidió dejar ciruela por ahora y revisar
   la paleta completa en una pasada de diseño dedicada más adelante.
+- [x] 2026-08-19: Formato del mensaje de disponibilidad corregido a una hora
+  por renglón (antes iban separadas por comas en una sola línea), y cambiado
+  de "abrir WhatsApp directo" a "copiar mensaje" porque el enlace sin número
+  específico lo mandaba marcado como reenviado
+- [x] 2026-08-19: Las horas habilitadas ahora se cruzan con las citas ya
+  agendadas — en cuanto una hora tiene cita, desaparece sola de "Fechas
+  habilitadas" y del mensaje de disponibilidad (antes eran dos listas
+  independientes)
+- [x] 2026-08-19: Corregido de raíz por qué las actualizaciones no llegaban
+  solas al celular/laptop (`updateViaCache: 'none'` + revisión automática al
+  volver a la app) — antes había que desinstalar y reinstalar la PWA cada vez
+- [x] 2026-08-19: Badge de consentimiento informado agregado directo en cada
+  tarjeta de cita (Hoy y Agenda), junto al nombre de la clienta — verde si
+  está firmado y vigente, en aviso si falta o venció, y se puede marcar como
+  firmado ahí mismo sin abrir la ficha completa de la clienta

@@ -115,6 +115,7 @@ function filaACita(fila) {
     clientaId: fila.clienta_id,
     clientaNombre: fila.clienta?.nombre || '(clienta eliminada)',
     clientaTelefono: fila.clienta?.telefono || '',
+    clientaConsentimientoFecha: fila.clienta?.consentimiento_fecha || null,
     tratamientoId: fila.tratamiento_id,
     tratamientoNombre: fila.tratamiento?.nombre || '',
     duracionMinutos: fila.tratamiento?.duracion_minutos || null,
@@ -128,7 +129,7 @@ function filaACita(fila) {
 }
 
 const SELECT_CITA_CON_CLIENTA =
-  '*, clienta:clientas(nombre, telefono), tratamiento:tratamientos(nombre, duracion_minutos)';
+  '*, clienta:clientas(nombre, telefono, consentimiento_fecha), tratamiento:tratamientos(nombre, duracion_minutos)';
 
 // Solo trae de hoy en adelante — el historial de citas pasadas no se necesita
 // para el trabajo del día a día (se puede agregar una vista aparte si hace falta).

@@ -6,8 +6,6 @@
 const { crearEl, iniciales, mostrarMensaje, formatearFechaLarga, formatearMoneda, fechaHoyISO } = window.UI;
 const DB = window.GrafectoDB;
 
-const VIGENCIA_CONSENTIMIENTO_DIAS = 365;
-
 let todasLasClientas = [];
 let idEnEdicion = null;
 let consentimientoFechaActual = null;
@@ -168,13 +166,6 @@ async function mostrarHistorial(clientaId) {
   }
 }
 
-function diasEntreISO(fechaInicioISO, fechaFinISO) {
-  const [a1, m1, d1] = fechaInicioISO.split('-').map(Number);
-  const [a2, m2, d2] = fechaFinISO.split('-').map(Number);
-  const msPorDia = 24 * 60 * 60 * 1000;
-  return Math.round((Date.UTC(a2, m2 - 1, d2) - Date.UTC(a1, m1 - 1, d1)) / msPorDia);
-}
-
 function renderizarEstadoConsentimiento() {
   if (!consentimientoFechaActual) {
     consentimientoEstado.textContent = 'Pendiente';
@@ -182,8 +173,8 @@ function renderizarEstadoConsentimiento() {
     return;
   }
 
-  const dias = diasEntreISO(consentimientoFechaActual, fechaHoyISO());
-  const vencido = dias > VIGENCIA_CONSENTIMIENTO_DIAS;
+  const estado = UI.estadoConsentimiento(consentimientoFechaActual);
+  const vencido = estado.clase === 'vencido';
 
   consentimientoEstado.textContent = vencido
     ? `Vencido desde ${formatearFechaLarga(consentimientoFechaActual)} — hay que renovarlo`
