@@ -1,7 +1,7 @@
 // Cachea el "app shell" para que GRAFECTO funcione sin conexión.
 // Sube CACHE_VERSION cuando cambien los archivos, para forzar la actualización del cache.
 
-const CACHE_VERSION = 'grafecto-v13';
+const CACHE_VERSION = 'grafecto-v14';
 
 const ARCHIVOS_APP_SHELL = [
   './',
@@ -25,6 +25,7 @@ const ARCHIVOS_APP_SHELL = [
   './js/app.js',
   './icons/icon-192.png',
   './icons/icon-512.png',
+  './icons/logo-grafecto.png',
 ];
 
 self.addEventListener('install', (evento) => {

@@ -8,20 +8,12 @@
   box-shadow: var(--sombra-media);
 }
 
-.encabezado__marca {
-  font-size: 1.75rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  color: var(--color-texto-invertido);
-}
-
-.encabezado__subtitulo {
-  margin-top: 2px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-magenta-suave);
+.encabezado__logo {
+  height: 34px;
+  width: auto;
+  display: block;
+  /* Vuelve blanco el logo (que es azul/gris oscuro) para que se lea sobre el fondo ciruela. */
+  filter: brightness(0) invert(1);
 }
 
 /* ===== Buscador ===== */
@@ -419,16 +411,21 @@
   margin-bottom: var(--espacio-sm);
 }
 
-.historial-item {
+.historial-item + .historial-item {
+  border-top: 1px solid var(--color-borde);
+}
+
+.historial-item__resumen {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--espacio-sm);
   padding: var(--espacio-sm) 0;
+  cursor: pointer;
 }
 
-.historial-item + .historial-item {
-  border-top: 1px solid var(--color-borde);
+.historial-item__resumen:active {
+  opacity: 0.7;
 }
 
 .historial-item__fecha {
@@ -448,6 +445,23 @@
   font-weight: 700;
   color: var(--color-primario);
   flex-shrink: 0;
+}
+
+.historial-item__expandido {
+  background: var(--color-fondo);
+  border-radius: var(--radio-sm);
+  padding: var(--espacio-sm) var(--espacio-md);
+  margin-bottom: var(--espacio-sm);
+}
+
+.historial-item__expandido-linea {
+  font-size: 0.85rem;
+  color: var(--color-texto);
+  padding: 3px 0;
+}
+
+.historial-item__expandido-linea + .historial-item__expandido-linea {
+  border-top: 1px solid var(--color-borde);
 }
 
 /* ===== Pantalla de inicio de sesión ===== */
@@ -470,17 +484,11 @@
   text-align: center;
 }
 
-.login-tarjeta .encabezado__marca {
-  font-size: 1.6rem;
-}
-
-.login-subtitulo {
-  font-size: 0.75rem;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-magenta);
-  margin-bottom: var(--espacio-lg);
+.login-logo {
+  height: 44px;
+  width: auto;
+  margin: 0 auto var(--espacio-lg);
+  display: block;
 }
 
 .login-tarjeta form {

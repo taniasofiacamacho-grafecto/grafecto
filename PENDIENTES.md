@@ -99,3 +99,14 @@ original) — se corrigen en cuanto se detectan, no hay que esperar su turno.
 - [x] 2026-08-18: Selector de clienta en el formulario de cita cambiado de lista
   desplegable a buscador con autocompletado (no escala a miles de clientas) —
   confirmado por la usuaria, además ya instaló la PWA en Samsung y Mac
+- [x] 2026-08-18: Historial de visitas ahora es expandible — al tocar un
+  registro se despliega longitud, promoción y notas (antes solo se veía
+  fecha, tratamiento y precio)
+- [x] 2026-08-18: Logo real de la marca aplicado (login y encabezado) usando
+  el archivo oficial `Grafectologousocorrecto-02.png` — en blanco sobre el
+  encabezado ciruela (con filtro CSS), a color en la pantalla de login.
+  Subtítulo corregido a "Organic Hair Care" (el del logo real, no "Science"
+  del brief original). **Pendiente:** el manual de marca real dice que los
+  colores son Magenta/Lila suave/Gris claro/Rosa pálido/Blanco, no
+  "ciruela/berenjena" — la usuaria decidió dejar ciruela por ahora y revisar
+  la paleta completa en una pasada de diseño dedicada más adelante.

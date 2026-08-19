@@ -68,6 +68,53 @@ function filtrarClientas() {
   renderizarLista(filtradas);
 }
 
+const ETIQUETAS_PROMOCION = {
+  ninguna: 'Ninguna',
+  descuento: 'Descuento',
+  producto: 'Producto gratis',
+};
+
+// Cada visita se ve resumida (fecha, tratamiento, precio) y se toca para
+// desplegar todo lo que se capturó en el cobro: longitud, promoción, notas.
+function crearItemHistorial(visita) {
+  const detalle = [visita.tratamientoNombre, visita.estilista].filter(Boolean).join(' · ');
+
+  const detallesExpandidos = [
+    visita.longitud ? `Longitud: ${visita.longitud}` : null,
+    visita.promocion && visita.promocion !== 'ninguna'
+      ? `Promoción: ${ETIQUETAS_PROMOCION[visita.promocion] || visita.promocion}`
+      : null,
+    visita.notas ? `Notas: ${visita.notas}` : null,
+  ].filter(Boolean);
+
+  const expandido = crearEl(
+    'div',
+    { class: 'historial-item__expandido', hidden: true },
+    detallesExpandidos.length > 0
+      ? detallesExpandidos.map((texto) => crearEl('div', { class: 'historial-item__expandido-linea', texto }))
+      : [crearEl('div', { class: 'historial-item__expandido-linea', texto: 'Sin más detalles capturados.' })]
+  );
+
+  const resumen = crearEl(
+    'div',
+    {
+      class: 'historial-item__resumen',
+      onclick: () => {
+        expandido.hidden = !expandido.hidden;
+      },
+    },
+    [
+      crearEl('div', { class: 'historial-item__info' }, [
+        crearEl('div', { class: 'historial-item__fecha', texto: formatearFechaLarga(visita.fecha) }),
+        detalle ? crearEl('div', { class: 'historial-item__detalle', texto: detalle }) : null,
+      ]),
+      crearEl('div', { class: 'historial-item__precio', texto: formatearMoneda(visita.precio) }),
+    ]
+  );
+
+  return crearEl('div', { class: 'historial-item' }, [resumen, expandido]);
+}
+
 async function mostrarHistorial(clientaId) {
   historialContenedor.hidden = false;
   historialLista.innerHTML = '';
@@ -85,16 +132,7 @@ async function mostrarHistorial(clientaId) {
     }
 
     for (const visita of visitas) {
-      const detalle = [visita.tratamientoNombre, visita.estilista].filter(Boolean).join(' · ');
-      historialLista.appendChild(
-        crearEl('div', { class: 'historial-item' }, [
-          crearEl('div', { class: 'historial-item__info' }, [
-            crearEl('div', { class: 'historial-item__fecha', texto: formatearFechaLarga(visita.fecha) }),
-            detalle ? crearEl('div', { class: 'historial-item__detalle', texto: detalle }) : null,
-          ]),
-          crearEl('div', { class: 'historial-item__precio', texto: formatearMoneda(visita.precio) }),
-        ])
-      );
+      historialLista.appendChild(crearItemHistorial(visita));
     }
   } catch (error) {
     historialLista.innerHTML = '';
