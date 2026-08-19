@@ -55,10 +55,19 @@ async function manejarCopiarDisponibilidad() {
   }
 }
 
+// Compara solo hora:minuto — citas.hora y horario_slots.hora pueden venir
+// con o sin segundos según cómo los haya guardado Postgres.
+function horaCorta(hora) {
+  return (hora || '').slice(0, 5);
+}
+
 async function cargarFechas() {
   listaFechas.innerHTML = '';
   try {
-    const slots = await DB.listarSlotsFechas();
+    const [slotsCrudos, citas] = await Promise.all([DB.listarSlotsFechas(), DB.listarCitas()]);
+
+    const ocupadas = new Set(citas.map((c) => `${c.fecha}|${horaCorta(c.hora)}`));
+    const slots = slotsCrudos.filter((s) => !ocupadas.has(`${s.fecha}|${horaCorta(s.hora)}`));
 
     if (slots.length === 0) {
       listaFechas.appendChild(
