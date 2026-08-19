@@ -87,7 +87,9 @@ correctamente tras cerrar/abrir sesión.
 
 ## Ideas que surjan sobre la marcha
 
-_(se agregan aquí según aparezcan, sin interrumpir lo que se esté construyendo)_
+- [ ] Pestaña de **Finanzas** aparte (2026-08-18): más completa que el resumen
+  chiquito de la pestaña Hoy — ligada a #13 (gastos fijos) y #14 (método de
+  pago) para tener panorama completo de ingresos y egresos, no solo ingresos.
 
 ## Correcciones y ajustes de uso real
 
