@@ -182,6 +182,11 @@
         </div>
 
         <div class="campo">
+          <label for="cobro-longitud">Longitud</label>
+          <select id="cobro-longitud"></select>
+        </div>
+
+        <div class="campo">
           <label>Promoción aplicada</label>
           <div id="cobro-promocion" class="grupo-pastillas">
             <button type="button" class="pastilla-opcion pastilla-opcion--activa" data-valor="ninguna">Ninguna</button>
@@ -191,7 +196,21 @@
         </div>
 
         <div class="campo">
-          <label for="cobro-notas">Notas de técnica</label>
+          <label>Atendió</label>
+          <div id="cobro-estilista" class="grupo-pastillas">
+            <button type="button" class="pastilla-opcion" data-valor="Alma">Alma</button>
+            <button type="button" class="pastilla-opcion" data-valor="Betty">Betty</button>
+            <button type="button" class="pastilla-opcion" data-valor="Isabel">Isabel</button>
+            <button type="button" class="pastilla-opcion" data-valor="otra">Otra</button>
+          </div>
+          <input id="cobro-estilista-otra" type="text" placeholder="Nombre" autocapitalize="words" hidden style="margin-top: 8px;" />
+        </div>
+
+        <div class="campo">
+          <div class="campo__encabezado">
+            <label for="cobro-notas">Notas de técnica</label>
+            <button type="button" id="cobro-notas-dictado" class="boton-dictado" aria-label="Dictar por voz" hidden>🎤</button>
+          </div>
           <textarea id="cobro-notas" placeholder="Qué se hizo, observaciones…"></textarea>
         </div>
 
@@ -208,6 +227,7 @@
   <script src="js/auth.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/whatsapp.js"></script>
+  <script src="js/dictado.js"></script>
   <script src="js/db.js"></script>
   <script src="js/clientas.js"></script>
   <script src="js/cobro.js"></script>

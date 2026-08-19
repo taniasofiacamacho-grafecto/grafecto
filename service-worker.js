@@ -1,7 +1,7 @@
 // Cachea el "app shell" para que GRAFECTO funcione sin conexión.
 // Sube CACHE_VERSION cuando cambien los archivos, para forzar la actualización del cache.
 
-const CACHE_VERSION = 'grafecto-v11';
+const CACHE_VERSION = 'grafecto-v12';
 
 const ARCHIVOS_APP_SHELL = [
   './',
@@ -15,6 +15,7 @@ const ARCHIVOS_APP_SHELL = [
   './js/auth.js',
   './js/ui.js',
   './js/whatsapp.js',
+  './js/dictado.js',
   './js/db.js',
   './js/clientas.js',
   './js/cobro.js',

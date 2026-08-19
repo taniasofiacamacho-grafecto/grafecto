@@ -315,6 +315,38 @@
   margin-top: 4px;
 }
 
+.campo__encabezado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.campo__encabezado label {
+  margin-bottom: 0;
+}
+
+.boton-dictado {
+  width: 36px;
+  height: 36px;
+  min-height: unset;
+  border-radius: 50%;
+  border: none;
+  background: var(--color-fondo);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.boton-dictado--activo {
+  background: var(--color-peligro);
+  animation: pulso-dictado 1.2s infinite;
+}
+
+@keyframes pulso-dictado {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
 .campo--buscador-relativo {
   position: relative;
 }

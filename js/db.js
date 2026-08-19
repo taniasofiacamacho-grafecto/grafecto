@@ -226,6 +226,8 @@ function filaAVisita(fila) {
     fecha: fila.fecha,
     precio: Number(fila.precio),
     promocion: fila.promocion,
+    longitud: fila.longitud || '',
+    estilista: fila.estilista || '',
     notas: fila.notas || '',
   };
 }
@@ -242,6 +244,8 @@ async function agregarVisita(datos) {
       fecha: datos.fecha,
       precio: datos.precio,
       promocion: datos.promocion || 'ninguna',
+      longitud: datos.longitud || null,
+      estilista: datos.estilista || null,
       notas: (datos.notas || '').trim(),
     })
     .select(SELECT_VISITA_CON_TRATAMIENTO)
