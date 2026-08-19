@@ -95,8 +95,43 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('service-worker.js').catch((error) => {
-      console.warn('No se pudo registrar el service worker:', error);
-    });
+    // updateViaCache: 'none' evita que el navegador use una copia guardada
+    // del propio service-worker.js al revisar si hay versión nueva — sin
+    // esto, a veces ni se daba cuenta de que había una actualización.
+    navigator.serviceWorker
+      .register('service-worker.js', { updateViaCache: 'none' })
+      .then((registro) => {
+        registro.update();
+
+        registro.addEventListener('updatefound', () => {
+          const nuevoWorker = registro.installing;
+          if (!nuevoWorker) return;
+
+          nuevoWorker.addEventListener('statechange', () => {
+            // "installed" + ya había un controlador = es una actualización
+            // (no la primera instalación) — recargamos para tomarla ya.
+            if (nuevoWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              mostrarMensajeActualizacion();
+              setTimeout(() => window.location.reload(), 1500);
+            }
+          });
+        });
+
+        // Revisa de nuevo cada vez que regresas a la app, por si se quedó
+        // abierta en segundo plano mientras se publicaba una versión nueva.
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') registro.update();
+        });
+      })
+      .catch((error) => {
+        console.warn('No se pudo registrar el service worker:', error);
+      });
+  }
+
+  function mostrarMensajeActualizacion() {
+    const aviso = document.createElement('div');
+    aviso.className = 'mensaje-flotante visible';
+    aviso.textContent = 'Hay una versión nueva, actualizando…';
+    document.body.appendChild(aviso);
   }
 });
