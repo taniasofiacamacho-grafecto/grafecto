@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!appInicializada) {
       window.inicializarClientas();
       window.AgendaUI.inicializar();
+      window.CobroUI.inicializar();
       window.GrafectoDB.asegurarTratamientosPorDefecto().catch((error) => {
         console.warn('No se pudieron crear los tratamientos por defecto:', error);
       });

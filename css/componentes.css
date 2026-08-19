@@ -615,6 +615,37 @@
   color: var(--color-exito);
 }
 
+/* ===== Grupo de pastillas seleccionables (ej. promoción del cobro) ===== */
+.grupo-pastillas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-sm);
+}
+
+.pastilla-opcion {
+  border: 1px solid var(--color-borde);
+  background: var(--color-superficie);
+  color: var(--color-texto);
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  min-height: unset;
+  cursor: pointer;
+}
+
+.pastilla-opcion--activa {
+  background: var(--color-primario);
+  border-color: var(--color-primario);
+  color: var(--color-texto-invertido);
+}
+
+.cobro-resumen {
+  font-size: 0.9rem;
+  color: var(--color-texto-suave);
+  margin-bottom: var(--espacio-md);
+}
+
 .tarjeta-cita__sin-telefono {
   text-align: center;
   padding: 10px;

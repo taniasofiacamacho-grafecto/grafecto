@@ -9,6 +9,7 @@
 const TABLA_CLIENTAS = 'clientas';
 const TABLA_CITAS = 'citas';
 const TABLA_TRATAMIENTOS = 'tratamientos';
+const TABLA_VISITAS = 'visitas';
 
 const TRATAMIENTOS_POR_DEFECTO = [
   { nombre: 'Hair Therapy', duracion_minutos: 180 },
@@ -213,6 +214,66 @@ async function asegurarTratamientosPorDefecto() {
   if (errorInsertar) throw errorInsertar;
 }
 
+// ===== Visitas (bitácora / cobro) =====
+
+function filaAVisita(fila) {
+  return {
+    id: fila.id,
+    clientaId: fila.clienta_id,
+    citaId: fila.cita_id,
+    tratamientoId: fila.tratamiento_id,
+    tratamientoNombre: fila.tratamiento?.nombre || '',
+    fecha: fila.fecha,
+    precio: Number(fila.precio),
+    promocion: fila.promocion,
+    notas: fila.notas || '',
+  };
+}
+
+const SELECT_VISITA_CON_TRATAMIENTO = '*, tratamiento:tratamientos(nombre)';
+
+async function agregarVisita(datos) {
+  const { data, error } = await GrafectoAuth.cliente
+    .from(TABLA_VISITAS)
+    .insert({
+      clienta_id: datos.clientaId,
+      cita_id: datos.citaId || null,
+      tratamiento_id: datos.tratamientoId || null,
+      fecha: datos.fecha,
+      precio: datos.precio,
+      promocion: datos.promocion || 'ninguna',
+      notas: (datos.notas || '').trim(),
+    })
+    .select(SELECT_VISITA_CON_TRATAMIENTO)
+    .single();
+
+  if (error) throw error;
+  return filaAVisita(data);
+}
+
+async function listarVisitasDeClienta(clientaId) {
+  const { data, error } = await GrafectoAuth.cliente
+    .from(TABLA_VISITAS)
+    .select(SELECT_VISITA_CON_TRATAMIENTO)
+    .eq('clienta_id', clientaId)
+    .order('fecha', { ascending: false });
+
+  if (error) throw error;
+  return data.map(filaAVisita);
+}
+
+async function listarVisitasEnRango(fechaInicio, fechaFin) {
+  const { data, error } = await GrafectoAuth.cliente
+    .from(TABLA_VISITAS)
+    .select(SELECT_VISITA_CON_TRATAMIENTO)
+    .gte('fecha', fechaInicio)
+    .lte('fecha', fechaFin)
+    .order('fecha', { ascending: false });
+
+  if (error) throw error;
+  return data.map(filaAVisita);
+}
+
 window.GrafectoDB = {
   listarClientas,
   obtenerClienta,
@@ -226,6 +287,9 @@ window.GrafectoDB = {
   actualizarEstadoCita,
   listarTratamientos,
   asegurarTratamientosPorDefecto,
+  agregarVisita,
+  listarVisitasDeClienta,
+  listarVisitasEnRango,
   normalizarTexto,
 };
 

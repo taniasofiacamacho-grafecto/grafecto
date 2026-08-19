@@ -92,6 +92,14 @@ function crearPastillaEstado(cita) {
     onclick: async (evento) => {
       evento.stopPropagation();
       const nuevo = siguienteEstado(cita.estado);
+
+      // Al llegar a "Checkout" se abre el cobro; el estado se marca solo
+      // hasta que se guarde el cobro (así no se pierde el paso de cobrar).
+      if (nuevo === 'checkout') {
+        window.CobroUI.abrir(cita, () => cargarCitas());
+        return;
+      }
+
       try {
         await DB.actualizarEstadoCita(cita.id, nuevo);
         cita.estado = nuevo;
