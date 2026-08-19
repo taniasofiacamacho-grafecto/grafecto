@@ -861,6 +861,28 @@
   text-align: center;
 }
 
+/* ===== Servicios por estilista (pestaña Reportes) ===== */
+.reportes-estilista-fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--espacio-sm) 0;
+}
+
+.reportes-estilista-fila + .reportes-estilista-fila {
+  border-top: 1px solid var(--color-borde);
+}
+
+.reportes-estilista-nombre {
+  font-weight: 600;
+  color: var(--color-texto);
+}
+
+.reportes-estilista-cantidad {
+  font-size: 0.9rem;
+  color: var(--color-texto-suave);
+}
+
 /* ===== Grupo de pastillas seleccionables (ej. promoción del cobro) ===== */
 .grupo-pastillas {
   display: flex;

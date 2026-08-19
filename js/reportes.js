@@ -39,6 +39,11 @@ const botonesEstilista = document.querySelectorAll('#venta-estilista .pastilla-o
 const campoEstilistaOtra = document.getElementById('venta-estilista-otra');
 const resumenEl = document.getElementById('reportes-resumen');
 const graficaEl = document.getElementById('reportes-grafica');
+const estilistaListaEl = document.getElementById('reportes-estilista-lista');
+const botonesEstilistaPeriodo = document.querySelectorAll('#reportes-estilista-periodo .pastilla-opcion');
+
+let periodoEstilistaActivo = 'hoy';
+let visitasPorPeriodo = { hoy: [], semana: [], mes: [] };
 
 // ===== Resumen de ventas (día / semana / mes) + gráfica de la semana =====
 
@@ -126,6 +131,47 @@ function renderizarGraficaSemana(visitasSemana, inicioSemana, hoy) {
   }
 }
 
+// Cuenta servicios por estilista dentro de un conjunto de visitas, ordenado
+// de mayor a menor cantidad. Las visitas sin estilista capturado se agrupan
+// aparte para no perderlas del conteo.
+function agruparPorEstilista(visitas) {
+  const conteos = {};
+  for (const visita of visitas) {
+    const nombre = visita.estilista || '(sin especificar)';
+    conteos[nombre] = (conteos[nombre] || 0) + 1;
+  }
+  return Object.entries(conteos)
+    .map(([nombre, cantidad]) => ({ nombre, cantidad }))
+    .sort((a, b) => b.cantidad - a.cantidad);
+}
+
+function renderizarEstilistas(periodo) {
+  periodoEstilistaActivo = periodo;
+  botonesEstilistaPeriodo.forEach((b) => b.classList.toggle('pastilla-opcion--activa', b.dataset.periodo === periodo));
+
+  const grupos = agruparPorEstilista(visitasPorPeriodo[periodo]);
+  estilistaListaEl.innerHTML = '';
+
+  if (grupos.length === 0) {
+    estilistaListaEl.appendChild(
+      crearEl('div', { class: 'campo__ayuda', texto: 'Sin servicios registrados en este periodo.' })
+    );
+    return;
+  }
+
+  for (const grupo of grupos) {
+    estilistaListaEl.appendChild(
+      crearEl('div', { class: 'reportes-estilista-fila' }, [
+        crearEl('div', { class: 'reportes-estilista-nombre', texto: grupo.nombre }),
+        crearEl('div', {
+          class: 'reportes-estilista-cantidad',
+          texto: `${grupo.cantidad} ${grupo.cantidad === 1 ? 'servicio' : 'servicios'}`,
+        }),
+      ])
+    );
+  }
+}
+
 async function cargarResumen() {
   const hoy = fechaHoyISO();
 
@@ -144,10 +190,14 @@ async function cargarResumen() {
     );
 
     renderizarGraficaSemana(visitasSemana, inicioSemanaISO(hoy), hoy);
+
+    visitasPorPeriodo = { hoy: visitasHoy, semana: visitasSemana, mes: visitasMes };
+    renderizarEstilistas(periodoEstilistaActivo);
   } catch (error) {
     resumenEl.innerHTML = '';
     resumenEl.appendChild(crearEl('div', { class: 'campo__ayuda', texto: 'No se pudo cargar el resumen.' }));
     graficaEl.innerHTML = '';
+    estilistaListaEl.innerHTML = '';
     console.error(error);
   }
 }
@@ -331,6 +381,10 @@ function inicializar() {
   });
 
   Dictado.adjuntarA(campoNotas, botonDictado);
+
+  botonesEstilistaPeriodo.forEach((boton) => {
+    boton.addEventListener('click', () => renderizarEstilistas(boton.dataset.periodo));
+  });
 }
 
 async function mostrar() {
