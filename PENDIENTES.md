@@ -181,5 +181,13 @@ original) — se corrigen en cuanto se detectan, no hay que esperar su turno.
   cada estilista y cuántos servicios hizo, con pastillas para alternar entre
   Hoy / Semana / Mes (mismos periodos que las tarjetas de arriba — el mes
   siempre va del día 1 al último día del mes calendario). Las visitas sin
-  estilista capturado se agrupan bajo "(sin especificar)" — pendiente de
-  confirmar por la usuaria.
+  estilista capturado se agrupan bajo "(sin especificar)" — confirmado por
+  la usuaria.
+- [x] 2026-08-19: Al agendar una cita **nueva**, ya no hace falta cerrar la
+  hoja e ir a buscarla en la Agenda para mandar los mensajes de WhatsApp —
+  en cuanto se guarda, la misma hoja cambia a una pantalla de confirmación
+  ("¡Cita guardada!") con los botones de Confirmación/Deep cleanse/
+  Recordatorio listos para tocar ahí mismo, o avisa si a la clienta le falta
+  el teléfono capturado. Al editar una cita ya existente no cambia nada (se
+  cierra normal, sin este paso extra) — pendiente de confirmar por la
+  usuaria.
