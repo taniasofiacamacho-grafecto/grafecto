@@ -105,9 +105,12 @@ la usuaria
       pendiente de confirmar por la usuaria
     - [ ] Calendario visual de semana (ver de un vistazo qué está libre/ocupado)
     - [ ] Vista de mes
-    - [ ] Lista de horarios libres formateada para compartir por WhatsApp (la
-      usuaria la copia/manda manualmente; la clienta contesta y ella agenda —
-      **sin auto-reservación por ahora**, esa se evaluará aparte más adelante)
+    - [x] **Botón "Compartir por WhatsApp"** (2026-08-19): arma el mensaje con
+      las fechas habilitadas y sus horas (fecha en negritas, horas debajo) y
+      abre WhatsApp para elegir a quién mandárselo — reemplaza el copy-paste
+      manual que salía mal formateado. La clienta contesta y ella agenda a
+      mano — **sin auto-reservación por ahora**, esa se evaluará aparte más
+      adelante — pendiente de confirmar por la usuaria
 12. [x] Resumen de ingresos diario y mensual — 2026-08-18: nueva pestaña **"Hoy"**
     con resumen de Hoy/Semana/Mes (monto y cantidad de servicios), y las citas
     del día en tarjetas con **fondo de color completo según su estado**

@@ -36,6 +36,14 @@ function crearItemLista(fecha, detalle, onEliminar) {
 
 // ===== Fechas habilitadas =====
 
+const botonCompartirDisponibilidad = document.getElementById('boton-compartir-disponibilidad');
+
+function actualizarBotonCompartir(gruposPorFecha) {
+  const enlace = WhatsApp.generarEnlaceDisponibilidad(gruposPorFecha);
+  botonCompartirDisponibilidad.hidden = !enlace;
+  if (enlace) botonCompartirDisponibilidad.href = enlace;
+}
+
 async function cargarFechas() {
   listaFechas.innerHTML = '';
   try {
@@ -45,6 +53,7 @@ async function cargarFechas() {
       listaFechas.appendChild(
         crearEl('div', { class: 'campo__ayuda', texto: 'No tienes fechas habilitadas próximas.' })
       );
+      actualizarBotonCompartir([]);
       return;
     }
 
@@ -68,6 +77,13 @@ async function cargarFechas() {
         })
       );
     }
+
+    actualizarBotonCompartir(
+      Object.entries(porFecha).map(([fecha, slotsDia]) => ({
+        fecha,
+        horas: slotsDia.map((s) => s.hora),
+      }))
+    );
   } catch (error) {
     listaFechas.appendChild(
       crearEl('div', { class: 'campo__ayuda', texto: 'No se pudieron cargar las fechas.' })
