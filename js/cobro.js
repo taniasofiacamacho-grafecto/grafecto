@@ -74,6 +74,12 @@ function cerrar() {
   citaActual = null;
 }
 
+function manejarCancelar() {
+  const hayContenido = campoPrecio.value || campoNotas.value.trim();
+  if (hayContenido && !window.confirm('¿Descartar el cobro sin guardar?')) return;
+  cerrar();
+}
+
 function resolverEstilista() {
   if (estilistaSeleccionada === 'otra') return campoEstilistaOtra.value.trim();
   return estilistaSeleccionada;
@@ -114,10 +120,7 @@ async function manejarGuardar(evento) {
 }
 
 function inicializar() {
-  document.getElementById('boton-cerrar-hoja-cobro').addEventListener('click', cerrar);
-  fondoHoja.addEventListener('click', (evento) => {
-    if (evento.target === fondoHoja) cerrar();
-  });
+  document.getElementById('boton-cerrar-hoja-cobro').addEventListener('click', manejarCancelar);
   formulario.addEventListener('submit', manejarGuardar);
 
   botonesPromocion.forEach((boton) => {

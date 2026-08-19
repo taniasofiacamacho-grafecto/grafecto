@@ -54,6 +54,12 @@ function cerrar() {
   archivoFotoNuevo = null;
 }
 
+function manejarCancelar() {
+  const hayContenido = campoTexto.value.trim() || archivoFotoNuevo;
+  if (hayContenido && !window.confirm('¿Descartar los cambios sin guardar?')) return;
+  cerrar();
+}
+
 async function manejarGuardar(evento) {
   evento.preventDefault();
   botonGuardar.disabled = true;
@@ -78,10 +84,7 @@ async function manejarGuardar(evento) {
 }
 
 function inicializar() {
-  document.getElementById('boton-cerrar-hoja-notas-visita').addEventListener('click', cerrar);
-  fondoHoja.addEventListener('click', (evento) => {
-    if (evento.target === fondoHoja) cerrar();
-  });
+  document.getElementById('boton-cerrar-hoja-notas-visita').addEventListener('click', manejarCancelar);
   formulario.addEventListener('submit', manejarGuardar);
 
   campoFoto.addEventListener('change', () => {

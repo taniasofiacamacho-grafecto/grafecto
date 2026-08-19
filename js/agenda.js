@@ -166,6 +166,12 @@ function cerrarHojaCita() {
   idEnEdicion = null;
 }
 
+function manejarCancelarCita() {
+  const hayContenido = campoClientaBuscar.value.trim() || campoFecha.value || campoHora.value || campoNotas.value.trim();
+  if (hayContenido && !window.confirm('¿Descartar los cambios sin guardar?')) return;
+  cerrarHojaCita();
+}
+
 async function manejarGuardar(evento) {
   evento.preventDefault();
 
@@ -218,10 +224,7 @@ async function manejarEliminar() {
 }
 
 function inicializarAgenda() {
-  document.getElementById('boton-cerrar-hoja-cita').addEventListener('click', cerrarHojaCita);
-  fondoHoja.addEventListener('click', (evento) => {
-    if (evento.target === fondoHoja) cerrarHojaCita();
-  });
+  document.getElementById('boton-cerrar-hoja-cita').addEventListener('click', manejarCancelarCita);
   formulario.addEventListener('submit', manejarGuardar);
   botonEliminar.addEventListener('click', manejarEliminar);
   campoTratamiento.addEventListener('change', actualizarAyudaDuracion);

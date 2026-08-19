@@ -236,6 +236,12 @@ function cerrarHoja() {
   idEnEdicion = null;
 }
 
+function manejarCancelar() {
+  const hayContenido = campoNombre.value.trim() || campoTelefono.value.trim() || campoNotas.value.trim();
+  if (hayContenido && !window.confirm('¿Descartar los cambios sin guardar?')) return;
+  cerrarHoja();
+}
+
 async function manejarGuardar(evento) {
   evento.preventDefault();
 
@@ -251,16 +257,21 @@ async function manejarGuardar(evento) {
     notas: campoNotas.value,
   };
 
-  if (idEnEdicion) {
-    await DB.actualizarClienta(idEnEdicion, datos);
-    mostrarMensaje('Clienta actualizada');
-  } else {
-    await DB.agregarClienta(datos);
-    mostrarMensaje('Clienta guardada');
-  }
+  try {
+    if (idEnEdicion) {
+      await DB.actualizarClienta(idEnEdicion, datos);
+      mostrarMensaje('Clienta actualizada');
+    } else {
+      await DB.agregarClienta(datos);
+      mostrarMensaje('Clienta guardada');
+    }
 
-  cerrarHoja();
-  await cargarClientas();
+    cerrarHoja();
+    await cargarClientas();
+  } catch (error) {
+    mostrarMensaje('No se pudo guardar la clienta: ' + (error.message || 'intenta de nuevo'));
+    console.error(error);
+  }
 }
 
 async function manejarEliminar() {
@@ -268,18 +279,20 @@ async function manejarEliminar() {
   const confirmar = window.confirm('¿Eliminar esta clienta? Esta acción no se puede deshacer.');
   if (!confirmar) return;
 
-  await DB.eliminarClienta(idEnEdicion);
-  mostrarMensaje('Clienta eliminada');
-  cerrarHoja();
-  await cargarClientas();
+  try {
+    await DB.eliminarClienta(idEnEdicion);
+    mostrarMensaje('Clienta eliminada');
+    cerrarHoja();
+    await cargarClientas();
+  } catch (error) {
+    mostrarMensaje('No se pudo eliminar la clienta: ' + (error.message || 'intenta de nuevo'));
+    console.error(error);
+  }
 }
 
 function inicializarClientas() {
   buscadorInput.addEventListener('input', filtrarClientas);
-  document.getElementById('boton-cerrar-hoja').addEventListener('click', cerrarHoja);
-  fondoHoja.addEventListener('click', (evento) => {
-    if (evento.target === fondoHoja) cerrarHoja();
-  });
+  document.getElementById('boton-cerrar-hoja').addEventListener('click', manejarCancelar);
   formulario.addEventListener('submit', manejarGuardar);
   botonEliminar.addEventListener('click', manejarEliminar);
   botonMarcarConsentimiento.addEventListener('click', manejarMarcarConsentimiento);
