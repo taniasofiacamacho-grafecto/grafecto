@@ -286,43 +286,20 @@ async function asegurarTratamientosPorDefecto() {
   if (errorInsertar) throw errorInsertar;
 }
 
-// ===== Horario: lista exacta de horas por día (disponibilidad) =====
-// horario_slots guarda horas sueltas: con dia_semana = recurrente cada semana,
-// con fecha = solo para esa fecha puntual (reemplaza al horario normal ese día).
+// ===== Horario: fechas habilitadas con sus horas exactas (disponibilidad) =====
+// No hay patrón semanal — cada semana es distinta. La usuaria habilita
+// fechas puntuales (normalmente 3-4 semanas adelante) con sus horas exactas.
 
 const TABLA_HORARIO_SLOTS = 'horario_slots';
-const TABLA_HORARIO_DIAS_CERRADOS = 'horario_dias_cerrados';
 
 function filaASlot(fila) {
-  return { id: fila.id, diaSemana: fila.dia_semana, fecha: fila.fecha, hora: fila.hora };
+  return { id: fila.id, fecha: fila.fecha, hora: fila.hora };
 }
 
-async function listarSlotsSemanales() {
+async function listarSlotsFechas() {
   const { data, error } = await GrafectoAuth.cliente
     .from(TABLA_HORARIO_SLOTS)
     .select('*')
-    .not('dia_semana', 'is', null)
-    .order('dia_semana', { ascending: true })
-    .order('hora', { ascending: true });
-
-  if (error) throw error;
-  return data.map(filaASlot);
-}
-
-async function agregarSlotSemanal(diaSemana, hora) {
-  const { error } = await GrafectoAuth.cliente
-    .from(TABLA_HORARIO_SLOTS)
-    .insert({ dia_semana: diaSemana, hora });
-
-  if (error) throw error;
-}
-
-// Horas puntuales para una fecha específica (excepción con horario distinto).
-async function listarSlotsDeExcepciones() {
-  const { data, error } = await GrafectoAuth.cliente
-    .from(TABLA_HORARIO_SLOTS)
-    .select('*')
-    .not('fecha', 'is', null)
     .gte('fecha', UI.fechaHoyISO())
     .order('fecha', { ascending: true })
     .order('hora', { ascending: true });
@@ -331,43 +308,19 @@ async function listarSlotsDeExcepciones() {
   return data.map(filaASlot);
 }
 
-async function agregarSlotExcepcion(fecha, hora) {
-  const { error } = await GrafectoAuth.cliente.from(TABLA_HORARIO_SLOTS).insert({ fecha, hora });
+async function agregarSlotFecha(fecha, hora) {
+  const { data, error } = await GrafectoAuth.cliente
+    .from(TABLA_HORARIO_SLOTS)
+    .insert({ fecha, hora })
+    .select()
+    .single();
+
   if (error) throw error;
+  return filaASlot(data);
 }
 
 async function eliminarSlot(id) {
   const { error } = await GrafectoAuth.cliente.from(TABLA_HORARIO_SLOTS).delete().eq('id', id);
-  if (error) throw error;
-}
-
-// Días marcados como cerrados por completo para una fecha puntual (aunque ese
-// día de la semana normalmente esté abierto).
-function filaADiaCerrado(fila) {
-  return { id: fila.id, fecha: fila.fecha };
-}
-
-async function listarDiasCerrados() {
-  const { data, error } = await GrafectoAuth.cliente
-    .from(TABLA_HORARIO_DIAS_CERRADOS)
-    .select('*')
-    .gte('fecha', UI.fechaHoyISO())
-    .order('fecha', { ascending: true });
-
-  if (error) throw error;
-  return data.map(filaADiaCerrado);
-}
-
-async function agregarDiaCerrado(fecha) {
-  const { error } = await GrafectoAuth.cliente
-    .from(TABLA_HORARIO_DIAS_CERRADOS)
-    .upsert({ fecha }, { onConflict: 'user_id,fecha' });
-
-  if (error) throw error;
-}
-
-async function eliminarDiaCerrado(id) {
-  const { error } = await GrafectoAuth.cliente.from(TABLA_HORARIO_DIAS_CERRADOS).delete().eq('id', id);
   if (error) throw error;
 }
 
@@ -495,14 +448,9 @@ window.GrafectoDB = {
   obtenerUrlFoto,
   listarTratamientos,
   asegurarTratamientosPorDefecto,
-  listarSlotsSemanales,
-  agregarSlotSemanal,
-  listarSlotsDeExcepciones,
-  agregarSlotExcepcion,
+  listarSlotsFechas,
+  agregarSlotFecha,
   eliminarSlot,
-  listarDiasCerrados,
-  agregarDiaCerrado,
-  eliminarDiaCerrado,
   listarBloqueos,
   agregarBloqueo,
   eliminarBloqueo,

@@ -77,16 +77,10 @@
     <section id="vista-calendario" hidden>
       <main class="contenido contenido--sin-buscador">
         <div class="calendario-seccion">
-          <div class="calendario-seccion__titulo">Horario base</div>
-          <p class="campo__ayuda">Las horas exactas en que reciben clienta cada día. Se repite cada semana; agregar o quitar una hora se guarda solo.</p>
-          <div id="horario-semanal-lista"></div>
-        </div>
-
-        <div class="calendario-seccion">
-          <div class="calendario-seccion__titulo">Excepciones</div>
-          <p class="campo__ayuda">Para un día puntual distinto a tu horario normal (cerrar uno abierto, o abrir uno extra).</p>
+          <div class="calendario-seccion__titulo">Fechas habilitadas</div>
+          <p class="campo__ayuda">Habilita las fechas en que van a recibir clienta, con sus horas exactas. Cada semana es distinta — ve agregando las que necesites, normalmente 3-4 semanas adelante.</p>
           <div id="excepciones-lista"></div>
-          <button type="button" id="boton-agregar-excepcion" class="boton boton--secundario boton--ancho-completo">+ Agregar excepción</button>
+          <button type="button" id="boton-agregar-excepcion" class="boton boton--secundario boton--ancho-completo">+ Habilitar un día</button>
         </div>
 
         <div class="calendario-seccion">
@@ -296,11 +290,11 @@
     </div>
   </div>
 
-  <!-- Hoja modal: agregar excepción de horario -->
+  <!-- Hoja modal: habilitar un día con sus horas -->
   <div id="fondo-hoja-excepcion" class="fondo-hoja">
     <div class="hoja">
       <div class="hoja__manija"></div>
-      <div class="hoja__titulo">Nueva excepción</div>
+      <div class="hoja__titulo">Habilitar un día</div>
 
       <form id="formulario-excepcion">
         <div class="campo">
@@ -309,14 +303,6 @@
         </div>
 
         <div class="campo">
-          <label>¿Qué pasa ese día?</label>
-          <div id="excepcion-tipo" class="grupo-pastillas">
-            <button type="button" class="pastilla-opcion pastilla-opcion--activa" data-valor="cerrado">Cerrar todo el día</button>
-            <button type="button" class="pastilla-opcion" data-valor="abierto">Horario distinto</button>
-          </div>
-        </div>
-
-        <div id="excepcion-horas" class="campo" hidden>
           <label>Horas de ese día</label>
           <div id="excepcion-horas-chips" class="chips-horas"></div>
           <div class="fila-agregar-hora">
@@ -326,8 +312,7 @@
         </div>
 
         <div class="fila-botones">
-          <button type="button" id="boton-cerrar-hoja-excepcion" class="boton boton--secundario">Cancelar</button>
-          <button type="submit" class="boton boton--primario">Guardar</button>
+          <button type="button" id="boton-cerrar-hoja-excepcion" class="boton boton--secundario">Cerrar</button>
         </div>
       </form>
     </div>

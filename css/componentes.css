@@ -987,17 +987,3 @@
   flex-shrink: 0;
 }
 
-.horario-dia {
-  padding: var(--espacio-md) 0;
-}
-
-.horario-dia + .horario-dia {
-  border-top: 1px solid var(--color-borde);
-}
-
-.horario-dia__nombre {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--color-texto);
-  margin-bottom: var(--espacio-sm);
-}
