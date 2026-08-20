@@ -34,6 +34,48 @@ function crearItemLista(fecha, detalle, onEliminar) {
   ]);
 }
 
+// Cada hora se puede quitar suelta (chip con su propia ✕), y también queda
+// el botón para quitar el día completo de una vez.
+function crearItemFecha(fecha, slotsDia, onCambio) {
+  const chips = crearEl('div', { class: 'chips-horas', style: 'margin-bottom: 0;' });
+  for (const slot of slotsDia) {
+    chips.appendChild(
+      crearChipHora(slot.hora, async () => {
+        try {
+          await DB.eliminarSlot(slot.id);
+          await onCambio();
+        } catch (error) {
+          mostrarMensaje('No se pudo quitar la hora');
+          console.error(error);
+        }
+      })
+    );
+  }
+
+  return crearEl('div', { class: 'horario-item' }, [
+    crearEl('div', { class: 'horario-item__info' }, [
+      crearEl('div', { class: 'horario-item__fecha', texto: formatearFechaLarga(fecha) }),
+      chips,
+    ]),
+    crearEl('button', {
+      type: 'button',
+      class: 'horario-item__eliminar',
+      texto: '✕',
+      'aria-label': 'Quitar todo el día',
+      onclick: async () => {
+        if (!window.confirm('¿Quitar todas las horas de este día?')) return;
+        try {
+          await Promise.all(slotsDia.map((s) => DB.eliminarSlot(s.id)));
+          await onCambio();
+        } catch (error) {
+          mostrarMensaje('No se pudo eliminar');
+          console.error(error);
+        }
+      },
+    }),
+  ]);
+}
+
 // ===== Fechas habilitadas =====
 
 const botonCompartirDisponibilidad = document.getElementById('boton-compartir-disponibilidad');
@@ -72,19 +114,7 @@ async function cargarFechas() {
     }
 
     for (const [fecha, slotsDia] of Object.entries(porFecha)) {
-      const detalle = slotsDia.map((s) => formatearHora12(s.hora)).join(', ');
-      listaFechas.appendChild(
-        crearItemLista(fecha, detalle, async () => {
-          if (!window.confirm('¿Quitar todas las horas de este día?')) return;
-          try {
-            await Promise.all(slotsDia.map((s) => DB.eliminarSlot(s.id)));
-            await cargarFechas();
-          } catch (error) {
-            mostrarMensaje('No se pudo eliminar');
-            console.error(error);
-          }
-        })
-      );
+      listaFechas.appendChild(crearItemFecha(fecha, slotsDia, cargarFechas));
     }
 
     actualizarBotonCompartir(
