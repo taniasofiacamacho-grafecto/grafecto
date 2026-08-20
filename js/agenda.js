@@ -4,10 +4,16 @@
 
 (function () {
 
-const { crearEl, mostrarMensaje, formatearFechaLarga, formatearDuracion, fechaHoyISO } = window.UI;
+const { crearEl, mostrarMensaje, formatearFechaLarga, formatearDuracion, formatearHora12, fechaHoyISO } = window.UI;
 const DB = window.GrafectoDB;
 
 const MAX_RESULTADOS_BUSQUEDA = 20;
+
+// Compara solo hora:minuto — citas.hora y horario_slots.hora pueden venir
+// con o sin segundos según cómo los haya guardado Postgres.
+function horaCorta(hora) {
+  return (hora || '').slice(0, 5);
+}
 
 let idEnEdicion = null;
 let citasCargadas = false;
@@ -26,6 +32,7 @@ const campoTratamiento = document.getElementById('cita-tratamiento');
 const campoTratamientoDuracion = document.getElementById('cita-tratamiento-duracion');
 const campoFecha = document.getElementById('cita-fecha');
 const campoHora = document.getElementById('cita-hora');
+const campoHorasDisponibles = document.getElementById('cita-horas-disponibles');
 const campoNotas = document.getElementById('cita-notas');
 const botonEliminar = document.getElementById('boton-eliminar-cita');
 const postGuardado = document.getElementById('cita-post-guardado');
@@ -144,6 +151,68 @@ function actualizarAyudaDuracion() {
     : '';
 }
 
+// Cruza "fechas habilitadas" contra las citas ya agendadas (igual que en
+// Horario) para ofrecer solo las horas realmente libres de ese día, con un
+// botón "Otro horario" para seguir pudiendo escribirlo a mano.
+function seleccionarHoraDisponible(hora, botonActivo) {
+  campoHorasDisponibles.querySelectorAll('.pastilla-opcion').forEach((b) => b.classList.remove('pastilla-opcion--activa'));
+  botonActivo.classList.add('pastilla-opcion--activa');
+
+  if (hora === null) {
+    campoHora.hidden = false;
+    campoHora.value = '';
+    campoHora.focus();
+  } else {
+    campoHora.value = horaCorta(hora);
+    campoHora.hidden = true;
+  }
+}
+
+async function cargarHorasDisponibles(fecha, horaActual) {
+  campoHorasDisponibles.innerHTML = '';
+  campoHorasDisponibles.hidden = true;
+  campoHora.hidden = false;
+
+  if (!fecha) return;
+
+  let slots = [];
+  try {
+    const [slotsCrudos, citas] = await Promise.all([DB.listarSlotsFechas(), DB.listarCitas()]);
+    const ocupadas = new Set(
+      citas.filter((c) => c.id !== idEnEdicion).map((c) => `${c.fecha}|${horaCorta(c.hora)}`)
+    );
+    slots = slotsCrudos
+      .filter((s) => s.fecha === fecha && !ocupadas.has(`${s.fecha}|${horaCorta(s.hora)}`))
+      .sort((a, b) => a.hora.localeCompare(b.hora));
+  } catch (error) {
+    console.error(error);
+    return;
+  }
+
+  if (slots.length === 0) return;
+
+  const horaActualCorta = horaCorta(horaActual);
+  let coincide = false;
+
+  for (const slot of slots) {
+    const boton = crearEl('button', { type: 'button', class: 'pastilla-opcion', texto: formatearHora12(slot.hora) });
+    if (horaCorta(slot.hora) === horaActualCorta) {
+      boton.classList.add('pastilla-opcion--activa');
+      coincide = true;
+    }
+    boton.addEventListener('click', () => seleccionarHoraDisponible(slot.hora, boton));
+    campoHorasDisponibles.appendChild(boton);
+  }
+
+  const botonOtro = crearEl('button', { type: 'button', class: 'pastilla-opcion', texto: 'Otro horario' });
+  if (!coincide && horaActualCorta) botonOtro.classList.add('pastilla-opcion--activa');
+  botonOtro.addEventListener('click', () => seleccionarHoraDisponible(null, botonOtro));
+  campoHorasDisponibles.appendChild(botonOtro);
+
+  campoHorasDisponibles.hidden = false;
+  campoHora.hidden = coincide;
+}
+
 async function abrirHojaCita(cita = null) {
   idEnEdicion = cita ? cita.id : null;
   hojaTitulo.textContent = cita ? 'Editar cita' : 'Nueva cita';
@@ -159,6 +228,8 @@ async function abrirHojaCita(cita = null) {
   campoHora.value = cita ? cita.hora : '';
   campoNotas.value = cita ? cita.notas : '';
   botonEliminar.hidden = !cita;
+
+  await cargarHorasDisponibles(campoFecha.value, campoHora.value);
 
   fondoHoja.classList.add('abierta');
 }
@@ -273,6 +344,7 @@ function inicializarAgenda() {
   botonEliminar.addEventListener('click', manejarEliminar);
   botonPostGuardadoListo.addEventListener('click', cerrarHojaCita);
   campoTratamiento.addEventListener('change', actualizarAyudaDuracion);
+  campoFecha.addEventListener('change', () => cargarHorasDisponibles(campoFecha.value, ''));
 
   campoClientaBuscar.addEventListener('input', () => {
     campoClienta.value = '';
