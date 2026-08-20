@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       window.AgendaUI.inicializar();
       window.CobroUI.inicializar();
       window.NotasVisitaUI.inicializar();
+      window.EstilistaCitaUI.inicializar();
       window.HorarioUI.inicializar();
       window.ReportesUI.inicializar();
       window.GrafectoDB.asegurarTratamientosPorDefecto().catch((error) => {

@@ -125,6 +125,7 @@ function filaACita(fila) {
     estado: fila.estado || 'agendada',
     notasVisita: fila.notas_visita || '',
     fotoPath: fila.foto_path || null,
+    estilista: fila.estilista || '',
   };
 }
 
@@ -187,6 +188,17 @@ async function eliminarCita(id) {
 
 async function actualizarEstadoCita(id, estado) {
   const { error } = await GrafectoAuth.cliente.from(TABLA_CITAS).update({ estado }).eq('id', id);
+  if (error) throw error;
+}
+
+// Se puede asignar desde que la clienta llega, sin esperar al checkout —
+// así queda registrado desde que empieza a atenderla.
+async function actualizarEstilistaCita(id, estilista) {
+  const { error } = await GrafectoAuth.cliente
+    .from(TABLA_CITAS)
+    .update({ estilista: estilista || null })
+    .eq('id', id);
+
   if (error) throw error;
 }
 
@@ -449,6 +461,7 @@ window.GrafectoDB = {
   actualizarCita,
   eliminarCita,
   actualizarEstadoCita,
+  actualizarEstilistaCita,
   actualizarNotasVisita,
   subirFotoVisita,
   obtenerUrlFoto,

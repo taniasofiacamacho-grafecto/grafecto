@@ -329,6 +329,32 @@
     </div>
   </div>
 
+  <!-- Hoja modal: asignar la estilista que atiende una cita (desde que llega, sin esperar al cobro) -->
+  <div id="fondo-hoja-estilista-cita" class="fondo-hoja">
+    <div class="hoja">
+      <div class="hoja__manija"></div>
+      <div class="hoja__titulo">Asignar estilista</div>
+      <div id="estilista-cita-resumen" class="cobro-resumen"></div>
+
+      <form id="formulario-estilista-cita">
+        <div class="campo">
+          <div id="estilista-cita-opciones" class="grupo-pastillas">
+            <button type="button" class="pastilla-opcion" data-valor="Alma">Alma</button>
+            <button type="button" class="pastilla-opcion" data-valor="Betty">Betty</button>
+            <button type="button" class="pastilla-opcion" data-valor="Isabel">Isabel</button>
+            <button type="button" class="pastilla-opcion" data-valor="otra">Otra</button>
+          </div>
+          <input id="estilista-cita-otra" type="text" placeholder="Nombre" autocapitalize="words" hidden style="margin-top: 8px;" />
+        </div>
+
+        <div class="fila-botones">
+          <button type="button" id="boton-cerrar-hoja-estilista-cita" class="boton boton--secundario">Cancelar</button>
+          <button type="submit" class="boton boton--primario">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Hoja modal: habilitar un día con sus horas -->
   <div id="fondo-hoja-excepcion" class="fondo-hoja">
     <div class="hoja">
@@ -471,6 +497,7 @@
   <script src="js/clientas.js"></script>
   <script src="js/cobro.js"></script>
   <script src="js/notas-visita.js"></script>
+  <script src="js/estilista-cita.js"></script>
   <script src="js/tarjeta-cita.js"></script>
   <script src="js/agenda.js"></script>
   <script src="js/hoy.js"></script>

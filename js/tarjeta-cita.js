@@ -97,6 +97,22 @@ function crearBotonNotas(cita, onCambio) {
   });
 }
 
+// Se puede asignar desde que la clienta llega, sin esperar al checkout, y
+// el texto del botón ya muestra a quién se le asignó (también en la vista Hoy).
+function crearBotonEstilista(cita, onCambio) {
+  if (cita.estado === 'agendada') return null;
+
+  return crearEl('button', {
+    type: 'button',
+    class: cita.estilista ? 'boton-notas-visita boton-notas-visita--con-datos' : 'boton-notas-visita',
+    texto: cita.estilista ? `💇 ${cita.estilista}` : '💇 Asignar estilista',
+    onclick: (evento) => {
+      evento.stopPropagation();
+      window.EstilistaCitaUI.abrir(cita, onCambio);
+    },
+  });
+}
+
 // Se firma solo una vez al año, así que aquí se ve de un vistazo si a esta
 // clienta ya le toca — y si le falta, se marca sin tener que abrir su ficha.
 function crearBadgeConsentimiento(cita, onCambio) {
@@ -150,6 +166,7 @@ function crear(cita, opciones = {}) {
     ]),
     crearEl('div', { class: 'tarjeta-cita__estado' }, [
       crearPastillaEstado(cita, onCambio),
+      crearBotonEstilista(cita, onCambio),
       crearBotonNotas(cita, onCambio),
     ]),
     crearBotonesWhatsApp(cita),

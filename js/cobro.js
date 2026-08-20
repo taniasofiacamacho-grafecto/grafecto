@@ -16,6 +16,8 @@ const OPCIONES_LONGITUD_POR_TRATAMIENTO = {
   'Tratamiento de hidratación': ['Corto', 'Mediano', 'Largo'],
 };
 
+const NOMBRES_ESTILISTA_CONOCIDOS = ['Alma', 'Betty', 'Isabel'];
+
 let citaActual = null;
 let callbackAlGuardar = null;
 let promocionSeleccionada = 'ninguna';
@@ -45,7 +47,6 @@ function abrir(cita, onGuardado) {
   citaActual = cita;
   callbackAlGuardar = onGuardado;
   promocionSeleccionada = 'ninguna';
-  estilistaSeleccionada = '';
 
   resumen.textContent =
     `${cita.clientaNombre} — ${formatearFechaLarga(cita.fecha)} ${formatearHora12(cita.hora)}` +
@@ -60,9 +61,24 @@ function abrir(cita, onGuardado) {
   botonesPromocion.forEach((boton) => {
     boton.classList.toggle('pastilla-opcion--activa', boton.dataset.valor === 'ninguna');
   });
+
+  // Si ya se le asignó estilista mientras la cita estaba en proceso, se
+  // precarga aquí para no tener que volver a elegirla en el cobro.
+  estilistaSeleccionada = '';
   botonesEstilista.forEach((boton) => boton.classList.remove('pastilla-opcion--activa'));
   campoEstilistaOtra.hidden = true;
   campoEstilistaOtra.value = '';
+
+  const estilistaPrevia = cita.estilista || '';
+  if (NOMBRES_ESTILISTA_CONOCIDOS.includes(estilistaPrevia)) {
+    estilistaSeleccionada = estilistaPrevia;
+    botonesEstilista.forEach((b) => b.classList.toggle('pastilla-opcion--activa', b.dataset.valor === estilistaPrevia));
+  } else if (estilistaPrevia) {
+    estilistaSeleccionada = 'otra';
+    botonesEstilista.forEach((b) => b.classList.toggle('pastilla-opcion--activa', b.dataset.valor === 'otra'));
+    campoEstilistaOtra.hidden = false;
+    campoEstilistaOtra.value = estilistaPrevia;
+  }
 
   fondoHoja.classList.add('abierta');
   setTimeout(() => campoPrecio.focus(), 250);
