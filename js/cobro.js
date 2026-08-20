@@ -19,13 +19,16 @@ const OPCIONES_LONGITUD_POR_TRATAMIENTO = {
 const NOMBRES_ESTILISTA_CONOCIDOS = ['Alma', 'Betty', 'Isabel'];
 
 let citaActual = null;
+let visitaEnEdicion = null;
 let callbackAlGuardar = null;
 let promocionSeleccionada = 'ninguna';
 let estilistaSeleccionada = '';
 
 const fondoHoja = document.getElementById('fondo-hoja-cobro');
+const tituloHoja = document.getElementById('cobro-titulo');
 const resumen = document.getElementById('cobro-resumen');
 const formulario = document.getElementById('formulario-cobro');
+const botonGuardar = formulario.querySelector('button[type="submit"]');
 const campoPrecio = document.getElementById('cobro-precio');
 const campoLongitud = document.getElementById('cobro-longitud');
 const campoNotas = document.getElementById('cobro-notas');
@@ -43,8 +46,9 @@ function poblarLongitud(tratamientoNombre) {
   }
 }
 
-function abrir(cita, onGuardado) {
+async function abrir(cita, onGuardado) {
   citaActual = cita;
+  visitaEnEdicion = null;
   callbackAlGuardar = onGuardado;
   promocionSeleccionada = 'ninguna';
 
@@ -52,24 +56,44 @@ function abrir(cita, onGuardado) {
     `${cita.clientaNombre} — ${formatearFechaLarga(cita.fecha)} ${formatearHora12(cita.hora)}` +
     (cita.tratamientoNombre ? ` — ${cita.tratamientoNombre}` : '');
 
-  campoPrecio.value = '';
-  // Si ya se capturaron notas durante la visita (botón "Notas y foto"), se
-  // precargan aquí para no volver a escribirlas — solo se completan con precio/promo.
-  campoNotas.value = cita.notasVisita || '';
   poblarLongitud(cita.tratamientoNombre);
 
+  // Si la cita ya se había cobrado, se busca esa visita para poder editarla
+  // (por ejemplo, si se equivocó de precio o de estilista) en vez de crear
+  // un cobro duplicado.
+  if (cita.estado === 'checkout') {
+    try {
+      visitaEnEdicion = await DB.obtenerVisitaDeCita(cita.id);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  tituloHoja.textContent = visitaEnEdicion ? 'Editar cobro' : 'Cobro';
+  botonGuardar.textContent = visitaEnEdicion ? 'Guardar cambios' : 'Guardar cobro';
+
+  campoPrecio.value = visitaEnEdicion ? visitaEnEdicion.precio : '';
+  // Si ya se capturaron notas durante la visita (botón "Notas y foto"), se
+  // precargan aquí para no volver a escribirlas — solo se completan con precio/promo.
+  // Al editar un cobro ya hecho, se precargan las notas que se guardaron ahí.
+  campoNotas.value = visitaEnEdicion ? visitaEnEdicion.notas : (cita.notasVisita || '');
+  campoLongitud.value = visitaEnEdicion ? visitaEnEdicion.longitud : '';
+
+  const promocionPrevia = visitaEnEdicion ? visitaEnEdicion.promocion : 'ninguna';
+  promocionSeleccionada = promocionPrevia;
   botonesPromocion.forEach((boton) => {
-    boton.classList.toggle('pastilla-opcion--activa', boton.dataset.valor === 'ninguna');
+    boton.classList.toggle('pastilla-opcion--activa', boton.dataset.valor === promocionPrevia);
   });
 
-  // Si ya se le asignó estilista mientras la cita estaba en proceso, se
-  // precarga aquí para no tener que volver a elegirla en el cobro.
+  // Si ya se le asignó estilista mientras la cita estaba en proceso (o ya
+  // se había capturado en un cobro previo), se precarga aquí para no tener
+  // que volver a elegirla.
   estilistaSeleccionada = '';
   botonesEstilista.forEach((boton) => boton.classList.remove('pastilla-opcion--activa'));
   campoEstilistaOtra.hidden = true;
   campoEstilistaOtra.value = '';
 
-  const estilistaPrevia = cita.estilista || '';
+  const estilistaPrevia = (visitaEnEdicion ? visitaEnEdicion.estilista : cita.estilista) || '';
   if (NOMBRES_ESTILISTA_CONOCIDOS.includes(estilistaPrevia)) {
     estilistaSeleccionada = estilistaPrevia;
     botonesEstilista.forEach((b) => b.classList.toggle('pastilla-opcion--activa', b.dataset.valor === estilistaPrevia));
@@ -88,6 +112,7 @@ function cerrar() {
   fondoHoja.classList.remove('abierta');
   formulario.reset();
   citaActual = null;
+  visitaEnEdicion = null;
 }
 
 function manejarCancelar() {
@@ -112,20 +137,32 @@ async function manejarGuardar(evento) {
   }
 
   try {
-    await DB.agregarVisita({
-      clientaId: citaActual.clientaId,
-      citaId: citaActual.id,
-      tratamientoId: citaActual.tratamientoId,
-      fecha: citaActual.fecha,
-      precio,
-      longitud: campoLongitud.value,
-      promocion: promocionSeleccionada,
-      estilista: resolverEstilista(),
-      notas: campoNotas.value,
-    });
-    await DB.actualizarEstadoCita(citaActual.id, 'checkout');
+    if (visitaEnEdicion) {
+      await DB.actualizarVisita(visitaEnEdicion.id, {
+        tratamientoId: citaActual.tratamientoId,
+        precio,
+        longitud: campoLongitud.value,
+        promocion: promocionSeleccionada,
+        estilista: resolverEstilista(),
+        notas: campoNotas.value,
+      });
+      mostrarMensaje('Cobro actualizado');
+    } else {
+      await DB.agregarVisita({
+        clientaId: citaActual.clientaId,
+        citaId: citaActual.id,
+        tratamientoId: citaActual.tratamientoId,
+        fecha: citaActual.fecha,
+        precio,
+        longitud: campoLongitud.value,
+        promocion: promocionSeleccionada,
+        estilista: resolverEstilista(),
+        notas: campoNotas.value,
+      });
+      await DB.actualizarEstadoCita(citaActual.id, 'checkout');
+      mostrarMensaje('Cobro guardado');
+    }
 
-    mostrarMensaje('Cobro guardado');
     const cb = callbackAlGuardar;
     cerrar();
     if (cb) cb();

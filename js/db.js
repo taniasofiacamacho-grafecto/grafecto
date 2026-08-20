@@ -435,6 +435,39 @@ async function agregarVisita(datos) {
   return filaAVisita(data);
 }
 
+// Para poder editar un cobro ya hecho (precio, estilista, etc. mal
+// capturados) sin crear un registro duplicado. null si la cita nunca se
+// cobró o si la visita se borró después.
+async function obtenerVisitaDeCita(citaId) {
+  const { data, error } = await GrafectoAuth.cliente
+    .from(TABLA_VISITAS)
+    .select(SELECT_VISITA_CON_TRATAMIENTO)
+    .eq('cita_id', citaId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data ? filaAVisita(data) : null;
+}
+
+async function actualizarVisita(id, datos) {
+  const { data, error } = await GrafectoAuth.cliente
+    .from(TABLA_VISITAS)
+    .update({
+      tratamiento_id: datos.tratamientoId || null,
+      precio: datos.precio,
+      promocion: datos.promocion || 'ninguna',
+      longitud: datos.longitud || null,
+      estilista: datos.estilista || null,
+      notas: (datos.notas || '').trim(),
+    })
+    .eq('id', id)
+    .select(SELECT_VISITA_CON_TRATAMIENTO)
+    .single();
+
+  if (error) throw error;
+  return filaAVisita(data);
+}
+
 async function listarVisitasDeClienta(clientaId) {
   const { data, error } = await GrafectoAuth.cliente
     .from(TABLA_VISITAS)
@@ -489,6 +522,8 @@ window.GrafectoDB = {
   agregarBloqueo,
   eliminarBloqueo,
   agregarVisita,
+  obtenerVisitaDeCita,
+  actualizarVisita,
   listarVisitasDeClienta,
   listarVisitasEnRango,
   eliminarVisita,

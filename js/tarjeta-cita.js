@@ -92,18 +92,13 @@ function crearPastillaEstado(cita, onCambio) {
     onclick: async (evento) => {
       evento.stopPropagation();
 
-      // Ya se cobró: no se debe poder seguir tocando la pastilla para que
-      // no cicle de vuelta a "Agendada" por accidente y vuelva a pedir un
-      // cobro duplicado al pasar otra vez por "Checkout".
-      if (cita.estado === 'checkout') {
-        mostrarMensaje('Esta cita ya se cobró');
-        return;
-      }
-
       const nuevo = siguienteEstado(cita.estado);
 
       // Al llegar a "Checkout" se abre el cobro; el estado se marca solo
       // hasta que se guarde el cobro (así no se pierde el paso de cobrar).
+      // Si la cita ya estaba en "Checkout" (siguienteEstado ya no cicla de
+      // vuelta a "Agendada"), esto reabre el mismo cobro para poder
+      // corregirlo en vez de crear uno duplicado.
       if (nuevo === 'checkout') {
         window.CobroUI.abrir(cita, onCambio);
         return;
