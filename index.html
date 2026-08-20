@@ -100,8 +100,15 @@
         <div class="calendario-seccion">
           <div class="calendario-seccion__titulo">Resumen de ventas</div>
           <div id="reportes-resumen" class="resumen-ingresos"></div>
-          <p class="campo__ayuda">Ventas por día de esta semana (lunes a domingo)</p>
+
+          <div class="reportes-grafica-encabezado">
+            <button type="button" id="reportes-semana-anterior" class="reportes-grafica-flecha" aria-label="Semana anterior">‹</button>
+            <div id="reportes-semana-rango" class="reportes-grafica-rango"></div>
+            <button type="button" id="reportes-semana-siguiente" class="reportes-grafica-flecha" aria-label="Semana siguiente">›</button>
+          </div>
+
           <div id="reportes-grafica" class="grafica-barras"></div>
+          <div id="reportes-dia-detalle" class="reportes-dia-detalle" hidden></div>
         </div>
 
         <div class="calendario-seccion">

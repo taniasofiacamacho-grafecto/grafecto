@@ -399,6 +399,7 @@ function filaAVisita(fila) {
   return {
     id: fila.id,
     clientaId: fila.clienta_id,
+    clientaNombre: fila.clienta?.nombre || '(clienta eliminada)',
     citaId: fila.cita_id,
     tratamientoId: fila.tratamiento_id,
     tratamientoNombre: fila.tratamiento?.nombre || '',
@@ -412,7 +413,8 @@ function filaAVisita(fila) {
   };
 }
 
-const SELECT_VISITA_CON_TRATAMIENTO = '*, tratamiento:tratamientos(nombre), cita:citas(foto_path)';
+const SELECT_VISITA_CON_TRATAMIENTO =
+  '*, tratamiento:tratamientos(nombre), cita:citas(foto_path), clienta:clientas(nombre)';
 
 async function agregarVisita(datos) {
   const { data, error } = await GrafectoAuth.cliente

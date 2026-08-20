@@ -5,7 +5,7 @@
 
 (function () {
 
-const { crearEl, mostrarMensaje, fechaHoyISO, formatearMoneda } = window.UI;
+const { crearEl, mostrarMensaje, fechaHoyISO, formatearMoneda, formatearFechaLarga } = window.UI;
 const DB = window.GrafectoDB;
 
 const MAX_RESULTADOS_BUSQUEDA = 20;
@@ -39,11 +39,25 @@ const botonesEstilista = document.querySelectorAll('#venta-estilista .pastilla-o
 const campoEstilistaOtra = document.getElementById('venta-estilista-otra');
 const resumenEl = document.getElementById('reportes-resumen');
 const graficaEl = document.getElementById('reportes-grafica');
+const semanaAnteriorBtn = document.getElementById('reportes-semana-anterior');
+const semanaSiguienteBtn = document.getElementById('reportes-semana-siguiente');
+const semanaRangoEl = document.getElementById('reportes-semana-rango');
+const diaDetalleEl = document.getElementById('reportes-dia-detalle');
 const estilistaListaEl = document.getElementById('reportes-estilista-lista');
 const botonesEstilistaPeriodo = document.querySelectorAll('#reportes-estilista-periodo .pastilla-opcion');
 
 let periodoEstilistaActivo = 'hoy';
 let visitasPorPeriodo = { hoy: [], semana: [], mes: [] };
+
+// offsetSemana: 0 = semana actual, -1 = la anterior, etc. — para poder ir
+// hacia atrás en el tiempo con las flechas sin mover las tarjetas de
+// resumen (esas siempre son de la semana/mes real, sin importar qué
+// semana se esté viendo en la gráfica).
+let offsetSemana = 0;
+let visitasSemanaGrafica = [];
+let diaSeleccionado = null;
+
+const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 
 // ===== Resumen de ventas (día / semana / mes) + gráfica de la semana =====
 
@@ -97,16 +111,25 @@ function crearTarjetaResumen(etiqueta, visitas) {
   ]);
 }
 
+function formatearFechaCorta(fechaISO) {
+  const [, mes, dia] = fechaISO.split('-').map(Number);
+  return `${dia} ${MESES_CORTOS[mes - 1]}`;
+}
+
 function crearColumnaGrafica(fecha, monto, maxMonto, esHoy) {
   const [anio, mes, dia] = fecha.split('-').map(Number);
   const fechaObj = new Date(anio, mes - 1, dia);
   const pctAltura = maxMonto > 0 ? Math.max(4, Math.round((monto / maxMonto) * 100)) : 2;
 
+  const clases = ['grafica-barras__columna'];
+  if (esHoy) clases.push('grafica-barras__columna--hoy');
+  if (fecha === diaSeleccionado) clases.push('grafica-barras__columna--seleccionada');
+
   return crearEl(
     'div',
-    { class: 'grafica-barras__columna' + (esHoy ? ' grafica-barras__columna--hoy' : '') },
+    { class: clases.join(' '), onclick: () => manejarSeleccionDia(fecha) },
     [
-      crearEl('div', { class: 'grafica-barras__monto', texto: monto > 0 ? formatearMoneda(monto) : '' }),
+      crearEl('div', { class: 'grafica-barras__monto', texto: formatearMoneda(monto) }),
       crearEl('div', { class: 'grafica-barras__barra', style: `height: ${pctAltura}%` }),
       crearEl('div', {
         class: 'grafica-barras__etiqueta',
@@ -116,19 +139,92 @@ function crearColumnaGrafica(fecha, monto, maxMonto, esHoy) {
   );
 }
 
-function renderizarGraficaSemana(visitasSemana, inicioSemana, hoy) {
+// Solo se muestran los días que sí tuvieron ventas — si no, la semana se
+// ve llena de barras vacías sin nada que aportar.
+function renderizarGraficaSemana(hoy) {
   const montosPorFecha = {};
-  for (const visita of visitasSemana) {
+  for (const visita of visitasSemanaGrafica) {
     montosPorFecha[visita.fecha] = (montosPorFecha[visita.fecha] || 0) + visita.precio;
   }
+
+  const fechasConVentas = Object.keys(montosPorFecha).sort();
   const maxMonto = Math.max(0, ...Object.values(montosPorFecha));
 
   graficaEl.innerHTML = '';
-  for (let i = 0; i < 7; i++) {
-    const fecha = sumarDiasISO(inicioSemana, i);
-    const monto = montosPorFecha[fecha] || 0;
-    graficaEl.appendChild(crearColumnaGrafica(fecha, monto, maxMonto, fecha === hoy));
+
+  if (fechasConVentas.length === 0) {
+    graficaEl.appendChild(
+      crearEl('div', { class: 'campo__ayuda', texto: 'Sin ventas registradas esta semana.' })
+    );
+    return;
   }
+
+  for (const fecha of fechasConVentas) {
+    graficaEl.appendChild(crearColumnaGrafica(fecha, montosPorFecha[fecha], maxMonto, fecha === hoy));
+  }
+}
+
+function mostrarDetalleDia() {
+  diaDetalleEl.innerHTML = '';
+
+  if (!diaSeleccionado) {
+    diaDetalleEl.hidden = true;
+    return;
+  }
+
+  const visitasDia = visitasSemanaGrafica.filter((visita) => visita.fecha === diaSeleccionado);
+
+  diaDetalleEl.appendChild(
+    crearEl('div', {
+      class: 'reportes-dia-detalle__titulo',
+      texto: formatearFechaLarga(diaSeleccionado),
+    })
+  );
+
+  for (const visita of visitasDia) {
+    diaDetalleEl.appendChild(
+      crearEl('div', { class: 'reportes-dia-detalle__fila' }, [
+        crearEl('div', {}, [
+          crearEl('div', { class: 'reportes-dia-detalle__nombre', texto: visita.clientaNombre }),
+          crearEl('div', {
+            class: 'reportes-dia-detalle__extra',
+            texto: visita.estilista || '(sin estilista)',
+          }),
+        ]),
+        crearEl('div', { class: 'reportes-dia-detalle__precio', texto: formatearMoneda(visita.precio) }),
+      ])
+    );
+  }
+
+  diaDetalleEl.hidden = false;
+}
+
+function manejarSeleccionDia(fecha) {
+  diaSeleccionado = diaSeleccionado === fecha ? null : fecha;
+  renderizarGraficaSemana(fechaHoyISO());
+  mostrarDetalleDia();
+}
+
+async function cargarGraficaSemana() {
+  const hoy = fechaHoyISO();
+  const inicioObjetivo = sumarDiasISO(inicioSemanaISO(hoy), offsetSemana * 7);
+  const finObjetivo = sumarDiasISO(inicioObjetivo, 6);
+
+  semanaRangoEl.textContent = `${formatearFechaCorta(inicioObjetivo)} – ${formatearFechaCorta(finObjetivo)}`;
+  semanaSiguienteBtn.disabled = offsetSemana >= 0;
+
+  diaSeleccionado = null;
+  diaDetalleEl.hidden = true;
+  diaDetalleEl.innerHTML = '';
+
+  try {
+    visitasSemanaGrafica = await DB.listarVisitasEnRango(inicioObjetivo, finObjetivo);
+  } catch (error) {
+    visitasSemanaGrafica = [];
+    console.error(error);
+  }
+
+  renderizarGraficaSemana(hoy);
 }
 
 // Cuenta servicios por estilista dentro de un conjunto de visitas, ordenado
@@ -189,17 +285,16 @@ async function cargarResumen() {
       crearTarjetaResumen('Mes', visitasMes)
     );
 
-    renderizarGraficaSemana(visitasSemana, inicioSemanaISO(hoy), hoy);
-
     visitasPorPeriodo = { hoy: visitasHoy, semana: visitasSemana, mes: visitasMes };
     renderizarEstilistas(periodoEstilistaActivo);
   } catch (error) {
     resumenEl.innerHTML = '';
     resumenEl.appendChild(crearEl('div', { class: 'campo__ayuda', texto: 'No se pudo cargar el resumen.' }));
-    graficaEl.innerHTML = '';
     estilistaListaEl.innerHTML = '';
     console.error(error);
   }
+
+  await cargarGraficaSemana();
 }
 
 function ocultarResultadosClienta() {
@@ -385,9 +480,20 @@ function inicializar() {
   botonesEstilistaPeriodo.forEach((boton) => {
     boton.addEventListener('click', () => renderizarEstilistas(boton.dataset.periodo));
   });
+
+  semanaAnteriorBtn.addEventListener('click', () => {
+    offsetSemana -= 1;
+    cargarGraficaSemana();
+  });
+  semanaSiguienteBtn.addEventListener('click', () => {
+    if (offsetSemana >= 0) return;
+    offsetSemana += 1;
+    cargarGraficaSemana();
+  });
 }
 
 async function mostrar() {
+  offsetSemana = 0;
   await cargarResumen();
 }
 
