@@ -24,7 +24,35 @@ function etiquetaEstado(valor) {
   return ESTADOS.find((e) => e.valor === valor)?.etiqueta || valor;
 }
 
-function crearBotonesWhatsApp(cita) {
+// Solo se ofrece en la vista Hoy (opciones.mostrarMensajeSalida) y una vez
+// que la cita ya está en Checkout. Se marca como enviado en cuanto se toca
+// (no hay forma de confirmar desde WhatsApp que sí se mandó).
+function crearBotonMensajeSalida(cita, onCambio) {
+  if (cita.mensajeSalidaEnviado) {
+    return crearEl('div', {
+      class: 'tarjeta-cita__whatsapp tarjeta-cita__whatsapp--enviado',
+      texto: '✓ Mensaje de salida enviado',
+    });
+  }
+
+  return crearEl('a', {
+    class: 'tarjeta-cita__whatsapp',
+    href: WhatsApp.generarEnlaceMensajeSalida(cita),
+    target: '_blank',
+    rel: 'noopener',
+    texto: 'Mensaje de salida',
+    onclick: async () => {
+      try {
+        await DB.actualizarMensajeSalidaEnviado(cita.id, true);
+        if (onCambio) onCambio();
+      } catch (error) {
+        console.error(error);
+      }
+    },
+  });
+}
+
+function crearBotonesWhatsApp(cita, opciones = {}) {
   const botones = [
     ['Confirmación', WhatsApp.generarEnlaceConfirmacion(cita)],
     WhatsApp.debeSugerirDeepCleanse(cita.fecha)
@@ -37,19 +65,21 @@ function crearBotonesWhatsApp(cita) {
     return crearEl('div', { class: 'tarjeta-cita__sin-telefono', texto: 'Sin teléfono' });
   }
 
-  return crearEl(
-    'div',
-    { class: 'tarjeta-cita__pie' },
-    botones.map(([etiqueta, enlace]) =>
-      crearEl('a', {
-        class: 'tarjeta-cita__whatsapp',
-        href: enlace,
-        target: '_blank',
-        rel: 'noopener',
-        texto: etiqueta,
-      })
-    )
+  const elementos = botones.map(([etiqueta, enlace]) =>
+    crearEl('a', {
+      class: 'tarjeta-cita__whatsapp',
+      href: enlace,
+      target: '_blank',
+      rel: 'noopener',
+      texto: etiqueta,
+    })
   );
+
+  if (opciones.mostrarMensajeSalida && cita.estado === 'checkout') {
+    elementos.push(crearBotonMensajeSalida(cita, opciones.onCambio));
+  }
+
+  return crearEl('div', { class: 'tarjeta-cita__pie' }, elementos);
 }
 
 // onCambio se llama después de actualizar el estado (o de guardar el cobro),
@@ -169,7 +199,7 @@ function crear(cita, opciones = {}) {
       crearBotonEstilista(cita, onCambio),
       crearBotonNotas(cita, onCambio),
     ]),
-    crearBotonesWhatsApp(cita),
+    crearBotonesWhatsApp(cita, opciones),
   ]);
 }
 

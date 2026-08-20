@@ -119,6 +119,28 @@ function generarEnlaceRecordatorio(cita) {
   return enlaceWa(cita.clientaTelefono, mensaje);
 }
 
+// ===== Mensaje de salida (después del checkout, agradecimiento + cuidados) =====
+
+function generarEnlaceMensajeSalida(cita) {
+  const mensaje =
+    `¡GRACIAS POR CONFIAR EN NOSOTROS!\n` +
+    `Deseamos que los resultados del tratamiento superen tus expectativas 😊\n\n` +
+    `Después de la aplicación no necesitas seguir ninguna indicación en especial. Ya puedes lavar tu cabello, ` +
+    `recogerlo, usar pinza, nadar o mojarlo sin que esto afecte el resultado.\n\n` +
+    `Y si estás planeando teñirte, también puedes hacerlo. Si es tinte, a partir de hoy mismo. Si es coloración, ` +
+    `nuestra recomendación es esperar una semana.\n\n` +
+    `Algunos puntos a tomar en cuenta:\n` +
+    `• El resultado final será más evidente después de 4 a 6 lavadas.\n` +
+    `• En las primeras lavadas el cabello pudiera sentirse rígido, opaco, seco o enredoso, y puede percibirse ` +
+    `un olor peculiar. Esto es completamente normal, es el residuo del tratamiento y desaparecerá solo con las ` +
+    `primeras lavadas.\n\n` +
+    `Para el cuidado en casa recomendamos champú y acondicionador GRAFECTO WONDER, ideal para complementar y ` +
+    `prolongar los resultados del tratamiento.\n\n` +
+    `Cualquier duda que tengas, escríbenos con confianza. Estamos para ayudarte 😊`;
+
+  return enlaceWa(cita.clientaTelefono, mensaje);
+}
+
 // ===== Disponibilidad (fechas habilitadas) para compartir manualmente =====
 // gruposPorFecha: [{ fecha: '2026-08-27', horas: ['12:30','13:00',...] }, ...]
 // Se copia al portapapeles (no se abre WhatsApp directo) para que se pegue
@@ -154,6 +176,7 @@ window.WhatsApp = {
   generarEnlaceConfirmacion,
   generarEnlaceDeepCleanse,
   generarEnlaceRecordatorio,
+  generarEnlaceMensajeSalida,
   generarTextoDisponibilidad,
   generarEnlaceDisponibilidad,
 };

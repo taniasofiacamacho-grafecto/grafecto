@@ -126,6 +126,7 @@ function filaACita(fila) {
     notasVisita: fila.notas_visita || '',
     fotoPath: fila.foto_path || null,
     estilista: fila.estilista || '',
+    mensajeSalidaEnviado: fila.mensaje_salida_enviado || false,
   };
 }
 
@@ -197,6 +198,19 @@ async function actualizarEstilistaCita(id, estilista) {
   const { error } = await GrafectoAuth.cliente
     .from(TABLA_CITAS)
     .update({ estilista: estilista || null })
+    .eq('id', id);
+
+  if (error) throw error;
+}
+
+// Se marca sola en cuanto se toca el botón de WhatsApp del mensaje de salida
+// (no hay forma de saber si de verdad se mandó desde WhatsApp, así que se
+// asume que sí en cuanto se abre el enlace) — para no perder de vista a
+// quién ya se le mandó.
+async function actualizarMensajeSalidaEnviado(id, enviado) {
+  const { error } = await GrafectoAuth.cliente
+    .from(TABLA_CITAS)
+    .update({ mensaje_salida_enviado: enviado })
     .eq('id', id);
 
   if (error) throw error;
@@ -462,6 +476,7 @@ window.GrafectoDB = {
   eliminarCita,
   actualizarEstadoCita,
   actualizarEstilistaCita,
+  actualizarMensajeSalidaEnviado,
   actualizarNotasVisita,
   subirFotoVisita,
   obtenerUrlFoto,

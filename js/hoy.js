@@ -93,6 +93,7 @@ function renderizarCitasHoy(citas) {
     listaEl.appendChild(
       TarjetaCita.crear(cita, {
         colorFondo: true,
+        mostrarMensajeSalida: true,
         onEditar: (c) => window.AgendaUI.editar(c),
         onCambio: () => mostrar(),
       })

@@ -694,6 +694,12 @@
   border-left: 1px solid var(--color-borde);
 }
 
+.tarjeta-cita__whatsapp--enviado {
+  color: var(--color-texto-suave);
+  background: transparent;
+  cursor: default;
+}
+
 .tarjeta-cita__estado {
   display: flex;
   align-items: center;
