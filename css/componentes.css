@@ -850,6 +850,123 @@
 .pe-leyenda__punto--ingreso { background: var(--color-magenta); }
 .pe-leyenda__punto--gasto { background: var(--color-azul-grisaceo-claro); }
 
+.pe-progreso-contenedor {
+  margin-top: var(--espacio-lg);
+}
+
+.barra-progreso {
+  position: relative;
+  height: 14px;
+  background: var(--color-fondo);
+  border: 1px solid var(--color-borde);
+  border-radius: 999px;
+  margin-top: 6px;
+}
+
+.barra-progreso__relleno {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: var(--color-magenta-suave);
+  width: 0%;
+}
+
+.barra-progreso__relleno--logrado {
+  background: var(--color-exito);
+}
+
+.barra-progreso__marca {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  background: var(--color-primario);
+  left: 0%;
+}
+
+.barra-progreso__marca-etiqueta {
+  position: absolute;
+  top: -20px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--color-primario);
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+/* ===== Desglose de gastos: barras horizontales + tabla ===== */
+.gasto-desglose-fila {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-sm);
+  margin-bottom: 8px;
+}
+
+.gasto-desglose-fila__nombre {
+  width: 84px;
+  font-size: 0.78rem;
+  color: var(--color-texto-suave);
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gasto-desglose-fila__pista {
+  flex: 1;
+  height: 9px;
+  background: var(--color-fondo);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.gasto-desglose-fila__pista i {
+  display: block;
+  height: 100%;
+  background: var(--color-azul-grisaceo-claro);
+  border-radius: 999px;
+}
+
+.gasto-desglose-fila__monto {
+  width: 66px;
+  text-align: right;
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.tabla-finanzas {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: var(--espacio-md);
+  font-size: 0.82rem;
+}
+
+.tabla-finanzas th {
+  text-align: left;
+  color: var(--color-texto-suave);
+  font-weight: 700;
+  font-size: 0.7rem;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.tabla-finanzas td {
+  padding: 7px 0;
+  border-bottom: 1px solid var(--color-borde);
+  font-variant-numeric: tabular-nums;
+}
+
+.tabla-finanzas tr:last-child td {
+  border-bottom: none;
+}
+
+.tabla-finanzas td:last-child,
+.tabla-finanzas th:last-child {
+  text-align: right;
+}
+
 /* ===== Navegación de semana (gráfica de ventas por día, Reportes) ===== */
 .reportes-grafica-encabezado {
   display: flex;

@@ -591,6 +591,166 @@ function renderizarGraficaEquilibrio(serie, diasMes) {
   }
 }
 
+// ----- Barra de progreso de tratamientos hacia el equilibrio -----
+
+const peBarraRelleno = document.getElementById('pe-barra-relleno');
+const peBarraMarca = document.getElementById('pe-barra-marca');
+const peBarraMarcaEtiqueta = document.getElementById('pe-barra-marca-etiqueta');
+const peProgresoCaption = document.getElementById('pe-progreso-caption');
+
+function renderizarBarraProgreso(numServicios, serviciosParaEquilibrio, margenPorServicio) {
+  if (serviciosParaEquilibrio === null) {
+    peBarraRelleno.style.width = '0%';
+    peBarraMarcaEtiqueta.textContent = '';
+    peProgresoCaption.textContent =
+      'El ticket promedio todavía no cubre el costo de material — no se puede calcular cuántos tratamientos hacen falta.';
+    return;
+  }
+
+  const maxEscala = Math.max(serviciosParaEquilibrio, numServicios) * 1.15;
+  const pctRelleno = Math.min(100, (numServicios / maxEscala) * 100);
+  const pctMarca = Math.min(100, (serviciosParaEquilibrio / maxEscala) * 100);
+  const logrado = numServicios >= serviciosParaEquilibrio;
+
+  peBarraRelleno.style.width = `${pctRelleno}%`;
+  peBarraRelleno.className = logrado
+    ? 'barra-progreso__relleno barra-progreso__relleno--logrado'
+    : 'barra-progreso__relleno';
+  peBarraMarca.style.left = `${pctMarca}%`;
+  peBarraMarcaEtiqueta.textContent = `${serviciosParaEquilibrio} · equilibrio`;
+
+  peProgresoCaption.textContent =
+    `${numServicios} tratamientos hechos de ${serviciosParaEquilibrio} necesarios. ` +
+    `Cada tratamiento adicional deja ${formatearMoneda(margenPorServicio)} limpios.`;
+}
+
+// ----- Ticket promedio y margen por tratamiento -----
+
+const peDosTarjetas = document.getElementById('pe-dos-tarjetas');
+
+function renderizarDosTarjetas(ticketPromedio, numServicios, margenPorServicio) {
+  peDosTarjetas.innerHTML = '';
+  peDosTarjetas.append(
+    crearEl('div', { class: 'resumen-ingresos__tarjeta' }, [
+      crearEl('div', { class: 'resumen-ingresos__etiqueta', texto: 'Ticket promedio' }),
+      crearEl('div', { class: 'resumen-ingresos__monto', texto: formatearMoneda(ticketPromedio) }),
+      crearEl('div', {
+        class: 'resumen-ingresos__cantidad',
+        texto: `${numServicios} ${numServicios === 1 ? 'tratamiento' : 'tratamientos'}`,
+      }),
+    ]),
+    crearEl('div', { class: 'resumen-ingresos__tarjeta' }, [
+      crearEl('div', { class: 'resumen-ingresos__etiqueta', texto: 'Margen por tratamiento' }),
+      crearEl('div', { class: 'resumen-ingresos__monto', texto: formatearMoneda(margenPorServicio) }),
+    ])
+  );
+}
+
+// ----- Ingreso por semana (semanas del mes: días 1-7, 8-14, ...) -----
+
+const peGraficaSemanal = document.getElementById('pe-grafica-semanal');
+
+function renderizarGraficaSemanal(visitas, diaHoy) {
+  const ingresoPorSemana = {};
+  for (const visita of visitas) {
+    const dia = Number(visita.fecha.split('-')[2]);
+    const semana = Math.ceil(dia / 7);
+    ingresoPorSemana[semana] = (ingresoPorSemana[semana] || 0) + visita.precio;
+  }
+
+  const semanaActual = Math.ceil(diaHoy / 7);
+  const maxMonto = Math.max(1, ...Object.values(ingresoPorSemana));
+
+  peGraficaSemanal.innerHTML = '';
+  for (let semana = 1; semana <= semanaActual; semana++) {
+    const monto = ingresoPorSemana[semana] || 0;
+    const pct = Math.max(2, Math.round((monto / maxMonto) * 100));
+    const esActual = semana === semanaActual;
+
+    peGraficaSemanal.appendChild(
+      crearEl('div', { class: esActual ? 'grafica-barras__columna grafica-barras__columna--hoy' : 'grafica-barras__columna' }, [
+        crearEl('div', { class: 'grafica-barras__monto', texto: formatearMoneda(monto) }),
+        crearEl('div', { class: 'grafica-barras__barra', style: `height: ${pct}%` }),
+        crearEl('div', { class: 'grafica-barras__etiqueta', texto: `Sem ${semana}${esActual ? '*' : ''}` }),
+      ])
+    );
+  }
+}
+
+// ----- Desglose de gastos: barras horizontales + tabla -----
+
+const peDesgloseBarras = document.getElementById('pe-desglose-barras');
+const peDesgloseTabla = document.getElementById('pe-desglose-tabla');
+
+function tagRealEstimado(esReal) {
+  return crearEl('span', {
+    class: esReal ? 'chip chip--real' : 'chip chip--estimado',
+    texto: esReal ? 'Real' : 'Estimado',
+  });
+}
+
+function renderizarDesgloseGastos(gastosFijos, nomina, gastosExtras, gastoMaterialMes) {
+  const renglones = gastosFijos.map((fila) => ({
+    nombre: fila.concepto,
+    monto: montoEfectivo(fila),
+    esReal: fila.montoReal != null,
+  }));
+
+  const nominaTotal = nomina.reduce((suma, fila) => suma + montoEfectivo(fila), 0);
+  const nominaEsReal = nomina.length > 0 && nomina.every((fila) => fila.montoReal != null);
+  renglones.push({ nombre: 'Nómina', monto: nominaTotal, esReal: nominaEsReal });
+
+  renglones.push({ nombre: 'Material', monto: gastoMaterialMes, esReal: true });
+
+  const extrasTotal = gastosExtras.reduce((suma, fila) => suma + fila.monto, 0);
+  if (extrasTotal > 0) {
+    renglones.push({ nombre: 'Extras', monto: extrasTotal, esReal: true });
+  }
+
+  renglones.sort((a, b) => b.monto - a.monto);
+  const maxMonto = Math.max(1, ...renglones.map((r) => r.monto));
+
+  peDesgloseBarras.innerHTML = '';
+  for (const renglon of renglones) {
+    const pct = Math.max(1, Math.round((renglon.monto / maxMonto) * 100));
+    peDesgloseBarras.appendChild(
+      crearEl('div', { class: 'gasto-desglose-fila' }, [
+        crearEl('div', { class: 'gasto-desglose-fila__nombre', texto: renglon.nombre }),
+        crearEl('div', { class: 'gasto-desglose-fila__pista' }, [crearEl('i', { style: `width: ${pct}%` })]),
+        crearEl('div', { class: 'gasto-desglose-fila__monto', texto: formatearMoneda(renglon.monto) }),
+      ])
+    );
+  }
+
+  peDesgloseTabla.innerHTML = '';
+  peDesgloseTabla.appendChild(
+    crearEl('tr', {}, [crearEl('th', { texto: 'Concepto' }), crearEl('th', { texto: '' }), crearEl('th', { texto: 'Monto' })])
+  );
+  for (const renglon of renglones) {
+    peDesgloseTabla.appendChild(
+      crearEl('tr', {}, [
+        crearEl('td', { texto: renglon.nombre }),
+        crearEl('td', {}, [tagRealEstimado(renglon.esReal)]),
+        crearEl('td', { texto: formatearMoneda(renglon.monto) }),
+      ])
+    );
+  }
+}
+
+// ----- Comparativo mes contra mes (todavía sin historial: llega con el cierre de mes) -----
+
+const peComparativo = document.getElementById('pe-comparativo');
+
+function renderizarComparativo() {
+  peComparativo.innerHTML = '';
+  peComparativo.appendChild(
+    crearEl('div', { class: 'estado-vacio' }, [
+      crearEl('p', { texto: 'Aún no hay historial de meses anteriores.' }),
+      crearEl('p', { texto: 'Este comparativo se empieza a llenar el próximo mes, al cerrar el actual.' }),
+    ])
+  );
+}
+
 async function cargarPuntoEquilibrio() {
   const mes = mesActualISO();
   const hoy = fechaHoyISO();
@@ -624,10 +784,24 @@ async function cargarPuntoEquilibrio() {
     const ingresoMes = visitas.reduce((suma, visita) => suma + visita.precio, 0);
     const gananciaMes = ingresoMes - gastoTotalMes;
 
+    const numServicios = visitas.length;
+    const ticketPromedio = numServicios > 0 ? ingresoMes / numServicios : 0;
+    const margenPorServicio = ticketPromedio - costoMaterialActual;
+    const serviciosParaEquilibrio = margenPorServicio > 0 ? Math.ceil(gastoFijoMes / margenPorServicio) : null;
+
     renderizarTiraCifras(ingresoMes, gastoTotalMes, gananciaMes);
 
     const serie = calcularSerieDiaria(visitas, gastosExtras, gastoBaseDelMes, costoMaterialActual, hoy);
     renderizarGraficaEquilibrio(serie, diasMes);
+
+    renderizarBarraProgreso(numServicios, serviciosParaEquilibrio, margenPorServicio);
+    renderizarDosTarjetas(ticketPromedio, numServicios, margenPorServicio);
+
+    const diaHoyNum = Number(hoy.split('-')[2]);
+    renderizarGraficaSemanal(visitas, diaHoyNum);
+
+    renderizarDesgloseGastos(gastosFijos, nomina, gastosExtras, gastoMaterialMes);
+    renderizarComparativo();
   } catch (error) {
     peCaption.textContent = 'No se pudo cargar el punto de equilibrio.';
     console.error(error);
