@@ -116,16 +116,23 @@ la usuaria
     del día en tarjetas con **fondo de color completo según su estado**
     (Agendada/Llegó/En proceso/Checkout, a petición de la usuaria) — pendiente
     de confirmar por la usuaria
-13. [ ] Catálogo de gastos fijos mensuales + gráfica de fin de mes
+13. [x] Catálogo de gastos fijos mensuales + gráfica de fin de mes — cubierto
+    por el módulo de **Punto de equilibrio** dentro de Reportes (2026-08-20):
+    gastos fijos, nómina semanal y gastos extras, con costo de material por
+    tratamiento configurable; tira de Ingreso/Gasto/Ganancia, gráfica de
+    camino al punto de equilibrio con día de cruce marcado, barra de progreso
+    de tratamientos, ticket promedio, ingreso por semana, desglose de gastos
+    (Real/Estimado) y comparativo mes contra mes con cierre de mes automático
+    — pendiente de confirmar por la usuaria
 14. [ ] Campo de método de pago (efectivo/tarjeta) + campo de fórmula con dictado por voz
 15. [ ] Catálogo de hallazgos de tricoscopía ligado a recomendaciones de producto (links Amazon)
 16. [ ] Lectura de QR de reportes del tricoscopio + resumen asistido por IA en lenguaje sencillo
 
 ## Ideas que surjan sobre la marcha
 
-- [ ] Pestaña de **Finanzas** aparte (2026-08-18): más completa que el resumen
-  chiquito de la pestaña Hoy — ligada a #13 (gastos fijos) y #14 (método de
-  pago) para tener panorama completo de ingresos y egresos, no solo ingresos.
+- [x] Pestaña de **Finanzas** aparte (2026-08-18) — construida como el módulo
+  de Punto de equilibrio dentro de Reportes (ver #13). Sigue ligado a #14
+  (método de pago) para cuando se agregue.
 
 ## Correcciones y ajustes de uso real
 
