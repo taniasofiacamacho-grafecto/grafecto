@@ -58,12 +58,25 @@ async function abrir(cita, onGuardado) {
 
   poblarLongitud(cita.tratamientoNombre);
 
-  // Si la cita ya se había cobrado, se busca esa visita para poder editarla
-  // (por ejemplo, si se equivocó de precio o de estilista) en vez de crear
-  // un cobro duplicado.
-  if (cita.estado === 'checkout') {
+  // Se busca si ya existe una visita para esta cita sin importar el estado
+  // en el que esté marcada la cita — puede haber quedado "atorada" en un
+  // estado anterior (por ejemplo, si se canceló un cobro duplicado sin
+  // guardar) aunque ya se le hubiera cobrado antes. Así nunca se crea un
+  // cobro duplicado por accidente.
+  try {
+    visitaEnEdicion = await DB.obtenerVisitaDeCita(cita.id);
+  } catch (error) {
+    console.error(error);
+  }
+
+  // Si ya existe la visita pero la cita no está marcada como "Checkout", se
+  // corrige sola para que la tarjeta lo refleje bien de una vez.
+  if (visitaEnEdicion && cita.estado !== 'checkout') {
     try {
-      visitaEnEdicion = await DB.obtenerVisitaDeCita(cita.id);
+      await DB.actualizarEstadoCita(cita.id, 'checkout');
+      citaActual.estado = 'checkout';
+      mostrarMensaje('Esta cita ya se había cobrado — se corrigió a Checkout');
+      if (callbackAlGuardar) callbackAlGuardar();
     } catch (error) {
       console.error(error);
     }
