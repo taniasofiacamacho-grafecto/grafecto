@@ -410,13 +410,25 @@ function filaAVisita(fila) {
     estilista: fila.estilista || '',
     notas: fila.notas || '',
     fotoPath: fila.cita?.foto_path || null,
+    costoMaterial: fila.costo_material == null ? null : Number(fila.costo_material),
   };
 }
 
 const SELECT_VISITA_CON_TRATAMIENTO =
   '*, tratamiento:tratamientos(nombre), cita:citas(foto_path), clienta:clientas(nombre)';
 
+// Cada visita guarda una copia del costo de material vigente al momento de
+// registrarse (config_negocio.costo_material_por_tratamiento) — así, si más
+// adelante se edita ese parámetro, los meses ya cerrados no se recalculan solos.
 async function agregarVisita(datos) {
+  let costoMaterial = null;
+  try {
+    const config = await obtenerConfig();
+    costoMaterial = config.costoMaterialPorTratamiento;
+  } catch (error) {
+    console.error(error);
+  }
+
   const { data, error } = await GrafectoAuth.cliente
     .from(TABLA_VISITAS)
     .insert({
@@ -429,6 +441,7 @@ async function agregarVisita(datos) {
       longitud: datos.longitud || null,
       estilista: datos.estilista || null,
       notas: (datos.notas || '').trim(),
+      costo_material: costoMaterial,
     })
     .select(SELECT_VISITA_CON_TRATAMIENTO)
     .single();

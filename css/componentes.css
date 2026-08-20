@@ -822,6 +822,34 @@
   margin-top: 2px;
 }
 
+.monto--positivo { color: var(--color-exito); }
+.monto--negativo { color: var(--color-peligro); }
+
+/* ===== Punto de equilibrio: gráfica de línea del mes ===== */
+.pe-leyenda {
+  display: flex;
+  gap: var(--espacio-md);
+  font-size: 0.78rem;
+  color: var(--color-texto-suave);
+  margin-bottom: 10px;
+}
+
+.pe-leyenda span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pe-leyenda__punto {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+.pe-leyenda__punto--ingreso { background: var(--color-magenta); }
+.pe-leyenda__punto--gasto { background: var(--color-azul-grisaceo-claro); }
+
 /* ===== Navegación de semana (gráfica de ventas por día, Reportes) ===== */
 .reportes-grafica-encabezado {
   display: flex;

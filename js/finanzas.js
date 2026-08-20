@@ -49,6 +49,7 @@ async function manejarGuardarCostoMaterial() {
   try {
     await DB.actualizarCostoMaterial(valor);
     mostrarMensaje('Costo de material actualizado');
+    cargarPuntoEquilibrio();
   } catch (error) {
     mostrarMensaje('No se pudo guardar: ' + (error.message || 'intenta de nuevo'));
     console.error(error);
@@ -215,6 +216,7 @@ async function abrirGastosFijos() {
 
 function cerrarGastosFijos() {
   fondoGastosFijos.classList.remove('abierta');
+  cargarPuntoEquilibrio();
 }
 
 async function manejarAgregarGastoFijo() {
@@ -347,6 +349,7 @@ async function abrirNomina() {
 
 function cerrarNomina() {
   fondoNomina.classList.remove('abierta');
+  cargarPuntoEquilibrio();
 }
 
 async function manejarAgregarSemanaNomina() {
@@ -435,6 +438,7 @@ async function abrirGastosExtras() {
 
 function cerrarGastosExtras() {
   fondoGastosExtras.classList.remove('abierta');
+  cargarPuntoEquilibrio();
 }
 
 async function manejarAgregarGastoExtra() {
@@ -466,6 +470,170 @@ async function manejarAgregarGastoExtra() {
   }
 }
 
+// ===== Punto de equilibrio: tira de cifras + gráfica de la vista de Mes =====
+// El resto del tablero (barra de progreso, tarjetas, gráfica semanal,
+// desglose de gastos, comparativo) se agrega en un siguiente paso.
+
+const peMesTitulo = document.getElementById('pe-mes-titulo');
+const peTiraCifras = document.getElementById('pe-tira-cifras');
+const peGraficaSvg = document.getElementById('pe-grafica');
+const peCaption = document.getElementById('pe-caption');
+
+function montoEfectivo(fila) {
+  return fila.montoReal != null ? fila.montoReal : fila.montoEstimado;
+}
+
+function renderizarTiraCifras(ingreso, gasto, ganancia) {
+  peTiraCifras.innerHTML = '';
+  peTiraCifras.append(
+    crearEl('div', { class: 'resumen-ingresos__tarjeta' }, [
+      crearEl('div', { class: 'resumen-ingresos__etiqueta', texto: 'Ingreso' }),
+      crearEl('div', { class: 'resumen-ingresos__monto', texto: formatearMoneda(ingreso) }),
+    ]),
+    crearEl('div', { class: 'resumen-ingresos__tarjeta' }, [
+      crearEl('div', { class: 'resumen-ingresos__etiqueta', texto: 'Gasto' }),
+      crearEl('div', { class: 'resumen-ingresos__monto', texto: formatearMoneda(gasto) }),
+    ]),
+    crearEl('div', { class: 'resumen-ingresos__tarjeta' }, [
+      crearEl('div', { class: 'resumen-ingresos__etiqueta', texto: 'Ganancia' }),
+      crearEl('div', {
+        class: 'resumen-ingresos__monto ' + (ganancia >= 0 ? 'monto--positivo' : 'monto--negativo'),
+        texto: formatearMoneda(ganancia),
+      }),
+    ])
+  );
+}
+
+// Gasto fijo (renta + nómina) se carga completo desde el día 1 — no se
+// prorratea, porque el mes nace debiendo la renta y la nómina. El material
+// y los gastos extras sí se van acumulando según la fecha real de cada uno.
+function calcularSerieDiaria(visitas, gastosExtras, gastoBaseDelMes, costoMaterialActual, hoy) {
+  const diaHoy = Number(hoy.split('-')[2]);
+
+  const ingresoPorDia = {};
+  const materialPorDia = {};
+  for (const visita of visitas) {
+    const dia = Number(visita.fecha.split('-')[2]);
+    ingresoPorDia[dia] = (ingresoPorDia[dia] || 0) + visita.precio;
+    const costo = visita.costoMaterial != null ? visita.costoMaterial : costoMaterialActual;
+    materialPorDia[dia] = (materialPorDia[dia] || 0) + costo;
+  }
+
+  const extrasPorDia = {};
+  for (const gasto of gastosExtras) {
+    const dia = Number(gasto.fecha.split('-')[2]);
+    extrasPorDia[dia] = (extrasPorDia[dia] || 0) + gasto.monto;
+  }
+
+  let ingresoAcum = 0;
+  let materialAcum = 0;
+  let extrasAcum = 0;
+  const serie = [];
+
+  for (let dia = 1; dia <= diaHoy; dia++) {
+    ingresoAcum += ingresoPorDia[dia] || 0;
+    materialAcum += materialPorDia[dia] || 0;
+    extrasAcum += extrasPorDia[dia] || 0;
+    serie.push({ dia, ingresoAcum, gastoAcum: gastoBaseDelMes + materialAcum + extrasAcum });
+  }
+
+  return serie;
+}
+
+function renderizarGraficaEquilibrio(serie, diasMes) {
+  const w = 320;
+  const h = 150;
+  const maxValor = Math.max(1, ...serie.map((p) => Math.max(p.ingresoAcum, p.gastoAcum))) * 1.08;
+
+  function x(dia) {
+    return ((dia - 1) / (diasMes - 1)) * w;
+  }
+  function y(valor) {
+    return h - (valor / maxValor) * h;
+  }
+
+  const puntosIngreso = serie.map((p) => `${x(p.dia).toFixed(1)},${y(p.ingresoAcum).toFixed(1)}`).join(' ');
+  const puntosGasto = serie.map((p) => `${x(p.dia).toFixed(1)},${y(p.gastoAcum).toFixed(1)}`).join(' ');
+
+  let diaCruce = null;
+  for (const punto of serie) {
+    if (punto.ingresoAcum >= punto.gastoAcum) {
+      diaCruce = punto;
+      break;
+    }
+  }
+
+  const marcaCruce = diaCruce
+    ? `
+      <line x1="${x(diaCruce.dia).toFixed(1)}" y1="0" x2="${x(diaCruce.dia).toFixed(1)}" y2="${h}"
+        stroke="var(--color-primario)" stroke-width="1.5" stroke-dasharray="3 3"></line>
+      <circle cx="${x(diaCruce.dia).toFixed(1)}" cy="${y(diaCruce.ingresoAcum).toFixed(1)}" r="4" fill="var(--color-primario)"></circle>
+      <text x="${x(diaCruce.dia).toFixed(1)}" y="${h + 14}" font-size="11" font-weight="700"
+        fill="var(--color-primario)" text-anchor="middle">Día ${diaCruce.dia}</text>
+    `
+    : '';
+
+  peGraficaSvg.innerHTML = `
+    <line x1="0" y1="${h}" x2="${w}" y2="${h}" stroke="var(--color-borde)" stroke-width="1"></line>
+    <polyline points="${puntosGasto}" fill="none" stroke="var(--color-azul-grisaceo-claro)"
+      stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></polyline>
+    <polyline points="${puntosIngreso}" fill="none" stroke="var(--color-magenta)"
+      stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></polyline>
+    ${marcaCruce}
+  `;
+
+  if (diaCruce) {
+    peCaption.textContent = `Cruzaste el punto de equilibrio el día ${diaCruce.dia} — el resto del mes ya es ganancia.`;
+  } else {
+    const ultimo = serie[serie.length - 1];
+    const faltante = ultimo ? Math.max(0, ultimo.gastoAcum - ultimo.ingresoAcum) : 0;
+    peCaption.textContent = `Aún no llegas al punto de equilibrio — faltan ${formatearMoneda(faltante)} en ingresos.`;
+  }
+}
+
+async function cargarPuntoEquilibrio() {
+  const mes = mesActualISO();
+  const hoy = fechaHoyISO();
+  peMesTitulo.textContent = formatearMesLargo(mes);
+
+  const [anio, mesNum] = mes.split('-').map(Number);
+  const diasMes = new Date(anio, mesNum, 0).getDate();
+  const finMes = `${mes.slice(0, 8)}${String(diasMes).padStart(2, '0')}`;
+
+  try {
+    const [config, gastosFijos, nomina, gastosExtras, visitas] = await Promise.all([
+      DB.obtenerConfig(),
+      DB.asegurarGastosFijosDelMes(mes),
+      DB.asegurarNominaDelMes(mes),
+      DB.listarGastosExtrasDelMes(mes),
+      DB.listarVisitasEnRango(mes, finMes),
+    ]);
+
+    const totalFijos = gastosFijos.reduce((suma, fila) => suma + montoEfectivo(fila), 0);
+    const totalNomina = nomina.reduce((suma, fila) => suma + montoEfectivo(fila), 0);
+    const totalExtras = gastosExtras.reduce((suma, fila) => suma + fila.monto, 0);
+    const gastoBaseDelMes = totalFijos + totalNomina;
+    const gastoFijoMes = gastoBaseDelMes + totalExtras;
+
+    const costoMaterialActual = config.costoMaterialPorTratamiento;
+    const gastoMaterialMes = visitas.reduce(
+      (suma, visita) => suma + (visita.costoMaterial != null ? visita.costoMaterial : costoMaterialActual),
+      0
+    );
+    const gastoTotalMes = gastoFijoMes + gastoMaterialMes;
+    const ingresoMes = visitas.reduce((suma, visita) => suma + visita.precio, 0);
+    const gananciaMes = ingresoMes - gastoTotalMes;
+
+    renderizarTiraCifras(ingresoMes, gastoTotalMes, gananciaMes);
+
+    const serie = calcularSerieDiaria(visitas, gastosExtras, gastoBaseDelMes, costoMaterialActual, hoy);
+    renderizarGraficaEquilibrio(serie, diasMes);
+  } catch (error) {
+    peCaption.textContent = 'No se pudo cargar el punto de equilibrio.';
+    console.error(error);
+  }
+}
+
 function inicializar() {
   campoCostoMaterial.addEventListener('change', manejarGuardarCostoMaterial);
   cargarConfig();
@@ -483,6 +651,10 @@ function inicializar() {
   document.getElementById('boton-agregar-gasto-extra').addEventListener('click', manejarAgregarGastoExtra);
 }
 
-window.FinanzasUI = { inicializar };
+async function mostrar() {
+  await cargarPuntoEquilibrio();
+}
+
+window.FinanzasUI = { inicializar, mostrar };
 
 })();

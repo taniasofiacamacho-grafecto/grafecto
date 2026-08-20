@@ -98,6 +98,18 @@
     <section id="vista-reportes" hidden>
       <main class="contenido contenido--sin-buscador">
         <div class="calendario-seccion">
+          <div class="calendario-seccion__titulo">Punto de equilibrio — <span id="pe-mes-titulo"></span></div>
+          <div id="pe-tira-cifras" class="resumen-ingresos"></div>
+
+          <div class="pe-leyenda">
+            <span><i class="pe-leyenda__punto pe-leyenda__punto--ingreso"></i>Ingreso</span>
+            <span><i class="pe-leyenda__punto pe-leyenda__punto--gasto"></i>Gasto</span>
+          </div>
+          <svg id="pe-grafica" viewBox="0 0 320 172" width="100%" role="img" aria-label="Gráfica de ingreso y gasto acumulados del mes"></svg>
+          <p class="campo__ayuda" id="pe-caption" style="margin-top: 8px;"></p>
+        </div>
+
+        <div class="calendario-seccion">
           <div class="calendario-seccion__titulo">Resumen de ventas</div>
           <div id="reportes-resumen" class="resumen-ingresos"></div>
 

@@ -57,7 +57,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (vista === 'agenda') window.AgendaUI.mostrar();
     if (vista === 'hoy') window.HoyUI.mostrar();
     if (vista === 'calendario') window.HorarioUI.mostrar();
-    if (vista === 'reportes') window.ReportesUI.mostrar();
+    if (vista === 'reportes') {
+      window.ReportesUI.mostrar();
+      window.FinanzasUI.mostrar();
+    }
 
     botonAgregar.hidden = vista === 'calendario' || vista === 'reportes';
   }
