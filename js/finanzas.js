@@ -505,9 +505,10 @@ function renderizarTiraCifras(ingreso, gasto, ganancia) {
 }
 
 // Gasto fijo (renta + nómina) se carga completo desde el día 1 — no se
-// prorratea, porque el mes nace debiendo la renta y la nómina. El material
-// y los gastos extras sí se van acumulando según la fecha real de cada uno.
-function calcularSerieDiaria(visitas, gastosExtras, gastoBaseDelMes, costoMaterialActual, hoy) {
+// prorratea, porque el mes nace debiendo la renta y la nómina. El material,
+// los gastos extras y los productos (regalo/venta) sí se van acumulando
+// según la fecha real de cada uno.
+function calcularSerieDiaria(visitas, gastosExtras, productosVisitas, gastoBaseDelMes, costoMaterialActual, hoy) {
   const diaHoy = Number(hoy.split('-')[2]);
 
   const ingresoPorDia = {};
@@ -525,16 +526,29 @@ function calcularSerieDiaria(visitas, gastosExtras, gastoBaseDelMes, costoMateri
     extrasPorDia[dia] = (extrasPorDia[dia] || 0) + gasto.monto;
   }
 
+  // Productos regalo no suman ingreso (precio = 0 siempre), solo costo; los
+  // vendidos suman ambos.
+  const productosGastoPorDia = {};
+  for (const item of productosVisitas) {
+    const dia = Number(item.fecha.split('-')[2]);
+    productosGastoPorDia[dia] = (productosGastoPorDia[dia] || 0) + item.costo;
+    if (item.tipo === 'venta') {
+      ingresoPorDia[dia] = (ingresoPorDia[dia] || 0) + item.precio;
+    }
+  }
+
   let ingresoAcum = 0;
   let materialAcum = 0;
   let extrasAcum = 0;
+  let productosAcum = 0;
   const serie = [];
 
   for (let dia = 1; dia <= diaHoy; dia++) {
     ingresoAcum += ingresoPorDia[dia] || 0;
     materialAcum += materialPorDia[dia] || 0;
     extrasAcum += extrasPorDia[dia] || 0;
-    serie.push({ dia, ingresoAcum, gastoAcum: gastoBaseDelMes + materialAcum + extrasAcum });
+    productosAcum += productosGastoPorDia[dia] || 0;
+    serie.push({ dia, ingresoAcum, gastoAcum: gastoBaseDelMes + materialAcum + extrasAcum + productosAcum });
   }
 
   return serie;
@@ -689,7 +703,7 @@ function tagRealEstimado(esReal) {
   });
 }
 
-function renderizarDesgloseGastos(gastosFijos, nomina, gastosExtras, gastoMaterialMes) {
+function renderizarDesgloseGastos(gastosFijos, nomina, gastosExtras, gastoMaterialMes, gastoProductosRegaloMes, costoProductosVentaMes) {
   const renglones = gastosFijos.map((fila) => ({
     nombre: fila.concepto,
     monto: montoEfectivo(fila),
@@ -705,6 +719,13 @@ function renderizarDesgloseGastos(gastosFijos, nomina, gastosExtras, gastoMateri
   const extrasTotal = gastosExtras.reduce((suma, fila) => suma + fila.monto, 0);
   if (extrasTotal > 0) {
     renglones.push({ nombre: 'Extras', monto: extrasTotal, esReal: true });
+  }
+
+  if (gastoProductosRegaloMes > 0) {
+    renglones.push({ nombre: 'Productos regalo', monto: gastoProductosRegaloMes, esReal: true });
+  }
+  if (costoProductosVentaMes > 0) {
+    renglones.push({ nombre: 'Costo productos vendidos', monto: costoProductosVentaMes, esReal: true });
   }
 
   renglones.sort((a, b) => b.monto - a.monto);
@@ -733,6 +754,71 @@ function renderizarDesgloseGastos(gastosFijos, nomina, gastosExtras, gastoMateri
         crearEl('td', {}, [tagRealEstimado(renglon.esReal)]),
         crearEl('td', { texto: formatearMoneda(renglon.monto) }),
       ])
+    );
+  }
+}
+
+// ----- Productos: cuántos se regalaron y cuántos se vendieron este mes -----
+
+const peProductosLista = document.getElementById('pe-productos-lista');
+
+function renderizarProductos(regalos, ventasProducto) {
+  peProductosLista.innerHTML = '';
+
+  if (regalos.length === 0 && ventasProducto.length === 0) {
+    peProductosLista.appendChild(
+      crearEl('div', { class: 'campo__ayuda', texto: 'Sin productos regalados o vendidos este mes.' })
+    );
+    return;
+  }
+
+  if (regalos.length > 0) {
+    const conteoRegalos = {};
+    for (const item of regalos) conteoRegalos[item.nombre] = (conteoRegalos[item.nombre] || 0) + 1;
+
+    peProductosLista.appendChild(crearEl('div', { class: 'reportes-subtitulo', texto: 'Regalados' }));
+    for (const [nombre, cantidad] of Object.entries(conteoRegalos).sort((a, b) => b[1] - a[1])) {
+      peProductosLista.appendChild(
+        crearEl('div', { class: 'reportes-estilista-fila' }, [
+          crearEl('div', { class: 'reportes-estilista-nombre', texto: nombre }),
+          crearEl('div', {
+            class: 'reportes-estilista-cantidad',
+            texto: `${cantidad} ${cantidad === 1 ? 'vez' : 'veces'}`,
+          }),
+        ])
+      );
+    }
+  }
+
+  if (ventasProducto.length > 0) {
+    const conteoVentas = {};
+    for (const item of ventasProducto) {
+      if (!conteoVentas[item.nombre]) conteoVentas[item.nombre] = { cantidad: 0, ingreso: 0 };
+      conteoVentas[item.nombre].cantidad += 1;
+      conteoVentas[item.nombre].ingreso += item.precio;
+    }
+
+    peProductosLista.appendChild(crearEl('div', { class: 'reportes-subtitulo', texto: 'Vendidos' }));
+    for (const [nombre, datos] of Object.entries(conteoVentas).sort((a, b) => b[1].cantidad - a[1].cantidad)) {
+      peProductosLista.appendChild(
+        crearEl('div', { class: 'reportes-estilista-fila' }, [
+          crearEl('div', { class: 'reportes-estilista-nombre', texto: nombre }),
+          crearEl('div', {
+            class: 'reportes-estilista-cantidad',
+            texto: `${datos.cantidad} · ${formatearMoneda(datos.ingreso)}`,
+          }),
+        ])
+      );
+    }
+
+    const ingresoTotal = ventasProducto.reduce((suma, item) => suma + item.precio, 0);
+    const costoTotal = ventasProducto.reduce((suma, item) => suma + item.costo, 0);
+    peProductosLista.appendChild(
+      crearEl('p', {
+        class: 'campo__ayuda',
+        style: 'margin-top: 10px; font-weight: 600;',
+        texto: `Ganancia de productos vendidos: ${formatearMoneda(ingresoTotal - costoTotal)}`,
+      })
     );
   }
 }
@@ -818,19 +904,29 @@ async function calcularResumenMes(mes, diaCorte) {
   const diasMes = new Date(anio, mesNum, 0).getDate();
   const finMes = `${mes.slice(0, 8)}${String(diasMes).padStart(2, '0')}`;
 
-  const [config, gastosFijos, nomina, gastosExtras, visitas] = await Promise.all([
+  const [config, gastosFijos, nomina, gastosExtras, visitas, productosVisitas] = await Promise.all([
     DB.obtenerConfig(),
     DB.asegurarGastosFijosDelMes(mes),
     DB.asegurarNominaDelMes(mes),
     DB.listarGastosExtrasDelMes(mes),
     DB.listarVisitasEnRango(mes, finMes),
+    DB.listarProductosDeVisitasEnRango(mes, finMes),
   ]);
 
   const totalFijos = gastosFijos.reduce((suma, fila) => suma + montoEfectivo(fila), 0);
   const totalNomina = nomina.reduce((suma, fila) => suma + montoEfectivo(fila), 0);
   const totalExtras = gastosExtras.reduce((suma, fila) => suma + fila.monto, 0);
   const gastoBaseDelMes = totalFijos + totalNomina;
-  const gastoFijoMes = gastoBaseDelMes + totalExtras;
+
+  // Regalo de la promoción de "producto gratis" (sin ingreso, solo costo) y
+  // venta aparte de producto (ingreso y costo) — ver js/productos.js.
+  const regalos = productosVisitas.filter((item) => item.tipo === 'regalo');
+  const ventasProducto = productosVisitas.filter((item) => item.tipo === 'venta');
+  const gastoProductosRegaloMes = regalos.reduce((suma, item) => suma + item.costo, 0);
+  const ingresoProductosMes = ventasProducto.reduce((suma, item) => suma + item.precio, 0);
+  const costoProductosVentaMes = ventasProducto.reduce((suma, item) => suma + item.costo, 0);
+
+  const gastoFijoMes = gastoBaseDelMes + totalExtras + gastoProductosRegaloMes + costoProductosVentaMes;
 
   const costoMaterialActual = config.costoMaterialPorTratamiento;
   const gastoMaterialMes = visitas.reduce(
@@ -838,16 +934,21 @@ async function calcularResumenMes(mes, diaCorte) {
     0
   );
   const gastoTotalMes = gastoFijoMes + gastoMaterialMes;
-  const ingresoMes = visitas.reduce((suma, visita) => suma + visita.precio, 0);
+
+  // El ingreso de productos se suma al total, pero NO al ticket promedio ni
+  // al margen por tratamiento — esos son solo del servicio, para no mezclar
+  // peras con manzanas al calcular cuántos tratamientos hacen falta.
+  const ingresoServiciosMes = visitas.reduce((suma, visita) => suma + visita.precio, 0);
+  const ingresoMes = ingresoServiciosMes + ingresoProductosMes;
   const gananciaMes = ingresoMes - gastoTotalMes;
 
   const numServicios = visitas.length;
-  const ticketPromedio = numServicios > 0 ? ingresoMes / numServicios : 0;
+  const ticketPromedio = numServicios > 0 ? ingresoServiciosMes / numServicios : 0;
   const margenPorServicio = ticketPromedio - costoMaterialActual;
   const serviciosParaEquilibrio = margenPorServicio > 0 ? Math.ceil(gastoFijoMes / margenPorServicio) : null;
 
   const diaCorteISO = `${mes.slice(0, 8)}${String(diaCorte).padStart(2, '0')}`;
-  const serie = calcularSerieDiaria(visitas, gastosExtras, gastoBaseDelMes, costoMaterialActual, diaCorteISO);
+  const serie = calcularSerieDiaria(visitas, gastosExtras, productosVisitas, gastoBaseDelMes, costoMaterialActual, diaCorteISO);
 
   let diaCruce = null;
   for (const punto of serie) {
@@ -859,8 +960,10 @@ async function calcularResumenMes(mes, diaCorte) {
 
   return {
     mes, diasMes, diaCorte, config, gastosFijos, nomina, gastosExtras, visitas,
+    productosVisitas, regalos, ventasProducto,
     gastoBaseDelMes, gastoFijoMes, costoMaterialActual, gastoMaterialMes, gastoTotalMes,
-    ingresoMes, gananciaMes, numServicios, ticketPromedio, margenPorServicio,
+    gastoProductosRegaloMes, ingresoProductosMes, costoProductosVentaMes,
+    ingresoServiciosMes, ingresoMes, gananciaMes, numServicios, ticketPromedio, margenPorServicio,
     serviciosParaEquilibrio, serie, diaCruce,
   };
 }
@@ -974,7 +1077,8 @@ async function cargarPuntoEquilibrio() {
     renderizarBarraProgreso(r.numServicios, r.serviciosParaEquilibrio, r.margenPorServicio);
     renderizarDosTarjetas(r.ticketPromedio, r.numServicios, r.margenPorServicio);
     renderizarGraficaSemanal(r.visitas, Number(hoy.split('-')[2]));
-    renderizarDesgloseGastos(r.gastosFijos, r.nomina, r.gastosExtras, r.gastoMaterialMes);
+    renderizarProductos(r.regalos, r.ventasProducto);
+    renderizarDesgloseGastos(r.gastosFijos, r.nomina, r.gastosExtras, r.gastoMaterialMes, r.gastoProductosRegaloMes, r.costoProductosVentaMes);
 
     if (periodoPeActivo !== 'mes') cambiarPeriodoPe(periodoPeActivo);
 

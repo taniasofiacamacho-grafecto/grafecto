@@ -1171,6 +1171,19 @@
 }
 
 /* ===== Servicios por estilista (pestaña Reportes) ===== */
+.reportes-subtitulo {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-texto-suave);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin: 10px 0 2px;
+}
+
+.reportes-subtitulo:first-child {
+  margin-top: 0;
+}
+
 .reportes-estilista-fila {
   display: flex;
   align-items: center;
@@ -1565,6 +1578,57 @@
   font-weight: 700;
   color: var(--color-primario);
   white-space: nowrap;
+}
+
+.fila-agregar-producto {
+  display: flex;
+  gap: var(--espacio-sm);
+}
+
+.fila-agregar-producto select {
+  flex: 1;
+  min-height: 40px;
+  border-radius: var(--radio-sm);
+  border: 1px solid var(--color-borde);
+  padding: 0 8px;
+  font-size: 0.9rem;
+  color: var(--color-texto);
+  background: var(--color-superficie);
+}
+
+.fila-agregar-producto .boton {
+  min-height: 40px;
+  padding: 0 var(--espacio-md);
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.producto-venta-fila {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-sm);
+  padding: 8px 0;
+}
+
+.producto-venta-fila + .producto-venta-fila {
+  border-top: 1px solid var(--color-borde);
+}
+
+.producto-venta-fila__nombre {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.88rem;
+  color: var(--color-texto);
+}
+
+.producto-venta-fila__precio {
+  width: 80px;
+  min-height: 36px;
+  border-radius: var(--radio-sm);
+  border: 1px solid var(--color-borde);
+  padding: 4px 8px;
+  font-size: 0.85rem;
+  text-align: right;
 }
 
 .gasto-extra-fila__eliminar {

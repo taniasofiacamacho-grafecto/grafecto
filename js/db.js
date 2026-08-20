@@ -530,6 +530,20 @@ const TABLA_GASTOS_FIJOS = 'gastos_fijos';
 const TABLA_NOMINA = 'nomina';
 const TABLA_GASTOS_EXTRAS = 'gastos_extras';
 const TABLA_RESUMEN_MENSUAL = 'resumen_mensual';
+const TABLA_PRODUCTOS = 'productos';
+const TABLA_VISITA_PRODUCTOS = 'visita_productos';
+
+const PRODUCTOS_POR_DEFECTO = [
+  { nombre: 'Champú', categoria: 'individual', precio: 350, costo: 120 },
+  { nombre: 'Acondicionador', categoria: 'individual', precio: 350, costo: 120 },
+  { nombre: 'Hair Vitamins', categoria: 'individual', precio: 450, costo: 120 },
+  { nombre: 'Serum', categoria: 'individual', precio: 450, costo: 120 },
+  { nombre: 'Pre-shampoo / Leave-in', categoria: 'individual', precio: 450, costo: 120 },
+  { nombre: 'Kit Champú + Acondicionador', categoria: 'kit', precio: 600, costo: 240 },
+  { nombre: 'Kit Champú + Acondicionador + Serum', categoria: 'kit', precio: 950, costo: 360 },
+  { nombre: 'Kit Champú + Acondicionador + Hair Vitamins', categoria: 'kit', precio: 950, costo: 360 },
+  { nombre: 'Secadora', categoria: 'equipo', precio: 3900, costo: 1800 },
+];
 
 const CONCEPTOS_GASTOS_FIJOS_POR_DEFECTO = ['Renta', 'Marketing', 'Consumibles', 'Luz', 'Agua', 'Internet', 'Impuestos'];
 
@@ -881,6 +895,144 @@ async function listarResumenMensualUltimos12(mesActual) {
   return data.map(filaAResumenMensual);
 }
 
+// ----- Catálogo de productos (para regalo de promoción o venta en checkout) -----
+
+function filaAProducto(fila) {
+  return {
+    id: fila.id,
+    nombre: fila.nombre,
+    categoria: fila.categoria,
+    precio: Number(fila.precio),
+    costo: Number(fila.costo),
+    activo: fila.activo,
+  };
+}
+
+async function listarProductos() {
+  const { data, error } = await GrafectoAuth.cliente
+    .from(TABLA_PRODUCTOS)
+    .select('*')
+    .eq('sucursal', SUCURSAL)
+    .eq('activo', true)
+    .order('categoria', { ascending: true })
+    .order('nombre', { ascending: true });
+
+  if (error) throw error;
+  return data.map(filaAProducto);
+}
+
+// La primera vez que la usuaria entra, crea el catálogo base de productos
+// si todavía no tiene ninguno (igual que con los tratamientos).
+async function asegurarProductosPorDefecto() {
+  const { count, error } = await GrafectoAuth.cliente
+    .from(TABLA_PRODUCTOS)
+    .select('*', { count: 'exact', head: true })
+    .eq('sucursal', SUCURSAL);
+
+  if (error) throw error;
+  if (count > 0) return;
+
+  const { error: errorInsertar } = await GrafectoAuth.cliente
+    .from(TABLA_PRODUCTOS)
+    .insert(PRODUCTOS_POR_DEFECTO.map((producto) => ({ ...producto, sucursal: SUCURSAL })));
+
+  if (errorInsertar) throw errorInsertar;
+}
+
+async function agregarProducto(datos) {
+  const { data, error } = await GrafectoAuth.cliente
+    .from(TABLA_PRODUCTOS)
+    .insert({
+      sucursal: SUCURSAL,
+      nombre: datos.nombre.trim(),
+      categoria: datos.categoria || 'individual',
+      precio: datos.precio || 0,
+      costo: datos.costo || 0,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return filaAProducto(data);
+}
+
+async function actualizarProducto(id, datos) {
+  const cambios = {};
+  if (datos.nombre !== undefined) cambios.nombre = datos.nombre;
+  if (datos.precio !== undefined) cambios.precio = datos.precio;
+  if (datos.costo !== undefined) cambios.costo = datos.costo;
+
+  const { error } = await GrafectoAuth.cliente.from(TABLA_PRODUCTOS).update(cambios).eq('id', id);
+  if (error) throw error;
+}
+
+async function eliminarProducto(id) {
+  const { error } = await GrafectoAuth.cliente.from(TABLA_PRODUCTOS).delete().eq('id', id);
+  if (error) throw error;
+}
+
+// ----- Productos usados en una visita (regalo de promoción o venta) -----
+
+function filaAVisitaProducto(fila) {
+  return {
+    id: fila.id,
+    visitaId: fila.visita_id,
+    productoId: fila.producto_id,
+    tipo: fila.tipo,
+    nombre: fila.nombre,
+    precio: Number(fila.precio),
+    costo: Number(fila.costo),
+    fecha: fila.fecha,
+  };
+}
+
+async function listarProductosDeVisita(visitaId) {
+  const { data, error } = await GrafectoAuth.cliente
+    .from(TABLA_VISITA_PRODUCTOS)
+    .select('*')
+    .eq('visita_id', visitaId);
+
+  if (error) throw error;
+  return data.map(filaAVisitaProducto);
+}
+
+// Reemplaza todos los productos (regalo/venta) de una visita — más simple
+// que ir comparando qué cambió; se llama cada vez que se guarda el cobro.
+async function guardarProductosDeVisita(visitaId, fecha, items) {
+  const { error: errorBorrar } = await GrafectoAuth.cliente
+    .from(TABLA_VISITA_PRODUCTOS)
+    .delete()
+    .eq('visita_id', visitaId);
+
+  if (errorBorrar) throw errorBorrar;
+  if (!items || items.length === 0) return;
+
+  const { error } = await GrafectoAuth.cliente.from(TABLA_VISITA_PRODUCTOS).insert(
+    items.map((item) => ({
+      visita_id: visitaId,
+      producto_id: item.productoId || null,
+      tipo: item.tipo,
+      nombre: item.nombre,
+      precio: item.precio,
+      costo: item.costo,
+      fecha,
+    }))
+  );
+
+  if (error) throw error;
+}
+
+async function listarProductosDeVisitasEnRango(fechaInicio, fechaFin) {
+  const { data, error } = await GrafectoAuth.cliente
+    .from(TABLA_VISITA_PRODUCTOS)
+    .select('*')
+    .gte('fecha', fechaInicio)
+    .lte('fecha', fechaFin);
+
+  if (error) throw error;
+  return data.map(filaAVisitaProducto);
+}
+
 window.GrafectoDB = {
   listarClientas,
   obtenerClienta,
@@ -931,6 +1083,14 @@ window.GrafectoDB = {
   obtenerResumenMensual,
   guardarResumenMensual,
   listarResumenMensualUltimos12,
+  listarProductos,
+  asegurarProductosPorDefecto,
+  agregarProducto,
+  actualizarProducto,
+  eliminarProducto,
+  listarProductosDeVisita,
+  guardarProductosDeVisita,
+  listarProductosDeVisitasEnRango,
 };
 
 })();

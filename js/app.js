@@ -33,8 +33,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       window.HorarioUI.inicializar();
       window.ReportesUI.inicializar();
       window.FinanzasUI.inicializar();
+      window.ProductosUI.inicializar();
       window.GrafectoDB.asegurarTratamientosPorDefecto().catch((error) => {
         console.warn('No se pudieron crear los tratamientos por defecto:', error);
+      });
+      window.GrafectoDB.asegurarProductosPorDefecto().catch((error) => {
+        console.warn('No se pudieron crear los productos por defecto:', error);
       });
       appInicializada = true;
     }

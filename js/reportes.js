@@ -24,6 +24,9 @@ let tratamientosCache = [];
 let promocionSeleccionada = 'ninguna';
 let estilistaSeleccionada = '';
 let temporizadorOcultarResultados = null;
+let catalogoProductos = [];
+let regaloSeleccionados = new Set();
+let ventaItems = [];
 
 const fondoHoja = document.getElementById('fondo-hoja-venta-pasada');
 const hojaTitulo = document.getElementById('venta-titulo');
@@ -42,6 +45,11 @@ const botonDictado = document.getElementById('venta-notas-dictado');
 const botonesPromocion = document.querySelectorAll('#venta-promocion .pastilla-opcion');
 const botonesEstilista = document.querySelectorAll('#venta-estilista .pastilla-opcion');
 const campoEstilistaOtra = document.getElementById('venta-estilista-otra');
+const campoRegaloCampo = document.getElementById('venta-regalo-campo');
+const campoRegaloProductos = document.getElementById('venta-regalo-productos');
+const campoVentaProductoLista = document.getElementById('venta-producto-lista');
+const selectVentaProducto = document.getElementById('venta-producto-select');
+const botonVentaProductoAgregar = document.getElementById('venta-producto-agregar');
 const resumenEl = document.getElementById('reportes-resumen');
 const graficaEl = document.getElementById('reportes-grafica');
 const semanaAnteriorBtn = document.getElementById('reportes-semana-anterior');
@@ -358,6 +366,104 @@ function poblarLongitud(tratamientoNombre) {
   }
 }
 
+// ===== Productos: regalo de la promoción y venta aparte (mismo patrón que Cobro) =====
+
+function actualizarVisibilidadRegalo() {
+  campoRegaloCampo.hidden = promocionSeleccionada !== 'producto';
+}
+
+function renderizarRegaloOpciones() {
+  campoRegaloProductos.innerHTML = '';
+  const individuales = catalogoProductos.filter((p) => p.categoria === 'individual');
+  for (const producto of individuales) {
+    const boton = crearEl('button', {
+      type: 'button',
+      class: regaloSeleccionados.has(producto.id) ? 'pastilla-opcion pastilla-opcion--activa' : 'pastilla-opcion',
+      texto: producto.nombre,
+    });
+    boton.addEventListener('click', () => {
+      if (regaloSeleccionados.has(producto.id)) regaloSeleccionados.delete(producto.id);
+      else regaloSeleccionados.add(producto.id);
+      boton.classList.toggle('pastilla-opcion--activa');
+    });
+    campoRegaloProductos.appendChild(boton);
+  }
+}
+
+function poblarSelectVentaProducto() {
+  selectVentaProducto.innerHTML = '';
+  selectVentaProducto.appendChild(crearEl('option', { value: '', texto: 'Elige un producto…' }));
+  for (const producto of catalogoProductos) {
+    selectVentaProducto.appendChild(
+      crearEl('option', { value: producto.id, texto: `${producto.nombre} — ${formatearMoneda(producto.precio)}` })
+    );
+  }
+}
+
+function renderizarVentaProductoLista() {
+  campoVentaProductoLista.innerHTML = '';
+  for (const item of ventaItems) {
+    const campoPrecioItem = crearEl('input', {
+      type: 'number', inputmode: 'decimal', min: '0', step: '0.01',
+      class: 'producto-venta-fila__precio', value: item.precio,
+    });
+    campoPrecioItem.addEventListener('change', () => {
+      item.precio = Number(campoPrecioItem.value) || 0;
+    });
+
+    campoVentaProductoLista.appendChild(
+      crearEl('div', { class: 'producto-venta-fila' }, [
+        crearEl('div', { class: 'producto-venta-fila__nombre', texto: item.nombre }),
+        campoPrecioItem,
+        crearEl('button', {
+          type: 'button',
+          class: 'gasto-extra-fila__eliminar',
+          texto: '✕',
+          'aria-label': 'Quitar producto',
+          onclick: () => {
+            ventaItems = ventaItems.filter((i) => i !== item);
+            renderizarVentaProductoLista();
+          },
+        }),
+      ])
+    );
+  }
+}
+
+function manejarAgregarVentaProducto() {
+  const productoId = selectVentaProducto.value;
+  if (!productoId) return;
+  const producto = catalogoProductos.find((p) => p.id === productoId);
+  if (!producto) return;
+
+  ventaItems.push({ productoId: producto.id, nombre: producto.nombre, precio: producto.precio, costo: producto.costo });
+  selectVentaProducto.value = '';
+  renderizarVentaProductoLista();
+}
+
+function resolverProductosParaGuardar() {
+  const regalos = [...regaloSeleccionados]
+    .map((id) => catalogoProductos.find((p) => p.id === id))
+    .filter(Boolean)
+    .map((producto) => ({
+      productoId: producto.id,
+      tipo: 'regalo',
+      nombre: producto.nombre,
+      precio: 0,
+      costo: producto.costo,
+    }));
+
+  const ventas = ventaItems.map((item) => ({
+    productoId: item.productoId,
+    tipo: 'venta',
+    nombre: item.nombre,
+    precio: item.precio,
+    costo: item.costo,
+  }));
+
+  return [...regalos, ...ventas];
+}
+
 // Sin argumento: registrar una venta pasada nueva. Con una visita: editar
 // (o borrar) un registro ya guardado — por ejemplo, si desde el detalle de
 // un día en la gráfica se nota que faltó asignar la estilista.
@@ -413,6 +519,34 @@ async function abrir(visitaExistente = null) {
     campoEstilistaOtra.hidden = false;
     campoEstilistaOtra.value = estilistaPrevia;
   }
+
+  try {
+    catalogoProductos = await DB.listarProductos();
+  } catch (error) {
+    catalogoProductos = [];
+    console.error(error);
+  }
+  poblarSelectVentaProducto();
+
+  regaloSeleccionados = new Set();
+  ventaItems = [];
+  if (visitaVentaEnEdicion) {
+    try {
+      const productosPrevios = await DB.listarProductosDeVisita(visitaVentaEnEdicion.id);
+      for (const item of productosPrevios) {
+        if (item.tipo === 'regalo' && item.productoId) {
+          regaloSeleccionados.add(item.productoId);
+        } else if (item.tipo === 'venta') {
+          ventaItems.push({ productoId: item.productoId, nombre: item.nombre, precio: item.precio, costo: item.costo });
+        }
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+  renderizarRegaloOpciones();
+  renderizarVentaProductoLista();
+  actualizarVisibilidadRegalo();
 
   fondoHoja.classList.add('abierta');
 }
@@ -471,6 +605,7 @@ async function manejarGuardar(evento) {
   }
 
   try {
+    let visitaId;
     if (visitaVentaEnEdicion) {
       await DB.actualizarVisita(visitaVentaEnEdicion.id, {
         clientaId: campoClienta.value,
@@ -482,9 +617,10 @@ async function manejarGuardar(evento) {
         estilista: resolverEstilista(),
         notas: campoNotas.value,
       });
+      visitaId = visitaVentaEnEdicion.id;
       mostrarMensaje('Venta actualizada');
     } else {
-      await DB.agregarVisita({
+      const nueva = await DB.agregarVisita({
         clientaId: campoClienta.value,
         citaId: null,
         tratamientoId: campoTratamiento.value || null,
@@ -495,8 +631,11 @@ async function manejarGuardar(evento) {
         estilista: resolverEstilista(),
         notas: campoNotas.value,
       });
+      visitaId = nueva.id;
       mostrarMensaje('Venta registrada');
     }
+
+    await DB.guardarProductosDeVisita(visitaId, campoFecha.value, resolverProductosParaGuardar());
 
     cerrar();
     await cargarResumen();
@@ -536,8 +675,11 @@ function inicializar() {
     boton.addEventListener('click', () => {
       promocionSeleccionada = boton.dataset.valor;
       botonesPromocion.forEach((b) => b.classList.toggle('pastilla-opcion--activa', b === boton));
+      actualizarVisibilidadRegalo();
     });
   });
+
+  botonVentaProductoAgregar.addEventListener('click', manejarAgregarVentaProducto);
 
   botonesEstilista.forEach((boton) => {
     boton.addEventListener('click', () => {
