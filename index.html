@@ -99,46 +99,58 @@
       <main class="contenido contenido--sin-buscador">
         <div class="calendario-seccion">
           <div class="calendario-seccion__titulo">Punto de equilibrio — <span id="pe-mes-titulo"></span></div>
-          <div id="pe-tira-cifras" class="resumen-ingresos"></div>
-
-          <div class="pe-leyenda">
-            <span><i class="pe-leyenda__punto pe-leyenda__punto--ingreso"></i>Ingreso</span>
-            <span><i class="pe-leyenda__punto pe-leyenda__punto--gasto"></i>Gasto</span>
+          <div id="pe-tabs" class="grupo-pastillas" style="margin-bottom: 12px;">
+            <button type="button" class="pastilla-opcion" data-periodo="hoy">Hoy</button>
+            <button type="button" class="pastilla-opcion" data-periodo="semana">Semana</button>
+            <button type="button" class="pastilla-opcion pastilla-opcion--activa" data-periodo="mes">Mes</button>
           </div>
-          <svg id="pe-grafica" viewBox="0 0 320 172" width="100%" role="img" aria-label="Gráfica de ingreso y gasto acumulados del mes"></svg>
-          <p class="campo__ayuda" id="pe-caption" style="margin-top: 8px;"></p>
 
-          <div class="pe-progreso-contenedor">
-            <div class="barra-progreso" id="pe-barra-progreso">
-              <div class="barra-progreso__relleno" id="pe-barra-relleno"></div>
-              <div class="barra-progreso__marca" id="pe-barra-marca">
-                <span class="barra-progreso__marca-etiqueta" id="pe-barra-marca-etiqueta"></span>
-              </div>
+          <div id="pe-contenido-reducido" class="pe-reducido-grid" hidden></div>
+
+          <div id="pe-contenido-mes">
+            <div id="pe-tira-cifras" class="resumen-ingresos"></div>
+
+            <div class="pe-leyenda">
+              <span><i class="pe-leyenda__punto pe-leyenda__punto--ingreso"></i>Ingreso</span>
+              <span><i class="pe-leyenda__punto pe-leyenda__punto--gasto"></i>Gasto</span>
             </div>
-            <p class="campo__ayuda" id="pe-progreso-caption" style="margin-top: 8px;"></p>
+            <svg id="pe-grafica" viewBox="0 0 320 172" width="100%" role="img" aria-label="Gráfica de ingreso y gasto acumulados del mes"></svg>
+            <p class="campo__ayuda" id="pe-caption" style="margin-top: 8px;"></p>
+
+            <div class="pe-progreso-contenedor">
+              <div class="barra-progreso" id="pe-barra-progreso">
+                <div class="barra-progreso__relleno" id="pe-barra-relleno"></div>
+                <div class="barra-progreso__marca" id="pe-barra-marca">
+                  <span class="barra-progreso__marca-etiqueta" id="pe-barra-marca-etiqueta"></span>
+                </div>
+              </div>
+              <p class="campo__ayuda" id="pe-progreso-caption" style="margin-top: 8px;"></p>
+            </div>
           </div>
         </div>
 
-        <div class="calendario-seccion">
-          <div id="pe-dos-tarjetas" class="resumen-ingresos"></div>
-        </div>
-
-        <div class="calendario-seccion">
-          <div class="calendario-seccion__titulo">Ingreso por semana</div>
-          <div id="pe-grafica-semanal" class="grafica-barras"></div>
-        </div>
-
-        <div class="calendario-seccion">
-          <div class="calendario-seccion__titulo">Desglose de gastos</div>
-          <div id="pe-desglose-barras"></div>
-          <div style="overflow-x: auto;">
-            <table class="tabla-finanzas" id="pe-desglose-tabla"></table>
+        <div id="pe-secciones-mes">
+          <div class="calendario-seccion">
+            <div id="pe-dos-tarjetas" class="resumen-ingresos"></div>
           </div>
-        </div>
 
-        <div class="calendario-seccion">
-          <div class="calendario-seccion__titulo">Comparativo mes contra mes</div>
-          <div id="pe-comparativo"></div>
+          <div class="calendario-seccion">
+            <div class="calendario-seccion__titulo">Ingreso por semana</div>
+            <div id="pe-grafica-semanal" class="grafica-barras"></div>
+          </div>
+
+          <div class="calendario-seccion">
+            <div class="calendario-seccion__titulo">Desglose de gastos</div>
+            <div id="pe-desglose-barras"></div>
+            <div style="overflow-x: auto;">
+              <table class="tabla-finanzas" id="pe-desglose-tabla"></table>
+            </div>
+          </div>
+
+          <div class="calendario-seccion">
+            <div class="calendario-seccion__titulo">Comparativo mes contra mes</div>
+            <div id="pe-comparativo"></div>
+          </div>
         </div>
 
         <div class="calendario-seccion">

@@ -529,6 +529,7 @@ const TABLA_CONFIG_NEGOCIO = 'config_negocio';
 const TABLA_GASTOS_FIJOS = 'gastos_fijos';
 const TABLA_NOMINA = 'nomina';
 const TABLA_GASTOS_EXTRAS = 'gastos_extras';
+const TABLA_RESUMEN_MENSUAL = 'resumen_mensual';
 
 const CONCEPTOS_GASTOS_FIJOS_POR_DEFECTO = ['Renta', 'Marketing', 'Consumibles', 'Luz', 'Agua', 'Internet', 'Impuestos'];
 
@@ -823,6 +824,63 @@ async function eliminarGastoExtra(id) {
   if (error) throw error;
 }
 
+// ----- Resumen mensual (cierre de mes, alimenta el comparativo de 12 meses) -----
+
+function filaAResumenMensual(fila) {
+  return {
+    id: fila.id,
+    mes: fila.mes,
+    ingreso: Number(fila.ingreso),
+    gasto: Number(fila.gasto),
+    ganancia: Number(fila.ganancia),
+    ticketPromedio: Number(fila.ticket_promedio),
+    numServicios: fila.num_servicios,
+    diaCruce: fila.dia_cruce,
+  };
+}
+
+async function obtenerResumenMensual(mes) {
+  const { data, error } = await GrafectoAuth.cliente
+    .from(TABLA_RESUMEN_MENSUAL)
+    .select('*')
+    .eq('sucursal', SUCURSAL)
+    .eq('mes', mes)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data ? filaAResumenMensual(data) : null;
+}
+
+// Se llama sola al cerrar un mes (ver cerrarMesAnteriorSiHaceFalta en
+// finanzas.js) — no es algo que la usuaria dispare a mano.
+async function guardarResumenMensual(mes, datos) {
+  const { error } = await GrafectoAuth.cliente.from(TABLA_RESUMEN_MENSUAL).insert({
+    sucursal: SUCURSAL,
+    mes,
+    ingreso: datos.ingreso,
+    gasto: datos.gasto,
+    ganancia: datos.ganancia,
+    ticket_promedio: datos.ticketPromedio,
+    num_servicios: datos.numServicios,
+    dia_cruce: datos.diaCruce,
+  });
+
+  if (error) throw error;
+}
+
+async function listarResumenMensualUltimos12(mesActual) {
+  const { data, error } = await GrafectoAuth.cliente
+    .from(TABLA_RESUMEN_MENSUAL)
+    .select('*')
+    .eq('sucursal', SUCURSAL)
+    .lt('mes', mesActual)
+    .order('mes', { ascending: true })
+    .limit(12);
+
+  if (error) throw error;
+  return data.map(filaAResumenMensual);
+}
+
 window.GrafectoDB = {
   listarClientas,
   obtenerClienta,
@@ -870,6 +928,9 @@ window.GrafectoDB = {
   listarGastosExtrasDelMes,
   agregarGastoExtra,
   eliminarGastoExtra,
+  obtenerResumenMensual,
+  guardarResumenMensual,
+  listarResumenMensualUltimos12,
 };
 
 })();

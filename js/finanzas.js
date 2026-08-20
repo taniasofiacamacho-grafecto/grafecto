@@ -740,8 +740,9 @@ function renderizarDesgloseGastos(gastosFijos, nomina, gastosExtras, gastoMateri
 // ----- Comparativo mes contra mes (todavía sin historial: llega con el cierre de mes) -----
 
 const peComparativo = document.getElementById('pe-comparativo');
+const MESES_CORTOS_PE = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 
-function renderizarComparativo() {
+function renderizarEstadoVacioComparativo() {
   peComparativo.innerHTML = '';
   peComparativo.appendChild(
     crearEl('div', { class: 'estado-vacio' }, [
@@ -751,57 +752,234 @@ function renderizarComparativo() {
   );
 }
 
+async function renderizarComparativo(mesActual) {
+  try {
+    const historial = await DB.listarResumenMensualUltimos12(mesActual);
+    if (historial.length === 0) {
+      renderizarEstadoVacioComparativo();
+      return;
+    }
+
+    const maxMonto = Math.max(1, ...historial.map((m) => Math.max(m.ingreso, m.gasto, Math.abs(m.ganancia))));
+
+    peComparativo.innerHTML = '';
+    peComparativo.appendChild(
+      crearEl('div', { class: 'comparativo-leyenda' }, [
+        crearEl('span', {}, [crearEl('i', { style: 'background:var(--color-magenta)' }), crearEl('span', { texto: 'Ingreso' })]),
+        crearEl('span', {}, [crearEl('i', { style: 'background:var(--color-azul-grisaceo-claro)' }), crearEl('span', { texto: 'Gasto' })]),
+        crearEl('span', {}, [crearEl('i', { style: 'background:var(--color-exito)' }), crearEl('span', { texto: 'Ganancia' })]),
+      ])
+    );
+
+    const lista = crearEl('div', { class: 'comparativo-lista' });
+    for (const registro of historial) {
+      const [anio, mesNum] = registro.mes.split('-').map(Number);
+      const etiqueta = `${MESES_CORTOS_PE[mesNum - 1]} ${String(anio).slice(2)}`;
+      const gananciaPositiva = registro.ganancia >= 0;
+
+      lista.appendChild(
+        crearEl('div', { class: 'comparativo-mes' }, [
+          crearEl('div', { class: 'comparativo-mes__barras' }, [
+            crearEl('div', {
+              class: 'comparativo-mes__barra comparativo-mes__barra--ingreso',
+              style: `height: ${Math.max(2, Math.round((registro.ingreso / maxMonto) * 100))}%`,
+            }),
+            crearEl('div', {
+              class: 'comparativo-mes__barra comparativo-mes__barra--gasto',
+              style: `height: ${Math.max(2, Math.round((registro.gasto / maxMonto) * 100))}%`,
+            }),
+            crearEl('div', {
+              class: `comparativo-mes__barra ${gananciaPositiva ? 'comparativo-mes__barra--ganancia-positiva' : 'comparativo-mes__barra--ganancia-negativa'}`,
+              style: `height: ${Math.max(2, Math.round((Math.abs(registro.ganancia) / maxMonto) * 100))}%`,
+            }),
+          ]),
+          crearEl('div', { class: 'comparativo-mes__etiqueta', texto: etiqueta }),
+        ])
+      );
+    }
+    peComparativo.appendChild(lista);
+  } catch (error) {
+    renderizarEstadoVacioComparativo();
+    console.error(error);
+  }
+}
+
+// ----- Cálculo puro, reutilizable tanto para el mes en curso como para
+// cerrar un mes anterior (diaCorte = último día cuando ya terminó) -----
+
+function mesAnteriorISOLocal(mes) {
+  const [anio, mesNum] = mes.split('-').map(Number);
+  const fecha = new Date(anio, mesNum - 2, 1);
+  return `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}-01`;
+}
+
+async function calcularResumenMes(mes, diaCorte) {
+  const [anio, mesNum] = mes.split('-').map(Number);
+  const diasMes = new Date(anio, mesNum, 0).getDate();
+  const finMes = `${mes.slice(0, 8)}${String(diasMes).padStart(2, '0')}`;
+
+  const [config, gastosFijos, nomina, gastosExtras, visitas] = await Promise.all([
+    DB.obtenerConfig(),
+    DB.asegurarGastosFijosDelMes(mes),
+    DB.asegurarNominaDelMes(mes),
+    DB.listarGastosExtrasDelMes(mes),
+    DB.listarVisitasEnRango(mes, finMes),
+  ]);
+
+  const totalFijos = gastosFijos.reduce((suma, fila) => suma + montoEfectivo(fila), 0);
+  const totalNomina = nomina.reduce((suma, fila) => suma + montoEfectivo(fila), 0);
+  const totalExtras = gastosExtras.reduce((suma, fila) => suma + fila.monto, 0);
+  const gastoBaseDelMes = totalFijos + totalNomina;
+  const gastoFijoMes = gastoBaseDelMes + totalExtras;
+
+  const costoMaterialActual = config.costoMaterialPorTratamiento;
+  const gastoMaterialMes = visitas.reduce(
+    (suma, visita) => suma + (visita.costoMaterial != null ? visita.costoMaterial : costoMaterialActual),
+    0
+  );
+  const gastoTotalMes = gastoFijoMes + gastoMaterialMes;
+  const ingresoMes = visitas.reduce((suma, visita) => suma + visita.precio, 0);
+  const gananciaMes = ingresoMes - gastoTotalMes;
+
+  const numServicios = visitas.length;
+  const ticketPromedio = numServicios > 0 ? ingresoMes / numServicios : 0;
+  const margenPorServicio = ticketPromedio - costoMaterialActual;
+  const serviciosParaEquilibrio = margenPorServicio > 0 ? Math.ceil(gastoFijoMes / margenPorServicio) : null;
+
+  const diaCorteISO = `${mes.slice(0, 8)}${String(diaCorte).padStart(2, '0')}`;
+  const serie = calcularSerieDiaria(visitas, gastosExtras, gastoBaseDelMes, costoMaterialActual, diaCorteISO);
+
+  let diaCruce = null;
+  for (const punto of serie) {
+    if (punto.ingresoAcum >= punto.gastoAcum) {
+      diaCruce = punto.dia;
+      break;
+    }
+  }
+
+  return {
+    mes, diasMes, diaCorte, config, gastosFijos, nomina, gastosExtras, visitas,
+    gastoBaseDelMes, gastoFijoMes, costoMaterialActual, gastoMaterialMes, gastoTotalMes,
+    ingresoMes, gananciaMes, numServicios, ticketPromedio, margenPorServicio,
+    serviciosParaEquilibrio, serie, diaCruce,
+  };
+}
+
+// El primer mes con datos capturados nunca se cierra solo (nunca hay un
+// "mes anterior" real que cerrar); a partir de ahí, cada vez que entra a
+// Reportes en un mes nuevo, se guarda el resumen del mes que acaba de
+// terminar — así se alimenta el comparativo sin que la usuaria tenga que
+// acordarse de hacerlo.
+async function cerrarMesAnteriorSiHaceFalta(mesActual) {
+  try {
+    const mesPrevio = mesAnteriorISOLocal(mesActual);
+
+    const yaExiste = await DB.obtenerResumenMensual(mesPrevio);
+    if (yaExiste) return;
+
+    const gastosPrevios = await DB.listarGastosFijosDelMes(mesPrevio);
+    if (gastosPrevios.length === 0) return;
+
+    const [anioPrevio, mesNumPrevio] = mesPrevio.split('-').map(Number);
+    const diasMesPrevio = new Date(anioPrevio, mesNumPrevio, 0).getDate();
+    const r = await calcularResumenMes(mesPrevio, diasMesPrevio);
+
+    await DB.guardarResumenMensual(mesPrevio, {
+      ingreso: r.ingresoMes,
+      gasto: r.gastoTotalMes,
+      ganancia: r.gananciaMes,
+      ticketPromedio: r.ticketPromedio,
+      numServicios: r.numServicios,
+      diaCruce: r.diaCruce,
+    });
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// ----- Tabs Hoy / Semana / Mes -----
+
+const peTabs = document.querySelectorAll('#pe-tabs .pastilla-opcion');
+const peContenidoReducido = document.getElementById('pe-contenido-reducido');
+const peContenidoMes = document.getElementById('pe-contenido-mes');
+const peSeccionesMes = document.getElementById('pe-secciones-mes');
+
+let periodoPeActivo = 'mes';
+let ultimoResumenPe = null;
+
+// La "semana" aquí es la misma que en la gráfica de ingreso semanal: días
+// 1-7, 8-14, etc. del mes (no semana calendario) — para que ambas coincidan.
+function filtrarVisitasPeriodo(visitas, periodo, hoy) {
+  if (periodo === 'hoy') {
+    return visitas.filter((visita) => visita.fecha === hoy);
+  }
+  const diaHoy = Number(hoy.split('-')[2]);
+  const semanaActual = Math.ceil(diaHoy / 7);
+  return visitas.filter((visita) => Math.ceil(Number(visita.fecha.split('-')[2]) / 7) === semanaActual);
+}
+
+function renderizarContenidoReducido(ingreso, numServicios, ticketPromedio, costoMaterialActual) {
+  const quedaTrasMaterial = ingreso - numServicios * costoMaterialActual;
+
+  peContenidoReducido.innerHTML = '';
+  peContenidoReducido.append(
+    crearEl('div', { class: 'resumen-ingresos__tarjeta' }, [
+      crearEl('div', { class: 'resumen-ingresos__etiqueta', texto: 'Ingreso' }),
+      crearEl('div', { class: 'resumen-ingresos__monto', texto: formatearMoneda(ingreso) }),
+    ]),
+    crearEl('div', { class: 'resumen-ingresos__tarjeta' }, [
+      crearEl('div', { class: 'resumen-ingresos__etiqueta', texto: 'Servicios' }),
+      crearEl('div', { class: 'resumen-ingresos__monto', texto: String(numServicios) }),
+    ]),
+    crearEl('div', { class: 'resumen-ingresos__tarjeta' }, [
+      crearEl('div', { class: 'resumen-ingresos__etiqueta', texto: 'Ticket promedio' }),
+      crearEl('div', { class: 'resumen-ingresos__monto', texto: formatearMoneda(ticketPromedio) }),
+    ]),
+    crearEl('div', { class: 'resumen-ingresos__tarjeta' }, [
+      crearEl('div', { class: 'resumen-ingresos__etiqueta', texto: 'Queda tras material' }),
+      crearEl('div', { class: 'resumen-ingresos__monto', texto: formatearMoneda(quedaTrasMaterial) }),
+    ])
+  );
+}
+
+function cambiarPeriodoPe(periodo) {
+  periodoPeActivo = periodo;
+  peTabs.forEach((boton) => boton.classList.toggle('pastilla-opcion--activa', boton.dataset.periodo === periodo));
+
+  const esMes = periodo === 'mes';
+  peContenidoMes.hidden = !esMes;
+  peSeccionesMes.hidden = !esMes;
+  peContenidoReducido.hidden = esMes;
+
+  if (!esMes && ultimoResumenPe) {
+    const visitasPeriodo = filtrarVisitasPeriodo(ultimoResumenPe.visitas, periodo, ultimoResumenPe.hoy);
+    const ingreso = visitasPeriodo.reduce((suma, visita) => suma + visita.precio, 0);
+    const numServicios = visitasPeriodo.length;
+    const ticketPromedio = numServicios > 0 ? ingreso / numServicios : 0;
+    renderizarContenidoReducido(ingreso, numServicios, ticketPromedio, ultimoResumenPe.costoMaterialActual);
+  }
+}
+
 async function cargarPuntoEquilibrio() {
   const mes = mesActualISO();
   const hoy = fechaHoyISO();
   peMesTitulo.textContent = formatearMesLargo(mes);
 
-  const [anio, mesNum] = mes.split('-').map(Number);
-  const diasMes = new Date(anio, mesNum, 0).getDate();
-  const finMes = `${mes.slice(0, 8)}${String(diasMes).padStart(2, '0')}`;
-
   try {
-    const [config, gastosFijos, nomina, gastosExtras, visitas] = await Promise.all([
-      DB.obtenerConfig(),
-      DB.asegurarGastosFijosDelMes(mes),
-      DB.asegurarNominaDelMes(mes),
-      DB.listarGastosExtrasDelMes(mes),
-      DB.listarVisitasEnRango(mes, finMes),
-    ]);
+    const r = await calcularResumenMes(mes, Number(hoy.split('-')[2]));
+    ultimoResumenPe = { visitas: r.visitas, hoy, costoMaterialActual: r.costoMaterialActual };
 
-    const totalFijos = gastosFijos.reduce((suma, fila) => suma + montoEfectivo(fila), 0);
-    const totalNomina = nomina.reduce((suma, fila) => suma + montoEfectivo(fila), 0);
-    const totalExtras = gastosExtras.reduce((suma, fila) => suma + fila.monto, 0);
-    const gastoBaseDelMes = totalFijos + totalNomina;
-    const gastoFijoMes = gastoBaseDelMes + totalExtras;
+    renderizarTiraCifras(r.ingresoMes, r.gastoTotalMes, r.gananciaMes);
+    renderizarGraficaEquilibrio(r.serie, r.diasMes);
+    renderizarBarraProgreso(r.numServicios, r.serviciosParaEquilibrio, r.margenPorServicio);
+    renderizarDosTarjetas(r.ticketPromedio, r.numServicios, r.margenPorServicio);
+    renderizarGraficaSemanal(r.visitas, Number(hoy.split('-')[2]));
+    renderizarDesgloseGastos(r.gastosFijos, r.nomina, r.gastosExtras, r.gastoMaterialMes);
 
-    const costoMaterialActual = config.costoMaterialPorTratamiento;
-    const gastoMaterialMes = visitas.reduce(
-      (suma, visita) => suma + (visita.costoMaterial != null ? visita.costoMaterial : costoMaterialActual),
-      0
-    );
-    const gastoTotalMes = gastoFijoMes + gastoMaterialMes;
-    const ingresoMes = visitas.reduce((suma, visita) => suma + visita.precio, 0);
-    const gananciaMes = ingresoMes - gastoTotalMes;
+    if (periodoPeActivo !== 'mes') cambiarPeriodoPe(periodoPeActivo);
 
-    const numServicios = visitas.length;
-    const ticketPromedio = numServicios > 0 ? ingresoMes / numServicios : 0;
-    const margenPorServicio = ticketPromedio - costoMaterialActual;
-    const serviciosParaEquilibrio = margenPorServicio > 0 ? Math.ceil(gastoFijoMes / margenPorServicio) : null;
-
-    renderizarTiraCifras(ingresoMes, gastoTotalMes, gananciaMes);
-
-    const serie = calcularSerieDiaria(visitas, gastosExtras, gastoBaseDelMes, costoMaterialActual, hoy);
-    renderizarGraficaEquilibrio(serie, diasMes);
-
-    renderizarBarraProgreso(numServicios, serviciosParaEquilibrio, margenPorServicio);
-    renderizarDosTarjetas(ticketPromedio, numServicios, margenPorServicio);
-
-    const diaHoyNum = Number(hoy.split('-')[2]);
-    renderizarGraficaSemanal(visitas, diaHoyNum);
-
-    renderizarDesgloseGastos(gastosFijos, nomina, gastosExtras, gastoMaterialMes);
-    renderizarComparativo();
+    await cerrarMesAnteriorSiHaceFalta(mes);
+    await renderizarComparativo(mes);
   } catch (error) {
     peCaption.textContent = 'No se pudo cargar el punto de equilibrio.';
     console.error(error);
@@ -823,9 +1001,14 @@ function inicializar() {
   document.getElementById('boton-abrir-gastos-extras').addEventListener('click', abrirGastosExtras);
   document.getElementById('boton-cerrar-hoja-gastos-extras').addEventListener('click', cerrarGastosExtras);
   document.getElementById('boton-agregar-gasto-extra').addEventListener('click', manejarAgregarGastoExtra);
+
+  peTabs.forEach((boton) => {
+    boton.addEventListener('click', () => cambiarPeriodoPe(boton.dataset.periodo));
+  });
 }
 
 async function mostrar() {
+  cambiarPeriodoPe('mes');
   await cargarPuntoEquilibrio();
 }
 
