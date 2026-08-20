@@ -126,6 +126,22 @@
           <p class="campo__ayuda">¿Te falta capturar una venta de un día anterior? Regístrala aquí, sin necesidad de una cita.</p>
           <button type="button" id="boton-registrar-venta-pasada" class="boton boton--primario boton--ancho-completo">+ Registrar venta pasada</button>
         </div>
+
+        <div class="calendario-seccion">
+          <div class="calendario-seccion__titulo">Finanzas</div>
+          <p class="campo__ayuda">Captura tus gastos del mes — con esto se calculará tu punto de equilibrio.</p>
+
+          <div class="campo">
+            <label for="config-costo-material">Costo de material por tratamiento</label>
+            <input id="config-costo-material" type="number" inputmode="decimal" min="0" step="0.01" />
+          </div>
+
+          <div class="lista-botones-secundarios">
+            <button type="button" id="boton-abrir-gastos-fijos" class="boton boton--secundario boton--ancho-completo">Gastos fijos del mes</button>
+            <button type="button" id="boton-abrir-nomina" class="boton boton--secundario boton--ancho-completo">Nómina</button>
+            <button type="button" id="boton-abrir-gastos-extras" class="boton boton--secundario boton--ancho-completo">Gastos extras</button>
+          </div>
+        </div>
       </main>
     </section>
 
@@ -498,6 +514,53 @@
     </div>
   </div>
 
+  <!-- Hoja modal: gastos fijos del mes -->
+  <div id="fondo-hoja-gastos-fijos" class="fondo-hoja">
+    <div class="hoja">
+      <div class="hoja__manija"></div>
+      <div class="hoja__titulo">Gastos fijos — <span id="gastos-fijos-mes-titulo"></span></div>
+      <div id="gastos-fijos-lista"></div>
+      <button type="button" id="boton-agregar-gasto-fijo" class="boton boton--secundario boton--ancho-completo" style="margin-top: 4px;">+ Agregar gasto</button>
+      <button type="button" id="boton-cerrar-hoja-gastos-fijos" class="boton boton--primario boton--ancho-completo" style="margin-top: 16px;">Listo</button>
+    </div>
+  </div>
+
+  <!-- Hoja modal: nómina del mes -->
+  <div id="fondo-hoja-nomina" class="fondo-hoja">
+    <div class="hoja">
+      <div class="hoja__manija"></div>
+      <div class="hoja__titulo">Nómina — <span id="nomina-mes-titulo"></span></div>
+      <div id="nomina-lista"></div>
+      <button type="button" id="boton-agregar-semana-nomina" class="boton boton--secundario boton--ancho-completo" style="margin-top: 4px;">+ Agregar semana</button>
+      <button type="button" id="boton-cerrar-hoja-nomina" class="boton boton--primario boton--ancho-completo" style="margin-top: 16px;">Listo</button>
+    </div>
+  </div>
+
+  <!-- Hoja modal: gastos extras del mes -->
+  <div id="fondo-hoja-gastos-extras" class="fondo-hoja">
+    <div class="hoja">
+      <div class="hoja__manija"></div>
+      <div class="hoja__titulo">Gastos extras — <span id="gastos-extras-mes-titulo"></span></div>
+      <div id="gastos-extras-lista"></div>
+
+      <div class="campo" style="margin-top: 12px;">
+        <label for="gasto-extra-fecha">Nuevo gasto — fecha</label>
+        <input id="gasto-extra-fecha" type="date" />
+      </div>
+      <div class="campo">
+        <label for="gasto-extra-concepto">Concepto</label>
+        <input id="gasto-extra-concepto" type="text" placeholder="Ej. reparación secadora" autocapitalize="sentences" />
+      </div>
+      <div class="campo">
+        <label for="gasto-extra-monto">Monto</label>
+        <input id="gasto-extra-monto" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" />
+      </div>
+      <button type="button" id="boton-agregar-gasto-extra" class="boton boton--secundario boton--ancho-completo">+ Agregar</button>
+
+      <button type="button" id="boton-cerrar-hoja-gastos-extras" class="boton boton--primario boton--ancho-completo" style="margin-top: 16px;">Listo</button>
+    </div>
+  </div>
+
   <script src="lib/supabase.js"></script>
   <script src="js/config.js"></script>
   <script src="js/auth.js"></script>
@@ -514,6 +577,7 @@
   <script src="js/hoy.js"></script>
   <script src="js/horario.js"></script>
   <script src="js/reportes.js"></script>
+  <script src="js/finanzas.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

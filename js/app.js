@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       window.EstilistaCitaUI.inicializar();
       window.HorarioUI.inicializar();
       window.ReportesUI.inicializar();
+      window.FinanzasUI.inicializar();
       window.GrafectoDB.asegurarTratamientosPorDefecto().catch((error) => {
         console.warn('No se pudieron crear los tratamientos por defecto:', error);
       });

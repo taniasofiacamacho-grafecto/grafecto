@@ -505,6 +505,311 @@ async function eliminarVisita(id) {
   if (error) throw error;
 }
 
+// ===== Finanzas: punto de equilibrio (gastos fijos, nómina, gastos extras) =====
+// Por ahora todo opera en una sola sucursal — el campo ya existe en las
+// tablas para poder agregar otra sucursal después sin migrar nada, pero la
+// interfaz no la muestra todavía.
+
+const SUCURSAL = 'monterrey';
+
+const TABLA_CONFIG_NEGOCIO = 'config_negocio';
+const TABLA_GASTOS_FIJOS = 'gastos_fijos';
+const TABLA_NOMINA = 'nomina';
+const TABLA_GASTOS_EXTRAS = 'gastos_extras';
+
+const CONCEPTOS_GASTOS_FIJOS_POR_DEFECTO = ['Renta', 'Marketing', 'Consumibles', 'Luz', 'Agua', 'Internet', 'Impuestos'];
+
+const MONTOS_INICIALES_GASTOS_FIJOS = {
+  Renta: 28000,
+  Marketing: 10000,
+  Consumibles: 5000,
+  Luz: 3000,
+  Agua: 1000,
+  Internet: 800,
+  Impuestos: 6000,
+};
+
+const NOMINA_SEMANAL_INICIAL = 19000;
+
+function mesAnteriorISO(mes) {
+  const [anio, mesNum] = mes.split('-').map(Number);
+  const fecha = new Date(anio, mesNum - 2, 1);
+  return `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}-01`;
+}
+
+// ----- Configuración del negocio -----
+
+function filaAConfig(fila) {
+  return {
+    id: fila.id,
+    sucursal: fila.sucursal,
+    costoMaterialPorTratamiento: Number(fila.costo_material_por_tratamiento),
+  };
+}
+
+async function obtenerConfig() {
+  const { data, error } = await GrafectoAuth.cliente
+    .from(TABLA_CONFIG_NEGOCIO)
+    .select('*')
+    .eq('sucursal', SUCURSAL)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (data) return filaAConfig(data);
+
+  const { data: creado, error: errorCrear } = await GrafectoAuth.cliente
+    .from(TABLA_CONFIG_NEGOCIO)
+    .insert({ sucursal: SUCURSAL })
+    .select()
+    .single();
+
+  if (errorCrear) throw errorCrear;
+  return filaAConfig(creado);
+}
+
+async function actualizarCostoMaterial(costo) {
+  const { error } = await GrafectoAuth.cliente
+    .from(TABLA_CONFIG_NEGOCIO)
+    .update({ costo_material_por_tratamiento: costo })
+    .eq('sucursal', SUCURSAL);
+
+  if (error) throw error;
+}
+
+// ----- Gastos fijos -----
+// Nómina NO vive aquí (tiene su propia tabla, porque varía cada semana).
+
+function filaAGastoFijo(fila) {
+  return {
+    id: fila.id,
+    mes: fila.mes,
+    concepto: fila.concepto,
+    montoEstimado: Number(fila.monto_estimado),
+    montoReal: fila.monto_real == null ? null : Number(fila.monto_real),
+    fechaPago: fila.fecha_pago,
+    pagado: fila.pagado,
+  };
+}
+
+async function listarGastosFijosDelMes(mes) {
+  const { data, error } = await GrafectoAuth.cliente
+    .from(TABLA_GASTOS_FIJOS)
+    .select('*')
+    .eq('sucursal', SUCURSAL)
+    .eq('mes', mes)
+    .order('created_at', { ascending: true });
+
+  if (error) throw error;
+  return data.map(filaAGastoFijo);
+}
+
+// La primera vez que se abre un mes se crean sus renglones: si el mes
+// anterior ya tiene datos, se parte de ahí (el real si ya se pagó, si no el
+// estimado) para no volver a escribir todo cada mes; si no hay nada (el
+// primer mes de todos), se usan los montos iniciales capturados con la usuaria.
+async function asegurarGastosFijosDelMes(mes) {
+  const existentes = await listarGastosFijosDelMes(mes);
+  if (existentes.length > 0) return existentes;
+
+  const mesPrevio = mesAnteriorISO(mes);
+  const { data: previos, error: errorPrevios } = await GrafectoAuth.cliente
+    .from(TABLA_GASTOS_FIJOS)
+    .select('*')
+    .eq('sucursal', SUCURSAL)
+    .eq('mes', mesPrevio);
+
+  if (errorPrevios) throw errorPrevios;
+
+  const renglones =
+    previos && previos.length > 0
+      ? previos.map((fila) => ({
+          sucursal: SUCURSAL,
+          mes,
+          concepto: fila.concepto,
+          monto_estimado: fila.monto_real !== null ? fila.monto_real : fila.monto_estimado,
+        }))
+      : CONCEPTOS_GASTOS_FIJOS_POR_DEFECTO.map((concepto) => ({
+          sucursal: SUCURSAL,
+          mes,
+          concepto,
+          monto_estimado: MONTOS_INICIALES_GASTOS_FIJOS[concepto] || 0,
+        }));
+
+  const { data, error } = await GrafectoAuth.cliente.from(TABLA_GASTOS_FIJOS).insert(renglones).select();
+  if (error) throw error;
+  return data.map(filaAGastoFijo);
+}
+
+async function agregarGastoFijo(mes, concepto) {
+  const { data, error } = await GrafectoAuth.cliente
+    .from(TABLA_GASTOS_FIJOS)
+    .insert({ sucursal: SUCURSAL, mes, concepto: concepto.trim(), monto_estimado: 0 })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return filaAGastoFijo(data);
+}
+
+async function actualizarGastoFijo(id, datos) {
+  const cambios = {};
+  if (datos.concepto !== undefined) cambios.concepto = datos.concepto;
+  if (datos.montoEstimado !== undefined) cambios.monto_estimado = datos.montoEstimado;
+  if (datos.montoReal !== undefined) cambios.monto_real = datos.montoReal;
+  if (datos.fechaPago !== undefined) cambios.fecha_pago = datos.fechaPago;
+  if (datos.pagado !== undefined) cambios.pagado = datos.pagado;
+
+  const { error } = await GrafectoAuth.cliente.from(TABLA_GASTOS_FIJOS).update(cambios).eq('id', id);
+  if (error) throw error;
+}
+
+async function eliminarGastoFijo(id) {
+  const { error } = await GrafectoAuth.cliente.from(TABLA_GASTOS_FIJOS).delete().eq('id', id);
+  if (error) throw error;
+}
+
+// ----- Nómina -----
+
+function filaANomina(fila) {
+  return {
+    id: fila.id,
+    mes: fila.mes,
+    semana: fila.semana,
+    fecha: fila.fecha,
+    montoEstimado: Number(fila.monto_estimado),
+    montoReal: fila.monto_real == null ? null : Number(fila.monto_real),
+  };
+}
+
+async function listarNominaDelMes(mes) {
+  const { data, error } = await GrafectoAuth.cliente
+    .from(TABLA_NOMINA)
+    .select('*')
+    .eq('sucursal', SUCURSAL)
+    .eq('mes', mes)
+    .order('semana', { ascending: true });
+
+  if (error) throw error;
+  return data.map(filaANomina);
+}
+
+// Igual que con gastos fijos: si el mes anterior tiene nómina capturada, se
+// usa su promedio semanal (real si existe, si no estimado) como estimado
+// inicial de cada semana nueva; si no hay nada, se usa el aproximado
+// semanal capturado con la usuaria. Arranca con 4 semanas — el botón
+// "+ Agregar semana" cubre los meses de 5.
+async function asegurarNominaDelMes(mes) {
+  const existentes = await listarNominaDelMes(mes);
+  if (existentes.length > 0) return existentes;
+
+  const mesPrevio = mesAnteriorISO(mes);
+  const { data: previas, error: errorPrevias } = await GrafectoAuth.cliente
+    .from(TABLA_NOMINA)
+    .select('*')
+    .eq('sucursal', SUCURSAL)
+    .eq('mes', mesPrevio);
+
+  if (errorPrevias) throw errorPrevias;
+
+  let estimadoSemanal = NOMINA_SEMANAL_INICIAL;
+  if (previas && previas.length > 0) {
+    const total = previas.reduce(
+      (suma, fila) => suma + (fila.monto_real !== null ? fila.monto_real : fila.monto_estimado),
+      0
+    );
+    estimadoSemanal = Math.round(total / previas.length);
+  }
+
+  const renglones = [1, 2, 3, 4].map((semana) => ({
+    sucursal: SUCURSAL,
+    mes,
+    semana,
+    monto_estimado: estimadoSemanal,
+  }));
+
+  const { data, error } = await GrafectoAuth.cliente.from(TABLA_NOMINA).insert(renglones).select();
+  if (error) throw error;
+  return data.map(filaANomina);
+}
+
+async function agregarSemanaNomina(mes) {
+  const existentes = await listarNominaDelMes(mes);
+  const siguienteSemana = existentes.reduce((maxima, fila) => Math.max(maxima, fila.semana), 0) + 1;
+
+  const { data, error } = await GrafectoAuth.cliente
+    .from(TABLA_NOMINA)
+    .insert({ sucursal: SUCURSAL, mes, semana: siguienteSemana, monto_estimado: 0 })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return filaANomina(data);
+}
+
+async function actualizarNomina(id, datos) {
+  const cambios = {};
+  if (datos.fecha !== undefined) cambios.fecha = datos.fecha;
+  if (datos.montoEstimado !== undefined) cambios.monto_estimado = datos.montoEstimado;
+  if (datos.montoReal !== undefined) cambios.monto_real = datos.montoReal;
+
+  const { error } = await GrafectoAuth.cliente.from(TABLA_NOMINA).update(cambios).eq('id', id);
+  if (error) throw error;
+}
+
+async function eliminarNomina(id) {
+  const { error } = await GrafectoAuth.cliente.from(TABLA_NOMINA).delete().eq('id', id);
+  if (error) throw error;
+}
+
+// ----- Gastos extras -----
+
+function filaAGastoExtra(fila) {
+  return {
+    id: fila.id,
+    fecha: fila.fecha,
+    concepto: fila.concepto,
+    monto: Number(fila.monto),
+  };
+}
+
+async function listarGastosExtrasDelMes(mes) {
+  const [anio, mesNum] = mes.split('-').map(Number);
+  const fin = new Date(anio, mesNum, 0);
+  const finISO = `${fin.getFullYear()}-${String(fin.getMonth() + 1).padStart(2, '0')}-${String(fin.getDate()).padStart(2, '0')}`;
+
+  const { data, error } = await GrafectoAuth.cliente
+    .from(TABLA_GASTOS_EXTRAS)
+    .select('*')
+    .eq('sucursal', SUCURSAL)
+    .gte('fecha', mes)
+    .lte('fecha', finISO)
+    .order('fecha', { ascending: false });
+
+  if (error) throw error;
+  return data.map(filaAGastoExtra);
+}
+
+async function agregarGastoExtra(datos) {
+  const { data, error } = await GrafectoAuth.cliente
+    .from(TABLA_GASTOS_EXTRAS)
+    .insert({
+      sucursal: SUCURSAL,
+      fecha: datos.fecha,
+      concepto: datos.concepto.trim(),
+      monto: datos.monto,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return filaAGastoExtra(data);
+}
+
+async function eliminarGastoExtra(id) {
+  const { error } = await GrafectoAuth.cliente.from(TABLA_GASTOS_EXTRAS).delete().eq('id', id);
+  if (error) throw error;
+}
+
 window.GrafectoDB = {
   listarClientas,
   obtenerClienta,
@@ -537,6 +842,21 @@ window.GrafectoDB = {
   listarVisitasEnRango,
   eliminarVisita,
   normalizarTexto,
+  obtenerConfig,
+  actualizarCostoMaterial,
+  listarGastosFijosDelMes,
+  asegurarGastosFijosDelMes,
+  agregarGastoFijo,
+  actualizarGastoFijo,
+  eliminarGastoFijo,
+  listarNominaDelMes,
+  asegurarNominaDelMes,
+  agregarSemanaNomina,
+  actualizarNomina,
+  eliminarNomina,
+  listarGastosExtrasDelMes,
+  agregarGastoExtra,
+  eliminarGastoExtra,
 };
 
 })();

@@ -1201,3 +1201,162 @@
   color: var(--color-exito);
   cursor: default;
 }
+
+/* ===== Finanzas: gastos fijos, nómina, gastos extras (punto de equilibrio) ===== */
+.lista-botones-secundarios {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-sm);
+}
+
+.chip {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.chip--real {
+  background: rgba(92, 138, 114, 0.15);
+  color: var(--color-exito);
+}
+
+.chip--estimado {
+  background: rgba(184, 134, 63, 0.15);
+  color: var(--color-alerta);
+}
+
+.gasto-fila-editable {
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-md);
+  padding: var(--espacio-sm) var(--espacio-md);
+  margin-bottom: var(--espacio-sm);
+}
+
+.gasto-fila-editable__encabezado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-sm);
+  margin-bottom: 8px;
+}
+
+.gasto-fila-editable__nombre {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.gasto-fila-editable__nombre-input {
+  border: none;
+  background: transparent;
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 4px 0;
+  min-height: unset;
+  flex: 1;
+  min-width: 0;
+  color: var(--color-texto);
+}
+
+.gasto-fila-editable__campos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.gasto-fila-editable__campo label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-texto-suave);
+  display: block;
+  margin-bottom: 2px;
+}
+
+.gasto-fila-editable__campo input {
+  width: 100%;
+  min-height: 40px;
+  border-radius: var(--radio-sm);
+  border: 1px solid var(--color-borde);
+  background: var(--color-superficie);
+  padding: 6px 10px;
+  font-size: 0.9rem;
+  color: var(--color-texto);
+}
+
+.gasto-fila-editable__pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-sm);
+  margin-top: 8px;
+}
+
+.gasto-fila-editable__pagado {
+  border: 1px solid var(--color-borde);
+  background: var(--color-superficie);
+  color: var(--color-texto-suave);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  min-height: unset;
+  cursor: pointer;
+}
+
+.gasto-fila-editable__pagado--activo {
+  background: rgba(92, 138, 114, 0.15);
+  color: var(--color-exito);
+  border-color: transparent;
+}
+
+.gasto-fila-editable__fecha {
+  min-height: 36px;
+  border-radius: var(--radio-sm);
+  border: 1px solid var(--color-borde);
+  background: var(--color-superficie);
+  padding: 4px 8px;
+  font-size: 0.8rem;
+  color: var(--color-texto-suave);
+}
+
+.gasto-extra-fila {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-sm);
+  padding: var(--espacio-sm) 0;
+}
+
+.gasto-extra-fila + .gasto-extra-fila {
+  border-top: 1px solid var(--color-borde);
+}
+
+.gasto-extra-fila__info { flex: 1; min-width: 0; }
+
+.gasto-extra-fila__concepto {
+  font-weight: 600;
+  color: var(--color-texto);
+}
+
+.gasto-extra-fila__fecha {
+  font-size: 0.78rem;
+  color: var(--color-texto-suave);
+}
+
+.gasto-extra-fila__monto {
+  font-weight: 700;
+  color: var(--color-primario);
+  white-space: nowrap;
+}
+
+.gasto-extra-fila__eliminar {
+  border: none;
+  background: transparent;
+  color: var(--color-texto-suave);
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 6px;
+  cursor: pointer;
+  min-height: unset;
+}
