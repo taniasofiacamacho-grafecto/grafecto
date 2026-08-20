@@ -153,7 +153,9 @@ async function manejarGuardar(evento) {
   try {
     if (visitaEnEdicion) {
       await DB.actualizarVisita(visitaEnEdicion.id, {
+        clientaId: citaActual.clientaId,
         tratamientoId: citaActual.tratamientoId,
+        fecha: citaActual.fecha,
         precio,
         longitud: campoLongitud.value,
         promocion: promocionSeleccionada,

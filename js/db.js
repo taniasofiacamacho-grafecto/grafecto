@@ -460,7 +460,9 @@ async function actualizarVisita(id, datos) {
   const { data, error } = await GrafectoAuth.cliente
     .from(TABLA_VISITAS)
     .update({
+      clienta_id: datos.clientaId,
       tratamiento_id: datos.tratamientoId || null,
+      fecha: datos.fecha,
       precio: datos.precio,
       promocion: datos.promocion || 'ninguna',
       longitud: datos.longitud || null,

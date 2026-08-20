@@ -428,7 +428,7 @@
   <div id="fondo-hoja-venta-pasada" class="fondo-hoja">
     <div class="hoja">
       <div class="hoja__manija"></div>
-      <div class="hoja__titulo">Registrar venta pasada</div>
+      <div class="hoja__titulo" id="venta-titulo">Registrar venta pasada</div>
 
       <form id="formulario-venta-pasada">
         <div class="campo campo--buscador-relativo">
@@ -490,6 +490,10 @@
           <button type="button" id="boton-cerrar-hoja-venta-pasada" class="boton boton--secundario">Cancelar</button>
           <button type="submit" class="boton boton--primario">Guardar</button>
         </div>
+
+        <button type="button" id="boton-eliminar-venta-pasada" class="boton boton--peligro boton--ancho-completo" hidden style="margin-top: 8px;">
+          Eliminar registro
+        </button>
       </form>
     </div>
   </div>

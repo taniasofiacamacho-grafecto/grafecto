@@ -875,6 +875,11 @@
   justify-content: space-between;
   gap: var(--espacio-sm);
   padding: var(--espacio-sm) 0;
+  cursor: pointer;
+}
+
+.reportes-dia-detalle__fila:active {
+  opacity: 0.7;
 }
 
 .reportes-dia-detalle__fila + .reportes-dia-detalle__fila {

@@ -17,6 +17,8 @@ const OPCIONES_LONGITUD_POR_TRATAMIENTO = {
   'Tratamiento de hidratación': ['Corto', 'Mediano', 'Largo'],
 };
 
+const NOMBRES_ESTILISTA_CONOCIDOS = ['Alma', 'Betty', 'Isabel'];
+
 let clientasCache = [];
 let tratamientosCache = [];
 let promocionSeleccionada = 'ninguna';
@@ -24,7 +26,10 @@ let estilistaSeleccionada = '';
 let temporizadorOcultarResultados = null;
 
 const fondoHoja = document.getElementById('fondo-hoja-venta-pasada');
+const hojaTitulo = document.getElementById('venta-titulo');
 const formulario = document.getElementById('formulario-venta-pasada');
+const botonGuardarVenta = formulario.querySelector('button[type="submit"]');
+const botonEliminarVenta = document.getElementById('boton-eliminar-venta-pasada');
 const campoClientaBuscar = document.getElementById('venta-clienta-buscar');
 const campoClienta = document.getElementById('venta-clienta');
 const resultadosClienta = document.getElementById('venta-clienta-resultados');
@@ -49,13 +54,15 @@ const botonesEstilistaPeriodo = document.querySelectorAll('#reportes-estilista-p
 let periodoEstilistaActivo = 'hoy';
 let visitasPorPeriodo = { hoy: [], semana: [], mes: [] };
 
-// offsetSemana: 0 = semana actual, -1 = la anterior, etc. — para poder ir
-// hacia atrás en el tiempo con las flechas sin mover las tarjetas de
-// resumen (esas siempre son de la semana/mes real, sin importar qué
-// semana se esté viendo en la gráfica).
+// offsetSemana: 0 = semana actual, -1 = la anterior, etc. La tarjeta "Semana"
+// del resumen sigue a la semana que se esté viendo en la gráfica; "Hoy" y
+// "Mes" siempre son los reales, sin importar qué semana se esté navegando.
 let offsetSemana = 0;
+let visitasHoyActual = [];
+let visitasMesActual = [];
 let visitasSemanaGrafica = [];
 let diaSeleccionado = null;
+let visitaVentaEnEdicion = null;
 
 const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 
@@ -183,7 +190,7 @@ function mostrarDetalleDia() {
 
   for (const visita of visitasDia) {
     diaDetalleEl.appendChild(
-      crearEl('div', { class: 'reportes-dia-detalle__fila' }, [
+      crearEl('div', { class: 'reportes-dia-detalle__fila', onclick: () => abrir(visita) }, [
         crearEl('div', {}, [
           crearEl('div', { class: 'reportes-dia-detalle__nombre', texto: visita.clientaNombre }),
           crearEl('div', {
@@ -205,6 +212,15 @@ function manejarSeleccionDia(fecha) {
   mostrarDetalleDia();
 }
 
+function renderizarTarjetasResumen() {
+  resumenEl.innerHTML = '';
+  resumenEl.append(
+    crearTarjetaResumen('Hoy', visitasHoyActual),
+    crearTarjetaResumen('Semana', visitasSemanaGrafica),
+    crearTarjetaResumen('Mes', visitasMesActual)
+  );
+}
+
 async function cargarGraficaSemana() {
   const hoy = fechaHoyISO();
   const inicioObjetivo = sumarDiasISO(inicioSemanaISO(hoy), offsetSemana * 7);
@@ -224,6 +240,7 @@ async function cargarGraficaSemana() {
     console.error(error);
   }
 
+  renderizarTarjetasResumen();
   renderizarGraficaSemana(hoy);
 }
 
@@ -271,26 +288,25 @@ function renderizarEstilistas(periodo) {
 async function cargarResumen() {
   const hoy = fechaHoyISO();
 
+  // Estas se usan para "Servicios por estilista" y para las tarjetas Hoy/Mes
+  // — siempre son las reales, sin importar qué semana se esté navegando en
+  // la gráfica de abajo (esa la maneja cargarGraficaSemana aparte).
   try {
-    const [visitasHoy, visitasSemana, visitasMes] = await Promise.all([
+    const [visitasHoy, visitasSemanaFija, visitasMes] = await Promise.all([
       DB.listarVisitasEnRango(hoy, hoy),
       DB.listarVisitasEnRango(inicioSemanaISO(hoy), finSemanaISO(hoy)),
       DB.listarVisitasEnRango(inicioMesISO(hoy), finMesISO(hoy)),
     ]);
 
-    resumenEl.innerHTML = '';
-    resumenEl.append(
-      crearTarjetaResumen('Hoy', visitasHoy),
-      crearTarjetaResumen('Semana', visitasSemana),
-      crearTarjetaResumen('Mes', visitasMes)
-    );
-
-    visitasPorPeriodo = { hoy: visitasHoy, semana: visitasSemana, mes: visitasMes };
+    visitasHoyActual = visitasHoy;
+    visitasMesActual = visitasMes;
+    visitasPorPeriodo = { hoy: visitasHoy, semana: visitasSemanaFija, mes: visitasMes };
     renderizarEstilistas(periodoEstilistaActivo);
   } catch (error) {
-    resumenEl.innerHTML = '';
-    resumenEl.appendChild(crearEl('div', { class: 'campo__ayuda', texto: 'No se pudo cargar el resumen.' }));
     estilistaListaEl.innerHTML = '';
+    estilistaListaEl.appendChild(
+      crearEl('div', { class: 'campo__ayuda', texto: 'No se pudo cargar el resumen.' })
+    );
     console.error(error);
   }
 
@@ -342,12 +358,15 @@ function poblarLongitud(tratamientoNombre) {
   }
 }
 
-async function abrir() {
+// Sin argumento: registrar una venta pasada nueva. Con una visita: editar
+// (o borrar) un registro ya guardado — por ejemplo, si desde el detalle de
+// un día en la gráfica se nota que faltó asignar la estilista.
+async function abrir(visitaExistente = null) {
+  visitaVentaEnEdicion = visitaExistente;
   clientasCache = await DB.listarClientas();
   tratamientosCache = await DB.listarTratamientos();
 
   formulario.reset();
-  campoClienta.value = '';
   ocultarResultadosClienta();
 
   campoTratamiento.innerHTML = '';
@@ -355,26 +374,74 @@ async function abrir() {
   for (const tratamiento of tratamientosCache) {
     campoTratamiento.appendChild(crearEl('option', { value: tratamiento.id, texto: tratamiento.nombre }));
   }
-  poblarLongitud('');
 
-  promocionSeleccionada = 'ninguna';
-  botonesPromocion.forEach((b) => b.classList.toggle('pastilla-opcion--activa', b.dataset.valor === 'ninguna'));
+  hojaTitulo.textContent = visitaVentaEnEdicion ? 'Editar venta' : 'Registrar venta pasada';
+  botonGuardarVenta.textContent = visitaVentaEnEdicion ? 'Guardar cambios' : 'Guardar';
+  botonEliminarVenta.hidden = !visitaVentaEnEdicion;
+
+  if (visitaVentaEnEdicion) {
+    const clienta = clientasCache.find((c) => c.id === visitaVentaEnEdicion.clientaId);
+    campoClienta.value = visitaVentaEnEdicion.clientaId;
+    campoClientaBuscar.value = clienta ? clienta.nombre : visitaVentaEnEdicion.clientaNombre;
+    campoFecha.value = visitaVentaEnEdicion.fecha;
+    campoTratamiento.value = visitaVentaEnEdicion.tratamientoId || '';
+    poblarLongitud(visitaVentaEnEdicion.tratamientoNombre);
+    campoLongitud.value = visitaVentaEnEdicion.longitud || '';
+    campoPrecio.value = visitaVentaEnEdicion.precio;
+    campoNotas.value = visitaVentaEnEdicion.notas || '';
+  } else {
+    campoClienta.value = '';
+    poblarLongitud('');
+  }
+
+  const promocionPrevia = visitaVentaEnEdicion ? visitaVentaEnEdicion.promocion : 'ninguna';
+  promocionSeleccionada = promocionPrevia;
+  botonesPromocion.forEach((b) => b.classList.toggle('pastilla-opcion--activa', b.dataset.valor === promocionPrevia));
 
   estilistaSeleccionada = '';
   botonesEstilista.forEach((b) => b.classList.remove('pastilla-opcion--activa'));
   campoEstilistaOtra.hidden = true;
+  campoEstilistaOtra.value = '';
+
+  const estilistaPrevia = (visitaVentaEnEdicion ? visitaVentaEnEdicion.estilista : '') || '';
+  if (NOMBRES_ESTILISTA_CONOCIDOS.includes(estilistaPrevia)) {
+    estilistaSeleccionada = estilistaPrevia;
+    botonesEstilista.forEach((b) => b.classList.toggle('pastilla-opcion--activa', b.dataset.valor === estilistaPrevia));
+  } else if (estilistaPrevia) {
+    estilistaSeleccionada = 'otra';
+    botonesEstilista.forEach((b) => b.classList.toggle('pastilla-opcion--activa', b.dataset.valor === 'otra'));
+    campoEstilistaOtra.hidden = false;
+    campoEstilistaOtra.value = estilistaPrevia;
+  }
 
   fondoHoja.classList.add('abierta');
 }
 
 function cerrar() {
   fondoHoja.classList.remove('abierta');
+  visitaVentaEnEdicion = null;
 }
 
 function manejarCancelar() {
   const hayContenido = campoClientaBuscar.value.trim() || campoPrecio.value;
   if (hayContenido && !window.confirm('¿Descartar sin guardar?')) return;
   cerrar();
+}
+
+async function manejarEliminar() {
+  if (!visitaVentaEnEdicion) return;
+  const confirmar = window.confirm('¿Eliminar este registro de venta? Esta acción no se puede deshacer.');
+  if (!confirmar) return;
+
+  try {
+    await DB.eliminarVisita(visitaVentaEnEdicion.id);
+    mostrarMensaje('Registro eliminado');
+    cerrar();
+    await cargarResumen();
+  } catch (error) {
+    mostrarMensaje('No se pudo eliminar: ' + (error.message || 'intenta de nuevo'));
+    console.error(error);
+  }
 }
 
 function resolverEstilista() {
@@ -404,19 +471,33 @@ async function manejarGuardar(evento) {
   }
 
   try {
-    await DB.agregarVisita({
-      clientaId: campoClienta.value,
-      citaId: null,
-      tratamientoId: campoTratamiento.value || null,
-      fecha: campoFecha.value,
-      precio,
-      longitud: campoLongitud.value,
-      promocion: promocionSeleccionada,
-      estilista: resolverEstilista(),
-      notas: campoNotas.value,
-    });
+    if (visitaVentaEnEdicion) {
+      await DB.actualizarVisita(visitaVentaEnEdicion.id, {
+        clientaId: campoClienta.value,
+        tratamientoId: campoTratamiento.value || null,
+        fecha: campoFecha.value,
+        precio,
+        longitud: campoLongitud.value,
+        promocion: promocionSeleccionada,
+        estilista: resolverEstilista(),
+        notas: campoNotas.value,
+      });
+      mostrarMensaje('Venta actualizada');
+    } else {
+      await DB.agregarVisita({
+        clientaId: campoClienta.value,
+        citaId: null,
+        tratamientoId: campoTratamiento.value || null,
+        fecha: campoFecha.value,
+        precio,
+        longitud: campoLongitud.value,
+        promocion: promocionSeleccionada,
+        estilista: resolverEstilista(),
+        notas: campoNotas.value,
+      });
+      mostrarMensaje('Venta registrada');
+    }
 
-    mostrarMensaje('Venta registrada');
     cerrar();
     await cargarResumen();
   } catch (error) {
@@ -426,8 +507,9 @@ async function manejarGuardar(evento) {
 }
 
 function inicializar() {
-  document.getElementById('boton-registrar-venta-pasada').addEventListener('click', abrir);
+  document.getElementById('boton-registrar-venta-pasada').addEventListener('click', () => abrir());
   document.getElementById('boton-cerrar-hoja-venta-pasada').addEventListener('click', manejarCancelar);
+  botonEliminarVenta.addEventListener('click', manejarEliminar);
   formulario.addEventListener('submit', manejarGuardar);
 
   campoTratamiento.addEventListener('change', () => {
