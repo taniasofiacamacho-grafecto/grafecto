@@ -17,7 +17,7 @@ const ESTADOS = [
 
 function siguienteEstado(actual) {
   const indice = ESTADOS.findIndex((e) => e.valor === actual);
-  return ESTADOS[(indice + 1) % ESTADOS.length].valor;
+  return ESTADOS[Math.min(indice + 1, ESTADOS.length - 1)].valor;
 }
 
 function etiquetaEstado(valor) {
@@ -91,6 +91,15 @@ function crearPastillaEstado(cita, onCambio) {
     texto: etiquetaEstado(cita.estado),
     onclick: async (evento) => {
       evento.stopPropagation();
+
+      // Ya se cobró: no se debe poder seguir tocando la pastilla para que
+      // no cicle de vuelta a "Agendada" por accidente y vuelva a pedir un
+      // cobro duplicado al pasar otra vez por "Checkout".
+      if (cita.estado === 'checkout') {
+        mostrarMensaje('Esta cita ya se cobró');
+        return;
+      }
+
       const nuevo = siguienteEstado(cita.estado);
 
       // Al llegar a "Checkout" se abre el cobro; el estado se marca solo
