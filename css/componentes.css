@@ -375,6 +375,11 @@
   border-top: 1px solid var(--color-borde);
 }
 
+.buscador-resultados__item--nueva {
+  color: var(--color-primario);
+  font-weight: 600;
+}
+
 .buscador-resultados__vacio {
   padding: 12px var(--espacio-md);
   font-size: 0.9rem;

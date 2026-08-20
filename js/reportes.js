@@ -326,32 +326,61 @@ function ocultarResultadosClienta() {
   resultadosClienta.innerHTML = '';
 }
 
+// Si escribe un nombre que no existe, puede darla de alta ahí mismo (sin
+// teléfono todavía) para no tener que interrumpir la captura de una venta
+// pasada — el teléfono se lo agrega después, cuando la clienta vuelva a
+// agendar.
+async function manejarAgregarClientaRapida(nombre) {
+  try {
+    const nueva = await DB.agregarClienta({ nombre, telefono: '', notas: '' });
+    clientasCache.push(nueva);
+    campoClienta.value = nueva.id;
+    campoClientaBuscar.value = nueva.nombre;
+    ocultarResultadosClienta();
+    mostrarMensaje('Clienta agregada — falta su teléfono');
+  } catch (error) {
+    mostrarMensaje('No se pudo agregar la clienta: ' + (error.message || 'intenta de nuevo'));
+    console.error(error);
+  }
+}
+
 function mostrarResultadosClienta(texto) {
   const filtro = DB.normalizarTexto(texto);
+  const nombreEscrito = texto.trim();
   const coincidencias = filtro
     ? clientasCache.filter((c) => c.nombreNormalizado.includes(filtro)).slice(0, MAX_RESULTADOS_BUSQUEDA)
     : clientasCache.slice(0, MAX_RESULTADOS_BUSQUEDA);
 
   resultadosClienta.innerHTML = '';
 
-  if (coincidencias.length === 0) {
+  if (coincidencias.length === 0 && !nombreEscrito) {
     resultadosClienta.appendChild(
-      crearEl('div', { class: 'buscador-resultados__vacio', texto: 'No se encontraron clientas' })
+      crearEl('div', { class: 'buscador-resultados__vacio', texto: 'Escribe el nombre de la clienta' })
     );
-  } else {
-    for (const clienta of coincidencias) {
-      resultadosClienta.appendChild(
-        crearEl('div', {
-          class: 'buscador-resultados__item',
-          texto: clienta.nombre,
-          onclick: () => {
-            campoClienta.value = clienta.id;
-            campoClientaBuscar.value = clienta.nombre;
-            ocultarResultadosClienta();
-          },
-        })
-      );
-    }
+  }
+
+  for (const clienta of coincidencias) {
+    resultadosClienta.appendChild(
+      crearEl('div', {
+        class: 'buscador-resultados__item',
+        texto: clienta.nombre,
+        onclick: () => {
+          campoClienta.value = clienta.id;
+          campoClientaBuscar.value = clienta.nombre;
+          ocultarResultadosClienta();
+        },
+      })
+    );
+  }
+
+  if (nombreEscrito) {
+    resultadosClienta.appendChild(
+      crearEl('div', {
+        class: 'buscador-resultados__item buscador-resultados__item--nueva',
+        texto: `+ Agregar "${nombreEscrito}" como clienta nueva`,
+        onclick: () => manejarAgregarClientaRapida(nombreEscrito),
+      })
+    );
   }
 
   resultadosClienta.hidden = false;
