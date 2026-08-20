@@ -66,6 +66,7 @@ async function abrir(cita, onGuardado) {
   try {
     visitaEnEdicion = await DB.obtenerVisitaDeCita(cita.id);
   } catch (error) {
+    mostrarMensaje('No se pudo revisar si esta cita ya se había cobrado');
     console.error(error);
   }
 

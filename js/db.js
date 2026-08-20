@@ -438,15 +438,20 @@ async function agregarVisita(datos) {
 // Para poder editar un cobro ya hecho (precio, estilista, etc. mal
 // capturados) sin crear un registro duplicado. null si la cita nunca se
 // cobró o si la visita se borró después.
+// Puede haber más de una visita para la misma cita si se alcanzó a guardar
+// un cobro duplicado antes de la corrección del ciclo de estados — en ese
+// caso se toma la más reciente en vez de fallar (.maybeSingle() truena si
+// hay más de una fila).
 async function obtenerVisitaDeCita(citaId) {
   const { data, error } = await GrafectoAuth.cliente
     .from(TABLA_VISITAS)
     .select(SELECT_VISITA_CON_TRATAMIENTO)
     .eq('cita_id', citaId)
-    .maybeSingle();
+    .order('fecha', { ascending: false })
+    .limit(1);
 
   if (error) throw error;
-  return data ? filaAVisita(data) : null;
+  return data && data.length > 0 ? filaAVisita(data[0]) : null;
 }
 
 async function actualizarVisita(id, datos) {
