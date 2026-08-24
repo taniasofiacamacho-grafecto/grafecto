@@ -1022,6 +1022,27 @@ async function guardarProductosDeVisita(visitaId, fecha, items) {
   if (error) throw error;
 }
 
+// Venta de producto suelta, sin cita ni clienta (walk-in que solo compra
+// producto) — no cuenta como servicio, solo se suma al ingreso/costo de
+// productos del mes.
+async function agregarVentaProductoSuelta(fecha, items) {
+  if (!items || items.length === 0) return;
+
+  const { error } = await GrafectoAuth.cliente.from(TABLA_VISITA_PRODUCTOS).insert(
+    items.map((item) => ({
+      visita_id: null,
+      producto_id: item.productoId || null,
+      tipo: 'venta',
+      nombre: item.nombre,
+      precio: item.precio,
+      costo: item.costo,
+      fecha,
+    }))
+  );
+
+  if (error) throw error;
+}
+
 async function listarProductosDeVisitasEnRango(fechaInicio, fechaFin) {
   const { data, error } = await GrafectoAuth.cliente
     .from(TABLA_VISITA_PRODUCTOS)
@@ -1090,6 +1111,7 @@ window.GrafectoDB = {
   eliminarProducto,
   listarProductosDeVisita,
   guardarProductosDeVisita,
+  agregarVentaProductoSuelta,
   listarProductosDeVisitasEnRango,
 };
 

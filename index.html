@@ -186,6 +186,8 @@
           <div class="calendario-seccion__titulo">Ventas</div>
           <p class="campo__ayuda">¿Te falta capturar una venta de un día anterior? Regístrala aquí, sin necesidad de una cita.</p>
           <button type="button" id="boton-registrar-venta-pasada" class="boton boton--primario boton--ancho-completo">+ Registrar venta pasada</button>
+          <p class="campo__ayuda" style="margin-top: 12px;">¿Vino alguien solo a comprar producto, sin tratamiento? No hace falta registrarla como clienta.</p>
+          <button type="button" id="boton-venta-producto-suelta" class="boton boton--secundario boton--ancho-completo">+ Venta de producto (walk-in)</button>
         </div>
 
         <div class="calendario-seccion">
@@ -602,6 +604,34 @@
           Eliminar registro
         </button>
       </form>
+    </div>
+  </div>
+
+  <!-- Hoja modal: venta de producto sin clienta (walk-in) -->
+  <div id="fondo-hoja-venta-suelta" class="fondo-hoja">
+    <div class="hoja">
+      <div class="hoja__manija"></div>
+      <div class="hoja__titulo">Venta de producto</div>
+      <p class="campo__ayuda">Para cuando alguien viene solo a comprar producto, sin tratamiento — no cuenta como servicio.</p>
+
+      <div class="campo">
+        <label for="venta-suelta-fecha">Fecha *</label>
+        <input id="venta-suelta-fecha" type="date" required />
+      </div>
+
+      <div class="campo">
+        <label>Productos *</label>
+        <div id="venta-suelta-lista"></div>
+        <div class="fila-agregar-producto">
+          <select id="venta-suelta-select"></select>
+          <button type="button" id="venta-suelta-agregar" class="boton boton--secundario">+ Agregar</button>
+        </div>
+      </div>
+
+      <div class="fila-botones">
+        <button type="button" id="boton-cerrar-hoja-venta-suelta" class="boton boton--secundario">Cancelar</button>
+        <button type="button" id="boton-guardar-venta-suelta" class="boton boton--primario">Guardar venta</button>
+      </div>
     </div>
   </div>
 

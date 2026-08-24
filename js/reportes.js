@@ -27,6 +27,8 @@ let temporizadorOcultarResultados = null;
 let catalogoProductos = [];
 let regaloSeleccionados = new Set();
 let ventaItems = [];
+let catalogoVentaSuelta = [];
+let ventaSueltaItems = [];
 
 const fondoHoja = document.getElementById('fondo-hoja-venta-pasada');
 const hojaTitulo = document.getElementById('venta-titulo');
@@ -58,6 +60,11 @@ const semanaRangoEl = document.getElementById('reportes-semana-rango');
 const diaDetalleEl = document.getElementById('reportes-dia-detalle');
 const estilistaListaEl = document.getElementById('reportes-estilista-lista');
 const botonesEstilistaPeriodo = document.querySelectorAll('#reportes-estilista-periodo .pastilla-opcion');
+const fondoVentaSuelta = document.getElementById('fondo-hoja-venta-suelta');
+const campoVentaSueltaFecha = document.getElementById('venta-suelta-fecha');
+const listaVentaSuelta = document.getElementById('venta-suelta-lista');
+const selectVentaSuelta = document.getElementById('venta-suelta-select');
+const botonVentaSueltaAgregar = document.getElementById('venta-suelta-agregar');
 
 let periodoEstilistaActivo = 'hoy';
 let visitasPorPeriodo = { hoy: [], semana: [], mes: [] };
@@ -686,6 +693,106 @@ async function manejarGuardar(evento) {
   }
 }
 
+// ===== Venta de producto suelta (walk-in sin clienta, no cuenta como servicio) =====
+
+function poblarSelectVentaSuelta() {
+  selectVentaSuelta.innerHTML = '';
+  selectVentaSuelta.appendChild(crearEl('option', { value: '', texto: 'Elige un producto…' }));
+  for (const producto of catalogoVentaSuelta) {
+    selectVentaSuelta.appendChild(
+      crearEl('option', { value: producto.id, texto: `${producto.nombre} — ${formatearMoneda(producto.precio)}` })
+    );
+  }
+}
+
+function renderizarVentaSueltaLista() {
+  listaVentaSuelta.innerHTML = '';
+  for (const item of ventaSueltaItems) {
+    const campoPrecioItem = crearEl('input', {
+      type: 'number', inputmode: 'decimal', min: '0', step: '0.01',
+      class: 'producto-venta-fila__precio', value: item.precio,
+    });
+    campoPrecioItem.addEventListener('change', () => {
+      item.precio = Number(campoPrecioItem.value) || 0;
+    });
+
+    listaVentaSuelta.appendChild(
+      crearEl('div', { class: 'producto-venta-fila' }, [
+        crearEl('div', { class: 'producto-venta-fila__nombre', texto: item.nombre }),
+        campoPrecioItem,
+        crearEl('button', {
+          type: 'button',
+          class: 'gasto-extra-fila__eliminar',
+          texto: '✕',
+          'aria-label': 'Quitar producto',
+          onclick: () => {
+            ventaSueltaItems = ventaSueltaItems.filter((i) => i !== item);
+            renderizarVentaSueltaLista();
+          },
+        }),
+      ])
+    );
+  }
+}
+
+function manejarAgregarVentaSuelta() {
+  const productoId = selectVentaSuelta.value;
+  if (!productoId) return;
+  const producto = catalogoVentaSuelta.find((p) => p.id === productoId);
+  if (!producto) return;
+
+  ventaSueltaItems.push({ productoId: producto.id, nombre: producto.nombre, precio: producto.precio, costo: producto.costo });
+  selectVentaSuelta.value = '';
+  renderizarVentaSueltaLista();
+}
+
+async function abrirVentaSuelta() {
+  campoVentaSueltaFecha.value = fechaHoyISO();
+  ventaSueltaItems = [];
+
+  try {
+    catalogoVentaSuelta = await DB.listarProductos();
+  } catch (error) {
+    catalogoVentaSuelta = [];
+    console.error(error);
+  }
+  poblarSelectVentaSuelta();
+  renderizarVentaSueltaLista();
+
+  fondoVentaSuelta.classList.add('abierta');
+}
+
+function cerrarVentaSuelta() {
+  fondoVentaSuelta.classList.remove('abierta');
+}
+
+function manejarCancelarVentaSuelta() {
+  if (ventaSueltaItems.length > 0 && !window.confirm('¿Descartar esta venta sin guardar?')) return;
+  cerrarVentaSuelta();
+}
+
+async function manejarGuardarVentaSuelta() {
+  if (!campoVentaSueltaFecha.value) {
+    mostrarMensaje('Elige la fecha');
+    return;
+  }
+
+  if (ventaSueltaItems.length === 0) {
+    mostrarMensaje('Agrega al menos un producto');
+    return;
+  }
+
+  try {
+    await DB.agregarVentaProductoSuelta(campoVentaSueltaFecha.value, ventaSueltaItems);
+    mostrarMensaje('Venta registrada');
+    cerrarVentaSuelta();
+    await cargarResumen();
+  } catch (error) {
+    mostrarMensaje('No se pudo guardar: ' + (error.message || 'intenta de nuevo'));
+    console.error(error);
+  }
+}
+
 function inicializar() {
   document.getElementById('boton-registrar-venta-pasada').addEventListener('click', () => abrir());
   document.getElementById('boton-cerrar-hoja-venta-pasada').addEventListener('click', manejarCancelar);
@@ -755,6 +862,11 @@ function inicializar() {
     offsetSemana += 1;
     cargarGraficaSemana();
   });
+
+  document.getElementById('boton-venta-producto-suelta').addEventListener('click', abrirVentaSuelta);
+  document.getElementById('boton-cerrar-hoja-venta-suelta').addEventListener('click', manejarCancelarVentaSuelta);
+  document.getElementById('boton-guardar-venta-suelta').addEventListener('click', manejarGuardarVentaSuelta);
+  botonVentaSueltaAgregar.addEventListener('click', manejarAgregarVentaSuelta);
 }
 
 async function mostrar() {
