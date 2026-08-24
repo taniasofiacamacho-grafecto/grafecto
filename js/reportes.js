@@ -331,6 +331,18 @@ function ocultarResultadosClienta() {
 // pasada — el teléfono se lo agrega después, cuando la clienta vuelva a
 // agendar.
 async function manejarAgregarClientaRapida(nombre) {
+  // Mismo resguardo que en la ficha de clientas: avisa si el nombre ya
+  // existe, para no duplicar por accidente, pero deja continuar por si de
+  // verdad son dos personas distintas.
+  const nombreNormalizado = DB.normalizarTexto(nombre);
+  const coincidencia = clientasCache.find((c) => c.nombreNormalizado === nombreNormalizado);
+  if (coincidencia) {
+    const continuar = window.confirm(
+      `Ya existe una clienta registrada como "${coincidencia.nombre}". ¿Quieres registrarla de todas formas?`
+    );
+    if (!continuar) return;
+  }
+
   try {
     const nueva = await DB.agregarClienta({ nombre, telefono: '', notas: '' });
     clientasCache.push(nueva);

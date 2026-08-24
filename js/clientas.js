@@ -259,6 +259,21 @@ async function manejarGuardar(evento) {
     return;
   }
 
+  // Para no duplicar por accidente (o confundirse entre dos fichas de la
+  // misma persona), avisa si ya existe una clienta con ese nombre — pero
+  // deja continuar, por si de verdad son dos personas distintas con el
+  // mismo nombre.
+  const nombreNormalizado = DB.normalizarTexto(nombre);
+  const coincidencia = todasLasClientas.find(
+    (c) => c.nombreNormalizado === nombreNormalizado && c.id !== idEnEdicion
+  );
+  if (coincidencia) {
+    const continuar = window.confirm(
+      `Ya existe una clienta registrada como "${coincidencia.nombre}". ¿Quieres registrarla de todas formas?`
+    );
+    if (!continuar) return;
+  }
+
   const datos = {
     nombre,
     telefono: campoTelefono.value,
