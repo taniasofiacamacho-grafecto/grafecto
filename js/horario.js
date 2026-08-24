@@ -169,6 +169,15 @@ async function cargarBloqueos() {
 
 // ===== Hoja: habilitar un día =====
 
+// Las horas que normalmente se habilitan — al elegir la fecha se agregan
+// solas (ya guardadas, como si se hubieran capturado a mano una por una),
+// para no tener que escribirlas todas cada vez. Se quitan con su ✕ si ese
+// día no aplica alguna, y se puede seguir agregando cualquier otra a mano.
+const HORAS_HABITUALES = [
+  '09:15', '09:30', '10:00', '11:00', '11:40', '12:20',
+  '13:00', '13:40', '14:20', '15:00', '15:30', '16:30',
+];
+
 const fondoHojaExcepcion = document.getElementById('fondo-hoja-excepcion');
 const campoExcepcionFecha = document.getElementById('excepcion-fecha');
 const chipsExcepcionHoras = document.getElementById('excepcion-horas-chips');
@@ -206,6 +215,34 @@ function abrirHojaExcepcion() {
   horasDelDia = [];
   pintarChipsExcepcion();
   fondoHojaExcepcion.classList.add('abierta');
+}
+
+// Al elegir la fecha, se completan solas las horas habituales que todavía
+// no estén guardadas para ese día (si ya tenía algunas de antes, esas se
+// respetan tal cual, sin duplicarlas).
+async function manejarCambioFechaExcepcion() {
+  const fecha = campoExcepcionFecha.value;
+  if (!fecha) return;
+
+  chipsExcepcionHoras.innerHTML = '';
+  chipsExcepcionHoras.appendChild(crearEl('span', { class: 'campo__ayuda', texto: 'Cargando…' }));
+
+  try {
+    const todosLosSlots = await DB.listarSlotsFechas();
+    const existentes = todosLosSlots.filter((s) => s.fecha === fecha);
+    const horasExistentes = new Set(existentes.map((s) => horaCorta(s.hora)));
+
+    const faltantes = HORAS_HABITUALES.filter((hora) => !horasExistentes.has(hora));
+    const nuevas = await Promise.all(faltantes.map((hora) => DB.agregarSlotFecha(fecha, hora)));
+
+    horasDelDia = [...existentes, ...nuevas].sort((a, b) => a.hora.localeCompare(b.hora));
+    pintarChipsExcepcion();
+  } catch (error) {
+    mostrarMensaje('No se pudieron cargar las horas habituales');
+    console.error(error);
+    horasDelDia = [];
+    pintarChipsExcepcion();
+  }
 }
 
 async function cerrarHojaExcepcion() {
@@ -273,6 +310,7 @@ async function manejarGuardarBloqueo(evento) {
 function inicializar() {
   document.getElementById('boton-agregar-excepcion').addEventListener('click', abrirHojaExcepcion);
   document.getElementById('boton-cerrar-hoja-excepcion').addEventListener('click', cerrarHojaExcepcion);
+  campoExcepcionFecha.addEventListener('change', manejarCambioFechaExcepcion);
   botonExcepcionAgregarHora.addEventListener('click', manejarAgregarHoraExcepcion);
 
   document.getElementById('boton-agregar-bloqueo').addEventListener('click', abrirHojaBloqueo);
