@@ -826,7 +826,15 @@ function renderizarProductos(regalos, ventasProducto) {
 // ----- Comparativo mes contra mes (todavía sin historial: llega con el cierre de mes) -----
 
 const peComparativo = document.getElementById('pe-comparativo');
+const peComparativoDetalle = document.getElementById('pe-comparativo-detalle');
 const MESES_CORTOS_PE = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+const MESES_LARGOS_PE = [
+  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+];
+
+let historialComparativoActual = [];
+let mesComparativoSeleccionado = null;
 
 function renderizarEstadoVacioComparativo() {
   peComparativo.innerHTML = '';
@@ -838,52 +846,119 @@ function renderizarEstadoVacioComparativo() {
   );
 }
 
+function etiquetaMesLargoPe(mesISO) {
+  const [anio, mesNum] = mesISO.split('-').map(Number);
+  return `${MESES_LARGOS_PE[mesNum - 1]} ${anio}`;
+}
+
+function mostrarDetalleMesComparativo() {
+  peComparativoDetalle.innerHTML = '';
+
+  if (!mesComparativoSeleccionado) {
+    peComparativoDetalle.hidden = true;
+    return;
+  }
+
+  const registro = historialComparativoActual.find((m) => m.mes === mesComparativoSeleccionado);
+  if (!registro) {
+    peComparativoDetalle.hidden = true;
+    return;
+  }
+
+  peComparativoDetalle.appendChild(
+    crearEl('div', { class: 'reportes-dia-detalle__titulo', texto: etiquetaMesLargoPe(registro.mes) })
+  );
+
+  const filas = [
+    ['Ingreso', registro.ingreso],
+    ['Gasto', registro.gasto],
+    ['Ganancia', registro.ganancia],
+  ];
+
+  for (const [nombre, monto] of filas) {
+    peComparativoDetalle.appendChild(
+      crearEl('div', { class: 'reportes-dia-detalle__fila' }, [
+        crearEl('div', { class: 'reportes-dia-detalle__nombre', texto: nombre }),
+        crearEl('div', { class: 'reportes-dia-detalle__precio', texto: formatearMoneda(monto) }),
+      ])
+    );
+  }
+
+  peComparativoDetalle.hidden = false;
+}
+
+function manejarSeleccionMesComparativo(mes) {
+  mesComparativoSeleccionado = mesComparativoSeleccionado === mes ? null : mes;
+  renderizarListaComparativo();
+  mostrarDetalleMesComparativo();
+}
+
+function renderizarListaComparativo() {
+  const maxMonto = Math.max(
+    1,
+    ...historialComparativoActual.map((m) => Math.max(m.ingreso, m.gasto, Math.abs(m.ganancia)))
+  );
+
+  peComparativo.innerHTML = '';
+  peComparativo.appendChild(
+    crearEl('div', { class: 'comparativo-leyenda' }, [
+      crearEl('span', {}, [crearEl('i', { style: 'background:var(--color-magenta)' }), crearEl('span', { texto: 'Ingreso' })]),
+      crearEl('span', {}, [crearEl('i', { style: 'background:var(--color-azul-grisaceo-claro)' }), crearEl('span', { texto: 'Gasto' })]),
+      crearEl('span', {}, [crearEl('i', { style: 'background:var(--color-exito)' }), crearEl('span', { texto: 'Ganancia' })]),
+    ])
+  );
+
+  const lista = crearEl('div', { class: 'comparativo-lista' });
+  for (const registro of historialComparativoActual) {
+    const [anio, mesNum] = registro.mes.split('-').map(Number);
+    const etiqueta = `${MESES_CORTOS_PE[mesNum - 1]} ${String(anio).slice(2)}`;
+    const gananciaPositiva = registro.ganancia >= 0;
+    const seleccionado = registro.mes === mesComparativoSeleccionado;
+
+    lista.appendChild(
+      crearEl('div', {
+        class: seleccionado ? 'comparativo-mes comparativo-mes--seleccionado' : 'comparativo-mes',
+        onclick: () => manejarSeleccionMesComparativo(registro.mes),
+      }, [
+        crearEl('div', { class: 'comparativo-mes__barras' }, [
+          crearEl('div', {
+            class: 'comparativo-mes__barra comparativo-mes__barra--ingreso',
+            style: `height: ${Math.max(2, Math.round((registro.ingreso / maxMonto) * 100))}%`,
+          }),
+          crearEl('div', {
+            class: 'comparativo-mes__barra comparativo-mes__barra--gasto',
+            style: `height: ${Math.max(2, Math.round((registro.gasto / maxMonto) * 100))}%`,
+          }),
+          crearEl('div', {
+            class: `comparativo-mes__barra ${gananciaPositiva ? 'comparativo-mes__barra--ganancia-positiva' : 'comparativo-mes__barra--ganancia-negativa'}`,
+            style: `height: ${Math.max(2, Math.round((Math.abs(registro.ganancia) / maxMonto) * 100))}%`,
+          }),
+        ]),
+        crearEl('div', { class: 'comparativo-mes__etiqueta', texto: etiqueta }),
+      ])
+    );
+  }
+  peComparativo.appendChild(lista);
+}
+
 async function renderizarComparativo(mesActual) {
   try {
     const historial = await DB.listarResumenMensualUltimos12(mesActual);
     if (historial.length === 0) {
+      historialComparativoActual = [];
       renderizarEstadoVacioComparativo();
+      peComparativoDetalle.hidden = true;
       return;
     }
 
-    const maxMonto = Math.max(1, ...historial.map((m) => Math.max(m.ingreso, m.gasto, Math.abs(m.ganancia))));
-
-    peComparativo.innerHTML = '';
-    peComparativo.appendChild(
-      crearEl('div', { class: 'comparativo-leyenda' }, [
-        crearEl('span', {}, [crearEl('i', { style: 'background:var(--color-magenta)' }), crearEl('span', { texto: 'Ingreso' })]),
-        crearEl('span', {}, [crearEl('i', { style: 'background:var(--color-azul-grisaceo-claro)' }), crearEl('span', { texto: 'Gasto' })]),
-        crearEl('span', {}, [crearEl('i', { style: 'background:var(--color-exito)' }), crearEl('span', { texto: 'Ganancia' })]),
-      ])
-    );
-
-    const lista = crearEl('div', { class: 'comparativo-lista' });
-    for (const registro of historial) {
-      const [anio, mesNum] = registro.mes.split('-').map(Number);
-      const etiqueta = `${MESES_CORTOS_PE[mesNum - 1]} ${String(anio).slice(2)}`;
-      const gananciaPositiva = registro.ganancia >= 0;
-
-      lista.appendChild(
-        crearEl('div', { class: 'comparativo-mes' }, [
-          crearEl('div', { class: 'comparativo-mes__barras' }, [
-            crearEl('div', {
-              class: 'comparativo-mes__barra comparativo-mes__barra--ingreso',
-              style: `height: ${Math.max(2, Math.round((registro.ingreso / maxMonto) * 100))}%`,
-            }),
-            crearEl('div', {
-              class: 'comparativo-mes__barra comparativo-mes__barra--gasto',
-              style: `height: ${Math.max(2, Math.round((registro.gasto / maxMonto) * 100))}%`,
-            }),
-            crearEl('div', {
-              class: `comparativo-mes__barra ${gananciaPositiva ? 'comparativo-mes__barra--ganancia-positiva' : 'comparativo-mes__barra--ganancia-negativa'}`,
-              style: `height: ${Math.max(2, Math.round((Math.abs(registro.ganancia) / maxMonto) * 100))}%`,
-            }),
-          ]),
-          crearEl('div', { class: 'comparativo-mes__etiqueta', texto: etiqueta }),
-        ])
-      );
+    historialComparativoActual = historial;
+    if (!historial.some((m) => m.mes === mesComparativoSeleccionado)) {
+      mesComparativoSeleccionado = null;
+      peComparativoDetalle.hidden = true;
     }
-    peComparativo.appendChild(lista);
+
+    renderizarListaComparativo();
+    mostrarDetalleMesComparativo();
   } catch (error) {
     renderizarEstadoVacioComparativo();
     console.error(error);
