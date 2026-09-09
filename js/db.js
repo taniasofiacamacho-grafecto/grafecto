@@ -133,13 +133,26 @@ function filaACita(fila) {
 const SELECT_CITA_CON_CLIENTA =
   '*, clienta:clientas(nombre, telefono, consentimiento_fecha), tratamiento:tratamientos(nombre, duracion_minutos)';
 
-// Solo trae de hoy en adelante — el historial de citas pasadas no se necesita
-// para el trabajo del día a día (se puede agregar una vista aparte si hace falta).
+// Solo trae de hoy en adelante — el historial de citas pasadas se pide aparte
+// con listarCitasEnRango, para no cargarlo de entrada en el trabajo del día a día.
 async function listarCitas() {
   const { data, error } = await GrafectoAuth.cliente
     .from(TABLA_CITAS)
     .select(SELECT_CITA_CON_CLIENTA)
     .gte('fecha', UI.fechaHoyISO())
+    .order('fecha', { ascending: true })
+    .order('hora', { ascending: true });
+
+  if (error) throw error;
+  return data.map(filaACita);
+}
+
+async function listarCitasEnRango(fechaInicio, fechaFin) {
+  const { data, error } = await GrafectoAuth.cliente
+    .from(TABLA_CITAS)
+    .select(SELECT_CITA_CON_CLIENTA)
+    .gte('fecha', fechaInicio)
+    .lte('fecha', fechaFin)
     .order('fecha', { ascending: true })
     .order('hora', { ascending: true });
 
@@ -1062,6 +1075,7 @@ window.GrafectoDB = {
   eliminarClienta,
   actualizarConsentimiento,
   listarCitas,
+  listarCitasEnRango,
   agregarCita,
   actualizarCita,
   eliminarCita,

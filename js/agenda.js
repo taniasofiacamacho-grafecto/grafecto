@@ -20,8 +20,21 @@ let citasCargadas = false;
 let tratamientosCache = [];
 let clientasCache = [];
 let temporizadorOcultarResultados = null;
+let mostrandoAgendaPasada = false;
+
+const DIAS_AGENDA_PASADA = 60;
+
+function fechaHaceDiasISO(dias) {
+  const fecha = new Date();
+  fecha.setDate(fecha.getDate() - dias);
+  const anio = fecha.getFullYear();
+  const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+  const dia = String(fecha.getDate()).padStart(2, '0');
+  return `${anio}-${mes}-${dia}`;
+}
 
 const listaEl = document.getElementById('lista-agenda');
+const botonVerAgendaPasada = document.getElementById('boton-ver-agenda-pasada');
 const fondoHoja = document.getElementById('fondo-hoja-cita');
 const hojaTitulo = document.getElementById('hoja-cita-titulo');
 const formulario = document.getElementById('formulario-cita');
@@ -42,13 +55,24 @@ const botonPostGuardadoListo = document.getElementById('boton-cita-post-guardado
 
 async function cargarCitas() {
   try {
-    const citas = await DB.listarCitas();
-    renderizarLista(citas);
+    const [citas, citasPasadas] = await Promise.all([
+      DB.listarCitas(),
+      mostrandoAgendaPasada
+        ? DB.listarCitasEnRango(fechaHaceDiasISO(DIAS_AGENDA_PASADA), fechaHaceDiasISO(1))
+        : Promise.resolve([]),
+    ]);
+    renderizarLista([...citasPasadas, ...citas]);
     citasCargadas = true;
   } catch (error) {
     mostrarMensaje('No se pudo cargar la agenda. Intenta de nuevo.');
     console.error(error);
   }
+}
+
+function manejarVerAgendaPasada() {
+  mostrandoAgendaPasada = !mostrandoAgendaPasada;
+  botonVerAgendaPasada.textContent = mostrandoAgendaPasada ? 'Ocultar días anteriores' : 'Ver días anteriores';
+  cargarCitas();
 }
 
 function renderizarLista(citas) {
@@ -339,6 +363,7 @@ async function manejarEliminar() {
 }
 
 function inicializarAgenda() {
+  botonVerAgendaPasada.addEventListener('click', manejarVerAgendaPasada);
   document.getElementById('boton-cerrar-hoja-cita').addEventListener('click', manejarCancelarCita);
   formulario.addEventListener('submit', manejarGuardar);
   botonEliminar.addEventListener('click', manejarEliminar);
