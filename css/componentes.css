@@ -865,6 +865,12 @@
 .pe-leyenda__punto--zona-ahorro { background: var(--color-azul-grisaceo); }
 .pe-leyenda__punto--zona-libertad { background: var(--color-exito); }
 
+.pe-leyenda__punto--zona-rojo { background: var(--color-peligro); }
+.pe-leyenda__punto--zona-amarillo { background: var(--color-alerta); }
+.pe-leyenda__punto--zona-verde { background: var(--color-exito); }
+.pe-leyenda__punto--zona-azul { background: var(--color-azul-grisaceo); }
+.pe-leyenda__punto--zona-morado { background: var(--color-primario); }
+
 .pe-progreso-contenedor {
   margin-top: var(--espacio-lg);
 }
@@ -943,6 +949,12 @@
 .comparativo-mes__barra--zona-personal { background: var(--color-alerta); }
 .comparativo-mes__barra--zona-ahorro { background: var(--color-azul-grisaceo); }
 .comparativo-mes__barra--zona-libertad { background: var(--color-exito); }
+
+.comparativo-mes__barra--zona-rojo { background: var(--color-peligro); }
+.comparativo-mes__barra--zona-amarillo { background: var(--color-alerta); }
+.comparativo-mes__barra--zona-verde { background: var(--color-exito); }
+.comparativo-mes__barra--zona-azul { background: var(--color-azul-grisaceo); }
+.comparativo-mes__barra--zona-morado { background: var(--color-primario); }
 
 .comparativo-mes__etiqueta {
   font-size: 0.65rem;

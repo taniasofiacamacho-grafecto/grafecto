@@ -33,14 +33,16 @@ function formatearFechaCorta(fechaISO) {
 
 const campoCostoMaterial = document.getElementById('config-costo-material');
 const campoGastoPersonal = document.getElementById('config-gasto-personal');
-const campoMetaAhorro = document.getElementById('config-meta-ahorro');
+const campoIngresoEstandar = document.getElementById('config-ingreso-estandar');
+const campoPorcentajeAhorro = document.getElementById('config-porcentaje-ahorro');
 
 async function cargarConfig() {
   try {
     const config = await DB.obtenerConfig();
     campoCostoMaterial.value = config.costoMaterialPorTratamiento;
     campoGastoPersonal.value = config.gastoPersonalMensual;
-    campoMetaAhorro.value = config.metaAhorroMensual;
+    campoIngresoEstandar.value = config.ingresoEstandarMensual;
+    campoPorcentajeAhorro.value = config.porcentajeAhorroObjetivo;
   } catch (error) {
     console.error(error);
   }
@@ -74,13 +76,27 @@ async function manejarGuardarGastoPersonal() {
   }
 }
 
-async function manejarGuardarMetaAhorro() {
-  const valor = Number(campoMetaAhorro.value);
-  if (!campoMetaAhorro.value || Number.isNaN(valor) || valor < 0) return;
+async function manejarGuardarIngresoEstandar() {
+  const valor = Number(campoIngresoEstandar.value);
+  if (!campoIngresoEstandar.value || Number.isNaN(valor) || valor < 0) return;
 
   try {
-    await DB.actualizarMetaAhorroMensual(valor);
-    mostrarMensaje('Meta de ahorro actualizada');
+    await DB.actualizarIngresoEstandarMensual(valor);
+    mostrarMensaje('Ingreso estándar actualizado');
+    cargarPuntoEquilibrio();
+  } catch (error) {
+    mostrarMensaje('No se pudo guardar: ' + (error.message || 'intenta de nuevo'));
+    console.error(error);
+  }
+}
+
+async function manejarGuardarPorcentajeAhorro() {
+  const valor = Number(campoPorcentajeAhorro.value);
+  if (!campoPorcentajeAhorro.value || Number.isNaN(valor) || valor < 0) return;
+
+  try {
+    await DB.actualizarPorcentajeAhorroObjetivo(valor);
+    mostrarMensaje('% de ahorro actualizado');
     cargarPuntoEquilibrio();
   } catch (error) {
     mostrarMensaje('No se pudo guardar: ' + (error.message || 'intenta de nuevo'));
@@ -818,7 +834,8 @@ function actualizarCaptionZonas() {
 
 function renderizarZonasMes(serie, config) {
   serieZonasActual = serie;
-  zonasConfigActual = { gastoPersonalMensual: config.gastoPersonalMensual, metaAhorroMensual: config.metaAhorroMensual };
+  const metaAhorroMensual = config.ingresoEstandarMensual * (config.porcentajeAhorroObjetivo / 100);
+  zonasConfigActual = { gastoPersonalMensual: config.gastoPersonalMensual, metaAhorroMensual };
 
   if (!serie.some((p) => p.dia === diaZonaSeleccionado)) {
     diaZonaSeleccionado = null;
@@ -828,6 +845,258 @@ function renderizarZonasMes(serie, config) {
   renderizarListaZonas();
   actualizarCaptionZonas();
   if (diaZonaSeleccionado) mostrarDetalleZonaDia();
+}
+
+// ----- Ritmo diario y semanal -----
+// Las mismas cuatro metas de Zonas del mes (negocio, personal/vida, ahorro,
+// ingreso estándar), pero repartidas entre los días que se van a trabajar
+// este mes y comparadas contra lo que se ganó CADA día o semana por
+// separado (no acumulado) — para ver de un vistazo si un día o una semana
+// en particular estuvo floja o fuerte, sin esperar a que cierre el mes.
+
+const campoDiasTrabajo = document.getElementById('config-dias-trabajo');
+const ritmoCaptionMes = document.getElementById('ritmo-caption-mes');
+const ritmoDiaGrafica = document.getElementById('ritmo-dia-grafica');
+const ritmoDiaDetalle = document.getElementById('ritmo-dia-detalle');
+const ritmoSemanaGrafica = document.getElementById('ritmo-semana-grafica');
+const ritmoSemanaDetalle = document.getElementById('ritmo-semana-detalle');
+
+const ZONAS_RITMO_INFO = {
+  rojo: { etiqueta: 'Bajo el negocio', clase: 'zona-rojo' },
+  amarillo: { etiqueta: 'Cubre el negocio', clase: 'zona-amarillo' },
+  verde: { etiqueta: 'Cubre lo personal', clase: 'zona-verde' },
+  azul: { etiqueta: 'Cumple ahorro', clase: 'zona-azul' },
+  morado: { etiqueta: 'Libertad', clase: 'zona-morado' },
+};
+
+let diasTrabajoActual = 12;
+let metasRitmoActuales = { negocio: 0, vida: 0, ahorro: 0, libertad: 0 };
+let serieDiaAisladaActual = [];
+let serieSemanaActual = [];
+let diaRitmoSeleccionado = null;
+let semanaRitmoSeleccionada = null;
+
+function clasificarZonaRitmo(monto, metas) {
+  if (monto < metas.negocio) return 'rojo';
+  if (monto < metas.vida) return 'amarillo';
+  if (monto < metas.ahorro) return 'verde';
+  if (monto < metas.libertad) return 'azul';
+  return 'morado';
+}
+
+function escalarMetas(metas, factor) {
+  return {
+    negocio: metas.negocio * factor,
+    vida: metas.vida * factor,
+    ahorro: metas.ahorro * factor,
+    libertad: metas.libertad * factor,
+  };
+}
+
+// Ingreso de cada día por separado (servicios + venta de producto), sin
+// acumular con los días anteriores — a diferencia de la serie de Zonas del mes.
+function calcularIngresoPorDiaAislado(visitas, productosVisitas, diaHoy) {
+  const ingresoPorDia = {};
+  for (const visita of visitas) {
+    const dia = Number(visita.fecha.split('-')[2]);
+    ingresoPorDia[dia] = (ingresoPorDia[dia] || 0) + visita.precio;
+  }
+  for (const item of productosVisitas) {
+    if (item.tipo !== 'venta') continue;
+    const dia = Number(item.fecha.split('-')[2]);
+    ingresoPorDia[dia] = (ingresoPorDia[dia] || 0) + item.precio;
+  }
+
+  const serie = [];
+  for (let dia = 1; dia <= diaHoy; dia++) {
+    serie.push({ dia, ingreso: ingresoPorDia[dia] || 0 });
+  }
+  return serie;
+}
+
+function agruparPorSemana(serieDia) {
+  const porSemana = {};
+  for (const punto of serieDia) {
+    const semana = Math.ceil(punto.dia / 7);
+    porSemana[semana] = (porSemana[semana] || 0) + punto.ingreso;
+  }
+  return Object.keys(porSemana)
+    .map(Number)
+    .sort((a, b) => a - b)
+    .map((semana) => ({ semana, ingreso: porSemana[semana] }));
+}
+
+function renderizarBarraRitmo(contenedor, puntos, metas, claveDe, etiquetaDe, seleccionActual, onSeleccion) {
+  contenedor.innerHTML = '';
+  const maxEscala = Math.max(1, metas.libertad, ...puntos.map((p) => p.ingreso)) * 1.1;
+
+  for (const punto of puntos) {
+    const clave = claveDe(punto);
+    const zona = clasificarZonaRitmo(punto.ingreso, metas);
+    const pct = Math.max(2, Math.round((punto.ingreso / maxEscala) * 100));
+    const seleccionado = clave === seleccionActual;
+
+    contenedor.appendChild(
+      crearEl('div', {
+        class: seleccionado ? 'comparativo-mes comparativo-mes--seleccionado' : 'comparativo-mes',
+        onclick: () => onSeleccion(clave),
+      }, [
+        crearEl('div', { class: 'comparativo-mes__barras' }, [
+          crearEl('div', {
+            class: `comparativo-mes__barra comparativo-mes__barra--${ZONAS_RITMO_INFO[zona].clase}`,
+            style: `height: ${pct}%`,
+          }),
+        ]),
+        crearEl('div', { class: 'comparativo-mes__etiqueta', texto: etiquetaDe(punto) }),
+      ])
+    );
+  }
+}
+
+function detalleRitmoGenerico(contenedor, titulo, ingreso, metas) {
+  contenedor.innerHTML = '';
+  const zona = clasificarZonaRitmo(ingreso, metas);
+
+  contenedor.appendChild(
+    crearEl('div', { class: 'reportes-dia-detalle__titulo', texto: `${titulo} — ${ZONAS_RITMO_INFO[zona].etiqueta}` })
+  );
+  contenedor.appendChild(
+    crearEl('div', { class: 'reportes-dia-detalle__fila' }, [
+      crearEl('div', { class: 'reportes-dia-detalle__nombre', texto: 'Ingreso' }),
+      crearEl('div', { class: 'reportes-dia-detalle__precio', texto: formatearMoneda(ingreso) }),
+    ])
+  );
+
+  let etiquetaFaltante;
+  let montoFaltante;
+  if (zona === 'rojo') {
+    etiquetaFaltante = 'Falta para cubrir el negocio';
+    montoFaltante = metas.negocio - ingreso;
+  } else if (zona === 'amarillo') {
+    etiquetaFaltante = 'Falta para cubrir lo personal';
+    montoFaltante = metas.vida - ingreso;
+  } else if (zona === 'verde') {
+    etiquetaFaltante = 'Falta para tu meta de ahorro';
+    montoFaltante = metas.ahorro - ingreso;
+  } else if (zona === 'azul') {
+    etiquetaFaltante = 'Falta para tu ingreso estándar';
+    montoFaltante = metas.libertad - ingreso;
+  } else {
+    etiquetaFaltante = 'Libertad extra';
+    montoFaltante = ingreso - metas.libertad;
+  }
+
+  contenedor.appendChild(
+    crearEl('div', { class: 'reportes-dia-detalle__fila' }, [
+      crearEl('div', { class: 'reportes-dia-detalle__nombre', texto: etiquetaFaltante }),
+      crearEl('div', { class: 'reportes-dia-detalle__precio', texto: formatearMoneda(Math.max(0, montoFaltante)) }),
+    ])
+  );
+
+  contenedor.hidden = false;
+}
+
+function renderizarRitmoDiario() {
+  renderizarBarraRitmo(
+    ritmoDiaGrafica, serieDiaAisladaActual, metasRitmoActuales,
+    (p) => p.dia, (p) => String(p.dia), diaRitmoSeleccionado, manejarSeleccionDiaRitmo
+  );
+}
+
+function mostrarDetalleDiaRitmo() {
+  const punto = serieDiaAisladaActual.find((p) => p.dia === diaRitmoSeleccionado);
+  if (!punto) {
+    ritmoDiaDetalle.innerHTML = '';
+    ritmoDiaDetalle.hidden = true;
+    return;
+  }
+  detalleRitmoGenerico(ritmoDiaDetalle, `Día ${punto.dia}`, punto.ingreso, metasRitmoActuales);
+}
+
+function manejarSeleccionDiaRitmo(dia) {
+  diaRitmoSeleccionado = diaRitmoSeleccionado === dia ? null : dia;
+  renderizarRitmoDiario();
+  mostrarDetalleDiaRitmo();
+}
+
+function renderizarRitmoSemanal() {
+  const metasSemana = escalarMetas(metasRitmoActuales, 7);
+  renderizarBarraRitmo(
+    ritmoSemanaGrafica, serieSemanaActual, metasSemana,
+    (p) => p.semana, (p) => `Sem ${p.semana}`, semanaRitmoSeleccionada, manejarSeleccionSemanaRitmo
+  );
+}
+
+function mostrarDetalleSemanaRitmo() {
+  const punto = serieSemanaActual.find((p) => p.semana === semanaRitmoSeleccionada);
+  if (!punto) {
+    ritmoSemanaDetalle.innerHTML = '';
+    ritmoSemanaDetalle.hidden = true;
+    return;
+  }
+  const metasSemana = escalarMetas(metasRitmoActuales, 7);
+  detalleRitmoGenerico(ritmoSemanaDetalle, `Semana ${punto.semana}`, punto.ingreso, metasSemana);
+}
+
+function manejarSeleccionSemanaRitmo(semana) {
+  semanaRitmoSeleccionada = semanaRitmoSeleccionada === semana ? null : semana;
+  renderizarRitmoSemanal();
+  mostrarDetalleSemanaRitmo();
+}
+
+function actualizarRitmoCaptionMes(ingresoMesActual, metasMensuales) {
+  const zona = clasificarZonaRitmo(ingresoMesActual, metasMensuales);
+  ritmoCaptionMes.textContent =
+    `Este mes vas en zona "${ZONAS_RITMO_INFO[zona].etiqueta}" — ${formatearMoneda(ingresoMesActual)} de ingreso hasta hoy.`;
+}
+
+async function manejarGuardarDiasTrabajo() {
+  const valor = Number(campoDiasTrabajo.value);
+  if (!campoDiasTrabajo.value || Number.isNaN(valor) || valor < 1) return;
+
+  try {
+    await DB.actualizarDiasTrabajoMes(mesActualISO(), valor);
+    mostrarMensaje('Días de trabajo actualizados');
+    cargarPuntoEquilibrio();
+  } catch (error) {
+    mostrarMensaje('No se pudo guardar: ' + (error.message || 'intenta de nuevo'));
+    console.error(error);
+  }
+}
+
+async function cargarRitmo(mes, r) {
+  let registro;
+  try {
+    registro = await DB.asegurarDiasTrabajoMes(mes);
+  } catch (error) {
+    registro = { dias: diasTrabajoActual };
+    console.error(error);
+  }
+
+  diasTrabajoActual = registro.dias;
+  campoDiasTrabajo.value = diasTrabajoActual;
+
+  const metaAhorroMensual = r.config.ingresoEstandarMensual * (r.config.porcentajeAhorroObjetivo / 100);
+  metasRitmoActuales = {
+    negocio: r.gastoTotalMes / diasTrabajoActual,
+    vida: (r.gastoTotalMes + r.config.gastoPersonalMensual) / diasTrabajoActual,
+    ahorro: (r.gastoTotalMes + r.config.gastoPersonalMensual + metaAhorroMensual) / diasTrabajoActual,
+    libertad: r.config.ingresoEstandarMensual / diasTrabajoActual,
+  };
+
+  const diaHoyNum = Number(fechaHoyISO().split('-')[2]);
+  serieDiaAisladaActual = calcularIngresoPorDiaAislado(r.visitas, r.productosVisitas, diaHoyNum);
+  serieSemanaActual = agruparPorSemana(serieDiaAisladaActual);
+
+  if (!serieDiaAisladaActual.some((p) => p.dia === diaRitmoSeleccionado)) diaRitmoSeleccionado = null;
+  if (!serieSemanaActual.some((p) => p.semana === semanaRitmoSeleccionada)) semanaRitmoSeleccionada = null;
+
+  renderizarRitmoDiario();
+  renderizarRitmoSemanal();
+  mostrarDetalleDiaRitmo();
+  mostrarDetalleSemanaRitmo();
+
+  actualizarRitmoCaptionMes(r.ingresoMes, escalarMetas(metasRitmoActuales, diasTrabajoActual));
 }
 
 // ----- Ticket promedio y margen por tratamiento -----
@@ -1347,6 +1616,7 @@ async function cargarPuntoEquilibrio() {
     renderizarProductos(r.regalos, r.ventasProducto);
     renderizarDesgloseGastos(r.gastosFijos, r.nomina, r.gastosExtras, r.gastoMaterialMes, r.gastoProductosRegaloMes, r.costoProductosVentaMes);
     renderizarZonasMes(r.serie, r.config);
+    await cargarRitmo(mes, r);
 
     if (periodoPeActivo !== 'mes') cambiarPeriodoPe(periodoPeActivo);
 
@@ -1361,7 +1631,9 @@ async function cargarPuntoEquilibrio() {
 function inicializar() {
   campoCostoMaterial.addEventListener('change', manejarGuardarCostoMaterial);
   campoGastoPersonal.addEventListener('change', manejarGuardarGastoPersonal);
-  campoMetaAhorro.addEventListener('change', manejarGuardarMetaAhorro);
+  campoIngresoEstandar.addEventListener('change', manejarGuardarIngresoEstandar);
+  campoPorcentajeAhorro.addEventListener('change', manejarGuardarPorcentajeAhorro);
+  campoDiasTrabajo.addEventListener('change', manejarGuardarDiasTrabajo);
   cargarConfig();
 
   document.getElementById('boton-abrir-gastos-fijos').addEventListener('click', abrirGastosFijos);

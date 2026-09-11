@@ -132,6 +132,34 @@
 
         <div id="pe-secciones-mes">
           <div class="calendario-seccion">
+            <div class="calendario-seccion__titulo">Ritmo diario</div>
+
+            <div class="campo">
+              <label for="config-dias-trabajo">Días que vamos a trabajar este mes</label>
+              <input id="config-dias-trabajo" type="number" inputmode="numeric" min="1" max="31" step="1" />
+            </div>
+
+            <p class="campo__ayuda" id="ritmo-caption-mes"></p>
+
+            <div class="pe-leyenda pe-leyenda--zonas">
+              <span><i class="pe-leyenda__punto pe-leyenda__punto--zona-rojo"></i>Bajo el negocio</span>
+              <span><i class="pe-leyenda__punto pe-leyenda__punto--zona-amarillo"></i>Cubre el negocio</span>
+              <span><i class="pe-leyenda__punto pe-leyenda__punto--zona-verde"></i>Cubre lo personal</span>
+              <span><i class="pe-leyenda__punto pe-leyenda__punto--zona-azul"></i>Cumple ahorro</span>
+              <span><i class="pe-leyenda__punto pe-leyenda__punto--zona-morado"></i>Libertad</span>
+            </div>
+
+            <div class="campo__ayuda" style="margin-top: 8px; font-weight: 600;">Por día</div>
+            <p class="campo__ayuda">Toca un día para ver el detalle.</p>
+            <div id="ritmo-dia-grafica" class="comparativo-lista"></div>
+            <div id="ritmo-dia-detalle" class="reportes-dia-detalle" hidden></div>
+
+            <div class="campo__ayuda" style="margin-top: var(--espacio-md); font-weight: 600;">Por semana</div>
+            <div id="ritmo-semana-grafica" class="comparativo-lista"></div>
+            <div id="ritmo-semana-detalle" class="reportes-dia-detalle" hidden></div>
+          </div>
+
+          <div class="calendario-seccion">
             <div class="calendario-seccion__titulo">Zonas del mes</div>
             <p class="campo__ayuda">Toca un día para ver el detalle.</p>
             <div class="pe-leyenda pe-leyenda--zonas">
@@ -222,9 +250,14 @@
           </div>
 
           <div class="campo">
-            <label for="config-meta-ahorro">Meta de ahorro del mes</label>
-            <input id="config-meta-ahorro" type="number" inputmode="decimal" min="0" step="0.01" />
-            <p class="campo__ayuda">Por ejemplo, el 20-25% de lo que quieres ganar al mes — tú pones el monto en pesos.</p>
+            <label for="config-ingreso-estandar">Ingreso estándar mensual</label>
+            <input id="config-ingreso-estandar" type="number" inputmode="decimal" min="0" step="0.01" />
+            <p class="campo__ayuda">Lo que normalmente ganas en un mes — de aquí se calcula tu meta de ahorro y tu techo de libertad.</p>
+          </div>
+
+          <div class="campo">
+            <label for="config-porcentaje-ahorro">% de ahorro objetivo (mínimo)</label>
+            <input id="config-porcentaje-ahorro" type="number" inputmode="decimal" min="0" max="100" step="1" />
           </div>
 
           <div class="lista-botones-secundarios">

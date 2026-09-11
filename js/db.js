@@ -586,7 +586,8 @@ function filaAConfig(fila) {
     sucursal: fila.sucursal,
     costoMaterialPorTratamiento: Number(fila.costo_material_por_tratamiento),
     gastoPersonalMensual: Number(fila.gasto_personal_mensual || 0),
-    metaAhorroMensual: Number(fila.meta_ahorro_mensual || 0),
+    ingresoEstandarMensual: Number(fila.ingreso_estandar_mensual || 0),
+    porcentajeAhorroObjetivo: Number(fila.porcentaje_ahorro_objetivo || 0),
   };
 }
 
@@ -628,11 +629,60 @@ async function actualizarGastoPersonalMensual(monto) {
   if (error) throw error;
 }
 
-async function actualizarMetaAhorroMensual(monto) {
+async function actualizarIngresoEstandarMensual(monto) {
   const { error } = await GrafectoAuth.cliente
     .from(TABLA_CONFIG_NEGOCIO)
-    .update({ meta_ahorro_mensual: monto })
+    .update({ ingreso_estandar_mensual: monto })
     .eq('sucursal', SUCURSAL);
+
+  if (error) throw error;
+}
+
+async function actualizarPorcentajeAhorroObjetivo(porcentaje) {
+  const { error } = await GrafectoAuth.cliente
+    .from(TABLA_CONFIG_NEGOCIO)
+    .update({ porcentaje_ahorro_objetivo: porcentaje })
+    .eq('sucursal', SUCURSAL);
+
+  if (error) throw error;
+}
+
+// ----- Días de trabajo del mes (para repartir las metas de Ritmo diario) -----
+
+const TABLA_DIAS_TRABAJO_MES = 'dias_trabajo_mes';
+const DIAS_TRABAJO_POR_DEFECTO = 12;
+
+function filaADiasTrabajoMes(fila) {
+  return { id: fila.id, mes: fila.mes, dias: fila.dias };
+}
+
+async function asegurarDiasTrabajoMes(mes) {
+  const { data, error } = await GrafectoAuth.cliente
+    .from(TABLA_DIAS_TRABAJO_MES)
+    .select('*')
+    .eq('sucursal', SUCURSAL)
+    .eq('mes', mes)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (data) return filaADiasTrabajoMes(data);
+
+  const { data: creado, error: errorCrear } = await GrafectoAuth.cliente
+    .from(TABLA_DIAS_TRABAJO_MES)
+    .insert({ sucursal: SUCURSAL, mes, dias: DIAS_TRABAJO_POR_DEFECTO })
+    .select()
+    .single();
+
+  if (errorCrear) throw errorCrear;
+  return filaADiasTrabajoMes(creado);
+}
+
+async function actualizarDiasTrabajoMes(mes, dias) {
+  const { error } = await GrafectoAuth.cliente
+    .from(TABLA_DIAS_TRABAJO_MES)
+    .update({ dias })
+    .eq('sucursal', SUCURSAL)
+    .eq('mes', mes);
 
   if (error) throw error;
 }
@@ -1123,7 +1173,10 @@ window.GrafectoDB = {
   obtenerConfig,
   actualizarCostoMaterial,
   actualizarGastoPersonalMensual,
-  actualizarMetaAhorroMensual,
+  actualizarIngresoEstandarMensual,
+  actualizarPorcentajeAhorroObjetivo,
+  asegurarDiasTrabajoMes,
+  actualizarDiasTrabajoMes,
   listarGastosFijosDelMes,
   asegurarGastosFijosDelMes,
   agregarGastoFijo,
