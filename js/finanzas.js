@@ -855,6 +855,7 @@ function renderizarZonasMes(serie, config) {
 // en particular estuvo floja o fuerte, sin esperar a que cierre el mes.
 
 const campoDiasTrabajo = document.getElementById('config-dias-trabajo');
+const ritmoCaptionHoy = document.getElementById('ritmo-caption-hoy');
 const ritmoCaptionMes = document.getElementById('ritmo-caption-mes');
 const ritmoDiaGrafica = document.getElementById('ritmo-dia-grafica');
 const ritmoDiaDetalle = document.getElementById('ritmo-dia-detalle');
@@ -1050,6 +1051,18 @@ function actualizarRitmoCaptionMes(ingresoMesActual, metasMensuales) {
     `Este mes vas en zona "${ZONAS_RITMO_INFO[zona].etiqueta}" — ${formatearMoneda(ingresoMesActual)} de ingreso hasta hoy.`;
 }
 
+function actualizarRitmoCaptionHoy() {
+  const puntoHoy = serieDiaAisladaActual[serieDiaAisladaActual.length - 1];
+  if (!puntoHoy) {
+    ritmoCaptionHoy.textContent = '';
+    return;
+  }
+
+  const zona = clasificarZonaRitmo(puntoHoy.ingreso, metasRitmoActuales);
+  ritmoCaptionHoy.textContent =
+    `Hoy vas en zona "${ZONAS_RITMO_INFO[zona].etiqueta}" — ${formatearMoneda(puntoHoy.ingreso)} generados hoy.`;
+}
+
 async function manejarGuardarDiasTrabajo() {
   const valor = Number(campoDiasTrabajo.value);
   if (!campoDiasTrabajo.value || Number.isNaN(valor) || valor < 1) return;
@@ -1097,6 +1110,7 @@ async function cargarRitmo(mes, r) {
   mostrarDetalleSemanaRitmo();
 
   actualizarRitmoCaptionMes(r.ingresoMes, escalarMetas(metasRitmoActuales, diasTrabajoActual));
+  actualizarRitmoCaptionHoy();
 }
 
 // ----- Ticket promedio y margen por tratamiento -----

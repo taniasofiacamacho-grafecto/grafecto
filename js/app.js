@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     agenda: document.getElementById('vista-agenda'),
     calendario: document.getElementById('vista-calendario'),
     reportes: document.getElementById('vista-reportes'),
+    vida: document.getElementById('vista-vida'),
   };
 
   let appInicializada = false;
@@ -65,8 +66,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       window.ReportesUI.mostrar();
       window.FinanzasUI.mostrar();
     }
+    if (vista === 'vida') window.FinanzasUI.mostrar();
 
-    botonAgregar.hidden = vista === 'calendario' || vista === 'reportes';
+    botonAgregar.hidden = vista === 'calendario' || vista === 'reportes' || vista === 'vida';
   }
 
   tabs.forEach((tab) => {
