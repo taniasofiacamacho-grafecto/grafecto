@@ -32,11 +32,15 @@ function formatearFechaCorta(fechaISO) {
 // ===== Configuración: costo de material por tratamiento =====
 
 const campoCostoMaterial = document.getElementById('config-costo-material');
+const campoGastoPersonal = document.getElementById('config-gasto-personal');
+const campoMetaAhorro = document.getElementById('config-meta-ahorro');
 
 async function cargarConfig() {
   try {
     const config = await DB.obtenerConfig();
     campoCostoMaterial.value = config.costoMaterialPorTratamiento;
+    campoGastoPersonal.value = config.gastoPersonalMensual;
+    campoMetaAhorro.value = config.metaAhorroMensual;
   } catch (error) {
     console.error(error);
   }
@@ -49,6 +53,34 @@ async function manejarGuardarCostoMaterial() {
   try {
     await DB.actualizarCostoMaterial(valor);
     mostrarMensaje('Costo de material actualizado');
+    cargarPuntoEquilibrio();
+  } catch (error) {
+    mostrarMensaje('No se pudo guardar: ' + (error.message || 'intenta de nuevo'));
+    console.error(error);
+  }
+}
+
+async function manejarGuardarGastoPersonal() {
+  const valor = Number(campoGastoPersonal.value);
+  if (!campoGastoPersonal.value || Number.isNaN(valor) || valor < 0) return;
+
+  try {
+    await DB.actualizarGastoPersonalMensual(valor);
+    mostrarMensaje('Gasto personal actualizado');
+    cargarPuntoEquilibrio();
+  } catch (error) {
+    mostrarMensaje('No se pudo guardar: ' + (error.message || 'intenta de nuevo'));
+    console.error(error);
+  }
+}
+
+async function manejarGuardarMetaAhorro() {
+  const valor = Number(campoMetaAhorro.value);
+  if (!campoMetaAhorro.value || Number.isNaN(valor) || valor < 0) return;
+
+  try {
+    await DB.actualizarMetaAhorroMensual(valor);
+    mostrarMensaje('Meta de ahorro actualizada');
     cargarPuntoEquilibrio();
   } catch (error) {
     mostrarMensaje('No se pudo guardar: ' + (error.message || 'intenta de nuevo'));
@@ -638,6 +670,166 @@ function renderizarBarraProgreso(numServicios, serviciosParaEquilibrio, margenPo
     `Cada tratamiento adicional deja ${formatearMoneda(margenPorServicio)} limpios.`;
 }
 
+// ----- Zonas del mes: negocio → personal → ahorro → libertad -----
+// Mismo día-a-día que la gráfica de equilibrio (ingresoAcum/gastoAcum de la
+// serie), solo que aquí la ganancia acumulada de cada día se clasifica en
+// una de cuatro zonas según las metas personales que la usuaria configuró.
+
+const peZonasGrafica = document.getElementById('pe-zonas-grafica');
+const peZonasCaption = document.getElementById('pe-zonas-caption');
+const peZonasDetalle = document.getElementById('pe-zonas-detalle');
+
+const ZONAS_INFO = {
+  negocio: { etiqueta: 'Cubriendo el negocio', clase: 'zona-negocio' },
+  personal: { etiqueta: 'Cubriendo lo personal', clase: 'zona-personal' },
+  ahorro: { etiqueta: 'Ahorrando', clase: 'zona-ahorro' },
+  libertad: { etiqueta: 'Libertad', clase: 'zona-libertad' },
+};
+
+let serieZonasActual = [];
+let zonasConfigActual = { gastoPersonalMensual: 0, metaAhorroMensual: 0 };
+let diaZonaSeleccionado = null;
+
+function clasificarZonaDia(ganancia, gastoPersonalMensual, metaAhorroMensual) {
+  const metaPersonal = gastoPersonalMensual;
+  const metaAhorro = gastoPersonalMensual + metaAhorroMensual;
+  if (ganancia < 0) return 'negocio';
+  if (ganancia < metaPersonal) return 'personal';
+  if (ganancia < metaAhorro) return 'ahorro';
+  return 'libertad';
+}
+
+function renderizarListaZonas() {
+  peZonasGrafica.innerHTML = '';
+
+  const metaAhorro = zonasConfigActual.gastoPersonalMensual + zonasConfigActual.metaAhorroMensual;
+  const maxEscala = Math.max(
+    1,
+    metaAhorro,
+    ...serieZonasActual.map((p) => p.ingresoAcum - p.gastoAcum)
+  ) * 1.1;
+
+  for (const punto of serieZonasActual) {
+    const ganancia = punto.ingresoAcum - punto.gastoAcum;
+    const zona = clasificarZonaDia(ganancia, zonasConfigActual.gastoPersonalMensual, zonasConfigActual.metaAhorroMensual);
+    const pct = Math.max(2, Math.round((Math.max(ganancia, 0) / maxEscala) * 100));
+    const seleccionado = punto.dia === diaZonaSeleccionado;
+
+    peZonasGrafica.appendChild(
+      crearEl('div', {
+        class: seleccionado ? 'comparativo-mes comparativo-mes--seleccionado' : 'comparativo-mes',
+        onclick: () => manejarSeleccionDiaZona(punto.dia),
+      }, [
+        crearEl('div', { class: 'comparativo-mes__barras' }, [
+          crearEl('div', {
+            class: `comparativo-mes__barra comparativo-mes__barra--${ZONAS_INFO[zona].clase}`,
+            style: `height: ${pct}%`,
+          }),
+        ]),
+        crearEl('div', { class: 'comparativo-mes__etiqueta', texto: String(punto.dia) }),
+      ])
+    );
+  }
+}
+
+function mostrarDetalleZonaDia() {
+  peZonasDetalle.innerHTML = '';
+
+  const punto = serieZonasActual.find((p) => p.dia === diaZonaSeleccionado);
+  if (!punto) {
+    peZonasDetalle.hidden = true;
+    return;
+  }
+
+  const { gastoPersonalMensual, metaAhorroMensual } = zonasConfigActual;
+  const metaAhorro = gastoPersonalMensual + metaAhorroMensual;
+  const ganancia = punto.ingresoAcum - punto.gastoAcum;
+  const zona = clasificarZonaDia(ganancia, gastoPersonalMensual, metaAhorroMensual);
+
+  peZonasDetalle.appendChild(
+    crearEl('div', { class: 'reportes-dia-detalle__titulo', texto: `Día ${punto.dia} — ${ZONAS_INFO[zona].etiqueta}` })
+  );
+
+  peZonasDetalle.appendChild(
+    crearEl('div', { class: 'reportes-dia-detalle__fila' }, [
+      crearEl('div', { class: 'reportes-dia-detalle__nombre', texto: 'Ganancia acumulada' }),
+      crearEl('div', { class: 'reportes-dia-detalle__precio', texto: formatearMoneda(ganancia) }),
+    ])
+  );
+
+  let etiquetaFaltante = null;
+  let montoFaltante = 0;
+  if (zona === 'negocio') {
+    etiquetaFaltante = 'Falta para cubrir el negocio';
+    montoFaltante = -ganancia;
+  } else if (zona === 'personal') {
+    etiquetaFaltante = 'Falta para cubrir lo personal';
+    montoFaltante = gastoPersonalMensual - ganancia;
+  } else if (zona === 'ahorro') {
+    etiquetaFaltante = 'Falta para tu meta de ahorro';
+    montoFaltante = metaAhorro - ganancia;
+  } else {
+    etiquetaFaltante = 'Libertad extra acumulada';
+    montoFaltante = ganancia - metaAhorro;
+  }
+
+  peZonasDetalle.appendChild(
+    crearEl('div', { class: 'reportes-dia-detalle__fila' }, [
+      crearEl('div', { class: 'reportes-dia-detalle__nombre', texto: etiquetaFaltante }),
+      crearEl('div', { class: 'reportes-dia-detalle__precio', texto: formatearMoneda(Math.max(0, montoFaltante)) }),
+    ])
+  );
+
+  peZonasDetalle.hidden = false;
+}
+
+function manejarSeleccionDiaZona(dia) {
+  diaZonaSeleccionado = diaZonaSeleccionado === dia ? null : dia;
+  renderizarListaZonas();
+  if (diaZonaSeleccionado) {
+    mostrarDetalleZonaDia();
+  } else {
+    peZonasDetalle.hidden = true;
+  }
+}
+
+function actualizarCaptionZonas() {
+  if (serieZonasActual.length === 0) {
+    peZonasCaption.textContent = '';
+    return;
+  }
+
+  const { gastoPersonalMensual, metaAhorroMensual } = zonasConfigActual;
+  const metaAhorro = gastoPersonalMensual + metaAhorroMensual;
+  const ultimo = serieZonasActual[serieZonasActual.length - 1];
+  const ganancia = ultimo.ingresoAcum - ultimo.gastoAcum;
+  const zona = clasificarZonaDia(ganancia, gastoPersonalMensual, metaAhorroMensual);
+
+  if (zona === 'negocio') {
+    peZonasCaption.textContent = `Hoy vas cubriendo el negocio — faltan ${formatearMoneda(-ganancia)} para cruzar el punto de equilibrio.`;
+  } else if (zona === 'personal') {
+    peZonasCaption.textContent = `Ya cubriste el negocio. Vas cubriendo lo personal — faltan ${formatearMoneda(gastoPersonalMensual - ganancia)} para cubrir lo que necesitas para vivir.`;
+  } else if (zona === 'ahorro') {
+    peZonasCaption.textContent = `Ya cubriste lo personal. Vas ahorrando — faltan ${formatearMoneda(metaAhorro - ganancia)} para tu meta de ahorro del mes.`;
+  } else {
+    peZonasCaption.textContent = `Ya cumpliste tu meta de ahorro del mes — tienes ${formatearMoneda(ganancia - metaAhorro)} de libertad extra.`;
+  }
+}
+
+function renderizarZonasMes(serie, config) {
+  serieZonasActual = serie;
+  zonasConfigActual = { gastoPersonalMensual: config.gastoPersonalMensual, metaAhorroMensual: config.metaAhorroMensual };
+
+  if (!serie.some((p) => p.dia === diaZonaSeleccionado)) {
+    diaZonaSeleccionado = null;
+    peZonasDetalle.hidden = true;
+  }
+
+  renderizarListaZonas();
+  actualizarCaptionZonas();
+  if (diaZonaSeleccionado) mostrarDetalleZonaDia();
+}
+
 // ----- Ticket promedio y margen por tratamiento -----
 
 const peDosTarjetas = document.getElementById('pe-dos-tarjetas');
@@ -1154,6 +1346,7 @@ async function cargarPuntoEquilibrio() {
     renderizarGraficaSemanal(r.visitas, Number(hoy.split('-')[2]));
     renderizarProductos(r.regalos, r.ventasProducto);
     renderizarDesgloseGastos(r.gastosFijos, r.nomina, r.gastosExtras, r.gastoMaterialMes, r.gastoProductosRegaloMes, r.costoProductosVentaMes);
+    renderizarZonasMes(r.serie, r.config);
 
     if (periodoPeActivo !== 'mes') cambiarPeriodoPe(periodoPeActivo);
 
@@ -1167,6 +1360,8 @@ async function cargarPuntoEquilibrio() {
 
 function inicializar() {
   campoCostoMaterial.addEventListener('change', manejarGuardarCostoMaterial);
+  campoGastoPersonal.addEventListener('change', manejarGuardarGastoPersonal);
+  campoMetaAhorro.addEventListener('change', manejarGuardarMetaAhorro);
   cargarConfig();
 
   document.getElementById('boton-abrir-gastos-fijos').addEventListener('click', abrirGastosFijos);

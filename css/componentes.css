@@ -855,6 +855,16 @@
 .pe-leyenda__punto--ingreso { background: var(--color-magenta); }
 .pe-leyenda__punto--gasto { background: var(--color-azul-grisaceo-claro); }
 
+.pe-leyenda--zonas {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+
+.pe-leyenda__punto--zona-negocio { background: var(--color-peligro); }
+.pe-leyenda__punto--zona-personal { background: var(--color-alerta); }
+.pe-leyenda__punto--zona-ahorro { background: var(--color-azul-grisaceo); }
+.pe-leyenda__punto--zona-libertad { background: var(--color-exito); }
+
 .pe-progreso-contenedor {
   margin-top: var(--espacio-lg);
 }
@@ -928,6 +938,11 @@
 .comparativo-mes__barra--gasto { background: var(--color-azul-grisaceo-claro); }
 .comparativo-mes__barra--ganancia-positiva { background: var(--color-exito); }
 .comparativo-mes__barra--ganancia-negativa { background: var(--color-peligro); }
+
+.comparativo-mes__barra--zona-negocio { background: var(--color-peligro); }
+.comparativo-mes__barra--zona-personal { background: var(--color-alerta); }
+.comparativo-mes__barra--zona-ahorro { background: var(--color-azul-grisaceo); }
+.comparativo-mes__barra--zona-libertad { background: var(--color-exito); }
 
 .comparativo-mes__etiqueta {
   font-size: 0.65rem;

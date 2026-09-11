@@ -585,6 +585,8 @@ function filaAConfig(fila) {
     id: fila.id,
     sucursal: fila.sucursal,
     costoMaterialPorTratamiento: Number(fila.costo_material_por_tratamiento),
+    gastoPersonalMensual: Number(fila.gasto_personal_mensual || 0),
+    metaAhorroMensual: Number(fila.meta_ahorro_mensual || 0),
   };
 }
 
@@ -612,6 +614,24 @@ async function actualizarCostoMaterial(costo) {
   const { error } = await GrafectoAuth.cliente
     .from(TABLA_CONFIG_NEGOCIO)
     .update({ costo_material_por_tratamiento: costo })
+    .eq('sucursal', SUCURSAL);
+
+  if (error) throw error;
+}
+
+async function actualizarGastoPersonalMensual(monto) {
+  const { error } = await GrafectoAuth.cliente
+    .from(TABLA_CONFIG_NEGOCIO)
+    .update({ gasto_personal_mensual: monto })
+    .eq('sucursal', SUCURSAL);
+
+  if (error) throw error;
+}
+
+async function actualizarMetaAhorroMensual(monto) {
+  const { error } = await GrafectoAuth.cliente
+    .from(TABLA_CONFIG_NEGOCIO)
+    .update({ meta_ahorro_mensual: monto })
     .eq('sucursal', SUCURSAL);
 
   if (error) throw error;
@@ -1102,6 +1122,8 @@ window.GrafectoDB = {
   normalizarTexto,
   obtenerConfig,
   actualizarCostoMaterial,
+  actualizarGastoPersonalMensual,
+  actualizarMetaAhorroMensual,
   listarGastosFijosDelMes,
   asegurarGastosFijosDelMes,
   agregarGastoFijo,

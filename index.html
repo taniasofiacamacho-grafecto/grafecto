@@ -132,6 +132,20 @@
 
         <div id="pe-secciones-mes">
           <div class="calendario-seccion">
+            <div class="calendario-seccion__titulo">Zonas del mes</div>
+            <p class="campo__ayuda">Toca un día para ver el detalle.</p>
+            <div class="pe-leyenda pe-leyenda--zonas">
+              <span><i class="pe-leyenda__punto pe-leyenda__punto--zona-negocio"></i>Cubriendo el negocio</span>
+              <span><i class="pe-leyenda__punto pe-leyenda__punto--zona-personal"></i>Cubriendo lo personal</span>
+              <span><i class="pe-leyenda__punto pe-leyenda__punto--zona-ahorro"></i>Ahorrando</span>
+              <span><i class="pe-leyenda__punto pe-leyenda__punto--zona-libertad"></i>Libertad</span>
+            </div>
+            <div id="pe-zonas-grafica" class="comparativo-lista"></div>
+            <p class="campo__ayuda" id="pe-zonas-caption" style="margin-top: 8px;"></p>
+            <div id="pe-zonas-detalle" class="reportes-dia-detalle" hidden></div>
+          </div>
+
+          <div class="calendario-seccion">
             <div id="pe-dos-tarjetas" class="resumen-ingresos"></div>
           </div>
 
@@ -200,6 +214,17 @@
           <div class="campo">
             <label for="config-costo-material">Costo de material por tratamiento</label>
             <input id="config-costo-material" type="number" inputmode="decimal" min="0" step="0.01" />
+          </div>
+
+          <div class="campo">
+            <label for="config-gasto-personal">Cuánto necesitas para vivir al mes</label>
+            <input id="config-gasto-personal" type="number" inputmode="decimal" min="0" step="0.01" />
+          </div>
+
+          <div class="campo">
+            <label for="config-meta-ahorro">Meta de ahorro del mes</label>
+            <input id="config-meta-ahorro" type="number" inputmode="decimal" min="0" step="0.01" />
+            <p class="campo__ayuda">Por ejemplo, el 20-25% de lo que quieres ganar al mes — tú pones el monto en pesos.</p>
           </div>
 
           <div class="lista-botones-secundarios">
