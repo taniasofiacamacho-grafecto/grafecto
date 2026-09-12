@@ -849,10 +849,13 @@ function renderizarZonasMes(serie, config) {
 
 // ----- Ritmo diario y semanal -----
 // Las mismas cuatro metas de Zonas del mes (negocio, personal/vida, ahorro,
-// ingreso estándar), pero repartidas entre los días que se van a trabajar
-// este mes y comparadas contra lo que se ganó CADA día o semana por
-// separado (no acumulado) — para ver de un vistazo si un día o una semana
-// en particular estuvo floja o fuerte, sin esperar a que cierre el mes.
+// ingreso estándar), repartidas entre los días que se van a trabajar este
+// mes. A diferencia de Zonas del mes (que acumula por día de calendario),
+// aquí el checkpoint es "el día N que trabajaste" — se suma todo lo ganado
+// en el mes hasta ese día y se compara contra N veces la meta diaria. Así
+// un solo día bueno no dispara "Libertad" solo: tiene que sostenerse en
+// varios días trabajados. Los días sin ningún registro ni siquiera aparecen
+// — no son "mal día", son un día que no se trabajó.
 
 const campoDiasTrabajo = document.getElementById('config-dias-trabajo');
 const ritmoCaptionHoy = document.getElementById('ritmo-caption-hoy');
@@ -871,9 +874,9 @@ const ZONAS_RITMO_INFO = {
 };
 
 let diasTrabajoActual = 12;
-let metasRitmoActuales = { negocio: 0, vida: 0, ahorro: 0, libertad: 0 };
-let serieDiaAisladaActual = [];
-let serieSemanaActual = [];
+let metasRitmoDiariasActuales = { negocio: 0, vida: 0, ahorro: 0, libertad: 0 };
+let serieDiaRitmoActual = []; // [{dia, ingresoDia, ingresoAcum, diasTrabajadosAcum, metaAcum}]
+let serieSemanaRitmoActual = []; // [{semana, ingresoAcum, diasTrabajadosAcum, metaAcum}]
 let diaRitmoSeleccionado = null;
 let semanaRitmoSeleccionada = null;
 
@@ -894,9 +897,9 @@ function escalarMetas(metas, factor) {
   };
 }
 
-// Ingreso de cada día por separado (servicios + venta de producto), sin
-// acumular con los días anteriores — a diferencia de la serie de Zonas del mes.
-function calcularIngresoPorDiaAislado(visitas, productosVisitas, diaHoy) {
+// Ingreso de cada día de calendario por separado (servicios + venta de
+// producto) — el punto de partida antes de acumular por días trabajados.
+function calcularIngresoPorDiaCalendario(visitas, productosVisitas, diaHoy) {
   const ingresoPorDia = {};
   for (const visita of visitas) {
     const dia = Number(visita.fecha.split('-')[2]);
@@ -915,26 +918,54 @@ function calcularIngresoPorDiaAislado(visitas, productosVisitas, diaHoy) {
   return serie;
 }
 
-function agruparPorSemana(serieDia) {
-  const porSemana = {};
-  for (const punto of serieDia) {
-    const semana = Math.ceil(punto.dia / 7);
-    porSemana[semana] = (porSemana[semana] || 0) + punto.ingreso;
-  }
-  return Object.keys(porSemana)
-    .map(Number)
-    .sort((a, b) => a - b)
-    .map((semana) => ({ semana, ingreso: porSemana[semana] }));
+// Un punto por cada día en que sí se registró algo: ingreso acumulado del
+// mes hasta ese día, comparado contra (días trabajados hasta ahí) × meta diaria.
+function calcularSerieDiaRitmo(diaCalendario, metasDiarias) {
+  const diasConActividad = diaCalendario.filter((p) => p.ingreso > 0);
+
+  let ingresoAcum = 0;
+  return diasConActividad.map((punto, indice) => {
+    ingresoAcum += punto.ingreso;
+    const diasTrabajadosAcum = indice + 1;
+    return {
+      dia: punto.dia,
+      ingresoDia: punto.ingreso,
+      ingresoAcum,
+      diasTrabajadosAcum,
+      metaAcum: escalarMetas(metasDiarias, diasTrabajadosAcum),
+    };
+  });
 }
 
-function renderizarBarraRitmo(contenedor, puntos, metas, claveDe, etiquetaDe, seleccionActual, onSeleccion) {
+// Un checkpoint al final de cada semana de calendario: mismo acumulado,
+// pero agrupado por semana en vez de por cada día trabajado.
+function calcularSerieSemanaRitmo(diaCalendario, metasDiarias) {
+  if (diaCalendario.length === 0) return [];
+  const semanaMax = Math.ceil(diaCalendario[diaCalendario.length - 1].dia / 7);
+
+  let ingresoAcum = 0;
+  let diasTrabajadosAcum = 0;
+  const serie = [];
+  for (let semana = 1; semana <= semanaMax; semana++) {
+    const diasDeEstaSemana = diaCalendario.filter((p) => Math.ceil(p.dia / 7) === semana);
+    for (const punto of diasDeEstaSemana) {
+      ingresoAcum += punto.ingreso;
+      if (punto.ingreso > 0) diasTrabajadosAcum += 1;
+    }
+    serie.push({ semana, ingresoAcum, diasTrabajadosAcum, metaAcum: escalarMetas(metasDiarias, diasTrabajadosAcum) });
+  }
+  return serie;
+}
+
+function renderizarBarraRitmo(contenedor, puntos, claveDe, etiquetaDe, seleccionActual, onSeleccion) {
   contenedor.innerHTML = '';
-  const maxEscala = Math.max(1, metas.libertad, ...puntos.map((p) => p.ingreso)) * 1.1;
+  const techoMax = puntos.length > 0 ? puntos[puntos.length - 1].metaAcum.libertad : 1;
+  const maxEscala = Math.max(1, techoMax, ...puntos.map((p) => p.ingresoAcum)) * 1.1;
 
   for (const punto of puntos) {
     const clave = claveDe(punto);
-    const zona = clasificarZonaRitmo(punto.ingreso, metas);
-    const pct = Math.max(2, Math.round((punto.ingreso / maxEscala) * 100));
+    const zona = clasificarZonaRitmo(punto.ingresoAcum, punto.metaAcum);
+    const pct = Math.max(2, Math.round((punto.ingresoAcum / maxEscala) * 100));
     const seleccionado = clave === seleccionActual;
 
     contenedor.appendChild(
@@ -954,17 +985,18 @@ function renderizarBarraRitmo(contenedor, puntos, metas, claveDe, etiquetaDe, se
   }
 }
 
-function detalleRitmoGenerico(contenedor, titulo, ingreso, metas) {
+function detalleRitmoGenerico(contenedor, titulo, punto) {
   contenedor.innerHTML = '';
-  const zona = clasificarZonaRitmo(ingreso, metas);
+  const { ingresoAcum, metaAcum, diasTrabajadosAcum } = punto;
+  const zona = clasificarZonaRitmo(ingresoAcum, metaAcum);
 
   contenedor.appendChild(
     crearEl('div', { class: 'reportes-dia-detalle__titulo', texto: `${titulo} — ${ZONAS_RITMO_INFO[zona].etiqueta}` })
   );
   contenedor.appendChild(
     crearEl('div', { class: 'reportes-dia-detalle__fila' }, [
-      crearEl('div', { class: 'reportes-dia-detalle__nombre', texto: 'Ingreso' }),
-      crearEl('div', { class: 'reportes-dia-detalle__precio', texto: formatearMoneda(ingreso) }),
+      crearEl('div', { class: 'reportes-dia-detalle__nombre', texto: `Acumulado en ${diasTrabajadosAcum} ${diasTrabajadosAcum === 1 ? 'día trabajado' : 'días trabajados'}` }),
+      crearEl('div', { class: 'reportes-dia-detalle__precio', texto: formatearMoneda(ingresoAcum) }),
     ])
   );
 
@@ -972,19 +1004,19 @@ function detalleRitmoGenerico(contenedor, titulo, ingreso, metas) {
   let montoFaltante;
   if (zona === 'rojo') {
     etiquetaFaltante = 'Falta para cubrir el negocio';
-    montoFaltante = metas.negocio - ingreso;
+    montoFaltante = metaAcum.negocio - ingresoAcum;
   } else if (zona === 'amarillo') {
     etiquetaFaltante = 'Falta para cubrir lo personal';
-    montoFaltante = metas.vida - ingreso;
+    montoFaltante = metaAcum.vida - ingresoAcum;
   } else if (zona === 'verde') {
     etiquetaFaltante = 'Falta para tu meta de ahorro';
-    montoFaltante = metas.ahorro - ingreso;
+    montoFaltante = metaAcum.ahorro - ingresoAcum;
   } else if (zona === 'azul') {
     etiquetaFaltante = 'Falta para tu ingreso estándar';
-    montoFaltante = metas.libertad - ingreso;
+    montoFaltante = metaAcum.libertad - ingresoAcum;
   } else {
     etiquetaFaltante = 'Libertad extra';
-    montoFaltante = ingreso - metas.libertad;
+    montoFaltante = ingresoAcum - metaAcum.libertad;
   }
 
   contenedor.appendChild(
@@ -999,19 +1031,19 @@ function detalleRitmoGenerico(contenedor, titulo, ingreso, metas) {
 
 function renderizarRitmoDiario() {
   renderizarBarraRitmo(
-    ritmoDiaGrafica, serieDiaAisladaActual, metasRitmoActuales,
+    ritmoDiaGrafica, serieDiaRitmoActual,
     (p) => p.dia, (p) => String(p.dia), diaRitmoSeleccionado, manejarSeleccionDiaRitmo
   );
 }
 
 function mostrarDetalleDiaRitmo() {
-  const punto = serieDiaAisladaActual.find((p) => p.dia === diaRitmoSeleccionado);
+  const punto = serieDiaRitmoActual.find((p) => p.dia === diaRitmoSeleccionado);
   if (!punto) {
     ritmoDiaDetalle.innerHTML = '';
     ritmoDiaDetalle.hidden = true;
     return;
   }
-  detalleRitmoGenerico(ritmoDiaDetalle, `Día ${punto.dia}`, punto.ingreso, metasRitmoActuales);
+  detalleRitmoGenerico(ritmoDiaDetalle, `Día ${punto.dia}`, punto);
 }
 
 function manejarSeleccionDiaRitmo(dia) {
@@ -1021,22 +1053,20 @@ function manejarSeleccionDiaRitmo(dia) {
 }
 
 function renderizarRitmoSemanal() {
-  const metasSemana = escalarMetas(metasRitmoActuales, 7);
   renderizarBarraRitmo(
-    ritmoSemanaGrafica, serieSemanaActual, metasSemana,
+    ritmoSemanaGrafica, serieSemanaRitmoActual,
     (p) => p.semana, (p) => `Sem ${p.semana}`, semanaRitmoSeleccionada, manejarSeleccionSemanaRitmo
   );
 }
 
 function mostrarDetalleSemanaRitmo() {
-  const punto = serieSemanaActual.find((p) => p.semana === semanaRitmoSeleccionada);
+  const punto = serieSemanaRitmoActual.find((p) => p.semana === semanaRitmoSeleccionada);
   if (!punto) {
     ritmoSemanaDetalle.innerHTML = '';
     ritmoSemanaDetalle.hidden = true;
     return;
   }
-  const metasSemana = escalarMetas(metasRitmoActuales, 7);
-  detalleRitmoGenerico(ritmoSemanaDetalle, `Semana ${punto.semana}`, punto.ingreso, metasSemana);
+  detalleRitmoGenerico(ritmoSemanaDetalle, `Semana ${punto.semana}`, punto);
 }
 
 function manejarSeleccionSemanaRitmo(semana) {
@@ -1048,19 +1078,19 @@ function manejarSeleccionSemanaRitmo(semana) {
 function actualizarRitmoCaptionMes(ingresoMesActual, metasMensuales) {
   const zona = clasificarZonaRitmo(ingresoMesActual, metasMensuales);
   ritmoCaptionMes.textContent =
-    `Este mes vas en zona "${ZONAS_RITMO_INFO[zona].etiqueta}" — ${formatearMoneda(ingresoMesActual)} de ingreso hasta hoy.`;
+    `Si el ritmo se mantiene todo el mes (${diasTrabajoActual} días), vas en zona "${ZONAS_RITMO_INFO[zona].etiqueta}" — ${formatearMoneda(ingresoMesActual)} de ingreso hasta hoy.`;
 }
 
 function actualizarRitmoCaptionHoy() {
-  const puntoHoy = serieDiaAisladaActual[serieDiaAisladaActual.length - 1];
-  if (!puntoHoy) {
-    ritmoCaptionHoy.textContent = '';
+  const ultimo = serieDiaRitmoActual[serieDiaRitmoActual.length - 1];
+  if (!ultimo) {
+    ritmoCaptionHoy.textContent = 'Todavía no registras nada este mes.';
     return;
   }
 
-  const zona = clasificarZonaRitmo(puntoHoy.ingreso, metasRitmoActuales);
+  const zona = clasificarZonaRitmo(ultimo.ingresoAcum, ultimo.metaAcum);
   ritmoCaptionHoy.textContent =
-    `Hoy vas en zona "${ZONAS_RITMO_INFO[zona].etiqueta}" — ${formatearMoneda(puntoHoy.ingreso)} generados hoy.`;
+    `Llevas ${ultimo.diasTrabajadosAcum} ${ultimo.diasTrabajadosAcum === 1 ? 'día trabajado' : 'días trabajados'} y vas en zona "${ZONAS_RITMO_INFO[zona].etiqueta}" — ${formatearMoneda(ultimo.ingresoAcum)} acumulados.`;
 }
 
 async function manejarGuardarDiasTrabajo() {
@@ -1090,7 +1120,7 @@ async function cargarRitmo(mes, r) {
   campoDiasTrabajo.value = diasTrabajoActual;
 
   const metaAhorroMensual = r.config.ingresoEstandarMensual * (r.config.porcentajeAhorroObjetivo / 100);
-  metasRitmoActuales = {
+  metasRitmoDiariasActuales = {
     negocio: r.gastoTotalMes / diasTrabajoActual,
     vida: (r.gastoTotalMes + r.config.gastoPersonalMensual) / diasTrabajoActual,
     ahorro: (r.gastoTotalMes + r.config.gastoPersonalMensual + metaAhorroMensual) / diasTrabajoActual,
@@ -1098,18 +1128,19 @@ async function cargarRitmo(mes, r) {
   };
 
   const diaHoyNum = Number(fechaHoyISO().split('-')[2]);
-  serieDiaAisladaActual = calcularIngresoPorDiaAislado(r.visitas, r.productosVisitas, diaHoyNum);
-  serieSemanaActual = agruparPorSemana(serieDiaAisladaActual);
+  const diaCalendario = calcularIngresoPorDiaCalendario(r.visitas, r.productosVisitas, diaHoyNum);
+  serieDiaRitmoActual = calcularSerieDiaRitmo(diaCalendario, metasRitmoDiariasActuales);
+  serieSemanaRitmoActual = calcularSerieSemanaRitmo(diaCalendario, metasRitmoDiariasActuales);
 
-  if (!serieDiaAisladaActual.some((p) => p.dia === diaRitmoSeleccionado)) diaRitmoSeleccionado = null;
-  if (!serieSemanaActual.some((p) => p.semana === semanaRitmoSeleccionada)) semanaRitmoSeleccionada = null;
+  if (!serieDiaRitmoActual.some((p) => p.dia === diaRitmoSeleccionado)) diaRitmoSeleccionado = null;
+  if (!serieSemanaRitmoActual.some((p) => p.semana === semanaRitmoSeleccionada)) semanaRitmoSeleccionada = null;
 
   renderizarRitmoDiario();
   renderizarRitmoSemanal();
   mostrarDetalleDiaRitmo();
   mostrarDetalleSemanaRitmo();
 
-  actualizarRitmoCaptionMes(r.ingresoMes, escalarMetas(metasRitmoActuales, diasTrabajoActual));
+  actualizarRitmoCaptionMes(r.ingresoMes, escalarMetas(metasRitmoDiariasActuales, diasTrabajoActual));
   actualizarRitmoCaptionHoy();
 }
 
