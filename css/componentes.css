@@ -833,7 +833,9 @@
 /* ===== Punto de equilibrio: gráfica de línea del mes ===== */
 .pe-leyenda {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--espacio-md);
+  row-gap: 6px;
   font-size: 0.78rem;
   color: var(--color-texto-suave);
   margin-bottom: 10px;
@@ -854,22 +856,9 @@
 
 .pe-leyenda__punto--ingreso { background: var(--color-magenta); }
 .pe-leyenda__punto--gasto { background: var(--color-azul-grisaceo-claro); }
-
-.pe-leyenda--zonas {
-  flex-wrap: wrap;
-  row-gap: 6px;
-}
-
-.pe-leyenda__punto--zona-negocio { background: var(--color-peligro); }
-.pe-leyenda__punto--zona-personal { background: var(--color-alerta); }
-.pe-leyenda__punto--zona-ahorro { background: var(--color-azul-grisaceo); }
-.pe-leyenda__punto--zona-libertad { background: var(--color-exito); }
-
-.pe-leyenda__punto--zona-rojo { background: var(--color-peligro); }
-.pe-leyenda__punto--zona-amarillo { background: var(--color-alerta); }
-.pe-leyenda__punto--zona-verde { background: var(--color-exito); }
-.pe-leyenda__punto--zona-azul { background: var(--color-azul-grisaceo); }
-.pe-leyenda__punto--zona-morado { background: var(--color-primario); }
+.pe-leyenda__punto--vida { background: var(--color-alerta); }
+.pe-leyenda__punto--ahorro { background: var(--color-azul-grisaceo); }
+.pe-leyenda__punto--libertad { background: var(--color-primario); }
 
 .pe-progreso-contenedor {
   margin-top: var(--espacio-lg);
@@ -944,17 +933,6 @@
 .comparativo-mes__barra--gasto { background: var(--color-azul-grisaceo-claro); }
 .comparativo-mes__barra--ganancia-positiva { background: var(--color-exito); }
 .comparativo-mes__barra--ganancia-negativa { background: var(--color-peligro); }
-
-.comparativo-mes__barra--zona-negocio { background: var(--color-peligro); }
-.comparativo-mes__barra--zona-personal { background: var(--color-alerta); }
-.comparativo-mes__barra--zona-ahorro { background: var(--color-azul-grisaceo); }
-.comparativo-mes__barra--zona-libertad { background: var(--color-exito); }
-
-.comparativo-mes__barra--zona-rojo { background: var(--color-peligro); }
-.comparativo-mes__barra--zona-amarillo { background: var(--color-alerta); }
-.comparativo-mes__barra--zona-verde { background: var(--color-exito); }
-.comparativo-mes__barra--zona-azul { background: var(--color-azul-grisaceo); }
-.comparativo-mes__barra--zona-morado { background: var(--color-primario); }
 
 .comparativo-mes__etiqueta {
   font-size: 0.65rem;

@@ -114,8 +114,11 @@
             <div class="pe-leyenda">
               <span><i class="pe-leyenda__punto pe-leyenda__punto--ingreso"></i>Ingreso</span>
               <span><i class="pe-leyenda__punto pe-leyenda__punto--gasto"></i>Gasto</span>
+              <span><i class="pe-leyenda__punto pe-leyenda__punto--vida"></i>Costo de vida</span>
+              <span><i class="pe-leyenda__punto pe-leyenda__punto--ahorro"></i>Ahorro</span>
+              <span><i class="pe-leyenda__punto pe-leyenda__punto--libertad"></i>Libertad</span>
             </div>
-            <svg id="pe-grafica" viewBox="0 0 320 172" width="100%" role="img" aria-label="Gráfica de ingreso y gasto acumulados del mes"></svg>
+            <svg id="pe-grafica" viewBox="0 0 320 172" width="100%" role="img" aria-label="Gráfica de ingreso y gasto acumulados del mes, con las líneas de costo de vida, ahorro y libertad"></svg>
             <p class="campo__ayuda" id="pe-caption" style="margin-top: 8px;"></p>
 
             <div class="pe-progreso-contenedor">
@@ -202,22 +205,6 @@
             <input id="config-costo-material" type="number" inputmode="decimal" min="0" step="0.01" />
           </div>
 
-          <div class="lista-botones-secundarios">
-            <button type="button" id="boton-abrir-gastos-fijos" class="boton boton--secundario boton--ancho-completo">Gastos fijos del mes</button>
-            <button type="button" id="boton-abrir-nomina" class="boton boton--secundario boton--ancho-completo">Nómina</button>
-            <button type="button" id="boton-abrir-gastos-extras" class="boton boton--secundario boton--ancho-completo">Gastos extras</button>
-            <button type="button" id="boton-abrir-catalogo-productos" class="boton boton--secundario boton--ancho-completo">Catálogo de productos</button>
-          </div>
-        </div>
-      </main>
-    </section>
-
-    <section id="vista-vida" hidden>
-      <main class="contenido contenido--sin-buscador">
-        <div class="calendario-seccion">
-          <div class="calendario-seccion__titulo">Tus metas</div>
-          <p class="campo__ayuda">Estos números son la base de todo lo de abajo.</p>
-
           <div class="campo">
             <label for="config-gasto-personal">Cuánto necesitas para vivir al mes</label>
             <input id="config-gasto-personal" type="number" inputmode="decimal" min="0" step="0.01" />
@@ -226,56 +213,20 @@
           <div class="campo">
             <label for="config-ingreso-estandar">Ingreso estándar mensual</label>
             <input id="config-ingreso-estandar" type="number" inputmode="decimal" min="0" step="0.01" />
-            <p class="campo__ayuda">Lo que normalmente ganas en un mes — de aquí se calcula tu meta de ahorro y tu techo de libertad.</p>
+            <p class="campo__ayuda">Lo que normalmente ganas en un mes — de aquí se calcula tu meta de ahorro y tu línea de libertad.</p>
           </div>
 
           <div class="campo">
             <label for="config-porcentaje-ahorro">% de ahorro objetivo (mínimo)</label>
             <input id="config-porcentaje-ahorro" type="number" inputmode="decimal" min="0" max="100" step="1" />
           </div>
-        </div>
 
-        <div class="calendario-seccion">
-          <div class="calendario-seccion__titulo">Ritmo diario</div>
-
-          <div class="campo">
-            <label for="config-dias-trabajo">Días que vamos a trabajar este mes</label>
-            <input id="config-dias-trabajo" type="number" inputmode="numeric" min="1" max="31" step="1" />
+          <div class="lista-botones-secundarios">
+            <button type="button" id="boton-abrir-gastos-fijos" class="boton boton--secundario boton--ancho-completo">Gastos fijos del mes</button>
+            <button type="button" id="boton-abrir-nomina" class="boton boton--secundario boton--ancho-completo">Nómina</button>
+            <button type="button" id="boton-abrir-gastos-extras" class="boton boton--secundario boton--ancho-completo">Gastos extras</button>
+            <button type="button" id="boton-abrir-catalogo-productos" class="boton boton--secundario boton--ancho-completo">Catálogo de productos</button>
           </div>
-
-          <p class="campo__ayuda" id="ritmo-caption-hoy" style="font-weight: 600;"></p>
-          <p class="campo__ayuda" id="ritmo-caption-mes"></p>
-
-          <div class="pe-leyenda pe-leyenda--zonas">
-            <span><i class="pe-leyenda__punto pe-leyenda__punto--zona-rojo"></i>Bajo el negocio</span>
-            <span><i class="pe-leyenda__punto pe-leyenda__punto--zona-amarillo"></i>Cubre el negocio</span>
-            <span><i class="pe-leyenda__punto pe-leyenda__punto--zona-verde"></i>Cubre lo personal</span>
-            <span><i class="pe-leyenda__punto pe-leyenda__punto--zona-azul"></i>Cumple ahorro</span>
-            <span><i class="pe-leyenda__punto pe-leyenda__punto--zona-morado"></i>Libertad</span>
-          </div>
-
-          <div class="campo__ayuda" style="margin-top: 8px; font-weight: 600;">Por día</div>
-          <p class="campo__ayuda">Toca un día para ver el detalle.</p>
-          <div id="ritmo-dia-grafica" class="comparativo-lista"></div>
-          <div id="ritmo-dia-detalle" class="reportes-dia-detalle" hidden></div>
-
-          <div class="campo__ayuda" style="margin-top: var(--espacio-md); font-weight: 600;">Por semana</div>
-          <div id="ritmo-semana-grafica" class="comparativo-lista"></div>
-          <div id="ritmo-semana-detalle" class="reportes-dia-detalle" hidden></div>
-        </div>
-
-        <div class="calendario-seccion">
-          <div class="calendario-seccion__titulo">Zonas del mes</div>
-          <p class="campo__ayuda">Toca un día para ver el detalle.</p>
-          <div class="pe-leyenda pe-leyenda--zonas">
-            <span><i class="pe-leyenda__punto pe-leyenda__punto--zona-negocio"></i>Cubriendo el negocio</span>
-            <span><i class="pe-leyenda__punto pe-leyenda__punto--zona-personal"></i>Cubriendo lo personal</span>
-            <span><i class="pe-leyenda__punto pe-leyenda__punto--zona-ahorro"></i>Ahorrando</span>
-            <span><i class="pe-leyenda__punto pe-leyenda__punto--zona-libertad"></i>Libertad</span>
-          </div>
-          <div id="pe-zonas-grafica" class="comparativo-lista"></div>
-          <p class="campo__ayuda" id="pe-zonas-caption" style="margin-top: 8px;"></p>
-          <div id="pe-zonas-detalle" class="reportes-dia-detalle" hidden></div>
         </div>
       </main>
     </section>
@@ -290,7 +241,6 @@
       <button id="tab-agenda" class="tabs__boton" data-vista="agenda">Agenda</button>
       <button id="tab-calendario" class="tabs__boton" data-vista="calendario">Horario</button>
       <button id="tab-reportes" class="tabs__boton" data-vista="reportes">Reportes</button>
-      <button id="tab-vida" class="tabs__boton" data-vista="vida">Vida</button>
     </nav>
   </div>
 

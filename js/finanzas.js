@@ -602,10 +602,23 @@ function calcularSerieDiaria(visitas, gastosExtras, productosVisitas, gastoBaseD
   return serie;
 }
 
-function renderizarGraficaEquilibrio(serie, diasMes) {
+// Además de ingreso/gasto, dibuja tres líneas de referencia: cuánto
+// necesitas para vivir, tu meta de ahorro (% de tu ingreso estándar) y tu
+// ingreso estándar como techo de "libertad" — todas encima del gasto real
+// acumulado, salvo libertad que es un monto fijo del mes completo.
+function renderizarGraficaEquilibrio(serie, diasMes, config) {
   const w = 320;
   const h = 150;
-  const maxValor = Math.max(1, ...serie.map((p) => Math.max(p.ingresoAcum, p.gastoAcum))) * 1.08;
+
+  const gastoPersonal = config.gastoPersonalMensual;
+  const metaAhorro = config.ingresoEstandarMensual * (config.porcentajeAhorroObjetivo / 100);
+  const ingresoEstandar = config.ingresoEstandarMensual;
+
+  const maxValor = Math.max(
+    1,
+    ingresoEstandar,
+    ...serie.map((p) => Math.max(p.ingresoAcum, p.gastoAcum + gastoPersonal + metaAhorro))
+  ) * 1.08;
 
   function x(dia) {
     return ((dia - 1) / (diasMes - 1)) * w;
@@ -616,6 +629,11 @@ function renderizarGraficaEquilibrio(serie, diasMes) {
 
   const puntosIngreso = serie.map((p) => `${x(p.dia).toFixed(1)},${y(p.ingresoAcum).toFixed(1)}`).join(' ');
   const puntosGasto = serie.map((p) => `${x(p.dia).toFixed(1)},${y(p.gastoAcum).toFixed(1)}`).join(' ');
+  const puntosVida = serie.map((p) => `${x(p.dia).toFixed(1)},${y(p.gastoAcum + gastoPersonal).toFixed(1)}`).join(' ');
+  const puntosAhorro = serie
+    .map((p) => `${x(p.dia).toFixed(1)},${y(p.gastoAcum + gastoPersonal + metaAhorro).toFixed(1)}`)
+    .join(' ');
+  const yLibertad = y(ingresoEstandar).toFixed(1);
 
   let diaCruce = null;
   for (const punto of serie) {
@@ -637,6 +655,12 @@ function renderizarGraficaEquilibrio(serie, diasMes) {
 
   peGraficaSvg.innerHTML = `
     <line x1="0" y1="${h}" x2="${w}" y2="${h}" stroke="var(--color-borde)" stroke-width="1"></line>
+    <line x1="0" y1="${yLibertad}" x2="${w}" y2="${yLibertad}" stroke="var(--color-primario)"
+      stroke-width="1.5" stroke-dasharray="5 3"></line>
+    <polyline points="${puntosAhorro}" fill="none" stroke="var(--color-azul-grisaceo)"
+      stroke-width="2" stroke-dasharray="5 3" stroke-linecap="round" stroke-linejoin="round"></polyline>
+    <polyline points="${puntosVida}" fill="none" stroke="var(--color-alerta)"
+      stroke-width="2" stroke-dasharray="5 3" stroke-linecap="round" stroke-linejoin="round"></polyline>
     <polyline points="${puntosGasto}" fill="none" stroke="var(--color-azul-grisaceo-claro)"
       stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></polyline>
     <polyline points="${puntosIngreso}" fill="none" stroke="var(--color-magenta)"
@@ -684,464 +708,6 @@ function renderizarBarraProgreso(numServicios, serviciosParaEquilibrio, margenPo
   peProgresoCaption.textContent =
     `${numServicios} tratamientos hechos de ${serviciosParaEquilibrio} necesarios. ` +
     `Cada tratamiento adicional deja ${formatearMoneda(margenPorServicio)} limpios.`;
-}
-
-// ----- Zonas del mes: negocio → personal → ahorro → libertad -----
-// Mismo día-a-día que la gráfica de equilibrio (ingresoAcum/gastoAcum de la
-// serie), solo que aquí la ganancia acumulada de cada día se clasifica en
-// una de cuatro zonas según las metas personales que la usuaria configuró.
-
-const peZonasGrafica = document.getElementById('pe-zonas-grafica');
-const peZonasCaption = document.getElementById('pe-zonas-caption');
-const peZonasDetalle = document.getElementById('pe-zonas-detalle');
-
-const ZONAS_INFO = {
-  negocio: { etiqueta: 'Cubriendo el negocio', clase: 'zona-negocio' },
-  personal: { etiqueta: 'Cubriendo lo personal', clase: 'zona-personal' },
-  ahorro: { etiqueta: 'Ahorrando', clase: 'zona-ahorro' },
-  libertad: { etiqueta: 'Libertad', clase: 'zona-libertad' },
-};
-
-let serieZonasActual = [];
-let zonasConfigActual = { gastoPersonalMensual: 0, metaAhorroMensual: 0 };
-let diaZonaSeleccionado = null;
-
-function clasificarZonaDia(ganancia, gastoPersonalMensual, metaAhorroMensual) {
-  const metaPersonal = gastoPersonalMensual;
-  const metaAhorro = gastoPersonalMensual + metaAhorroMensual;
-  if (ganancia < 0) return 'negocio';
-  if (ganancia < metaPersonal) return 'personal';
-  if (ganancia < metaAhorro) return 'ahorro';
-  return 'libertad';
-}
-
-function renderizarListaZonas() {
-  peZonasGrafica.innerHTML = '';
-
-  const metaAhorro = zonasConfigActual.gastoPersonalMensual + zonasConfigActual.metaAhorroMensual;
-  const maxEscala = Math.max(
-    1,
-    metaAhorro,
-    ...serieZonasActual.map((p) => p.ingresoAcum - p.gastoAcum)
-  ) * 1.1;
-
-  for (const punto of serieZonasActual) {
-    const ganancia = punto.ingresoAcum - punto.gastoAcum;
-    const zona = clasificarZonaDia(ganancia, zonasConfigActual.gastoPersonalMensual, zonasConfigActual.metaAhorroMensual);
-    const pct = Math.max(2, Math.round((Math.max(ganancia, 0) / maxEscala) * 100));
-    const seleccionado = punto.dia === diaZonaSeleccionado;
-
-    peZonasGrafica.appendChild(
-      crearEl('div', {
-        class: seleccionado ? 'comparativo-mes comparativo-mes--seleccionado' : 'comparativo-mes',
-        onclick: () => manejarSeleccionDiaZona(punto.dia),
-      }, [
-        crearEl('div', { class: 'comparativo-mes__barras' }, [
-          crearEl('div', {
-            class: `comparativo-mes__barra comparativo-mes__barra--${ZONAS_INFO[zona].clase}`,
-            style: `height: ${pct}%`,
-          }),
-        ]),
-        crearEl('div', { class: 'comparativo-mes__etiqueta', texto: String(punto.dia) }),
-      ])
-    );
-  }
-}
-
-function mostrarDetalleZonaDia() {
-  peZonasDetalle.innerHTML = '';
-
-  const punto = serieZonasActual.find((p) => p.dia === diaZonaSeleccionado);
-  if (!punto) {
-    peZonasDetalle.hidden = true;
-    return;
-  }
-
-  const { gastoPersonalMensual, metaAhorroMensual } = zonasConfigActual;
-  const metaAhorro = gastoPersonalMensual + metaAhorroMensual;
-  const ganancia = punto.ingresoAcum - punto.gastoAcum;
-  const zona = clasificarZonaDia(ganancia, gastoPersonalMensual, metaAhorroMensual);
-
-  peZonasDetalle.appendChild(
-    crearEl('div', { class: 'reportes-dia-detalle__titulo', texto: `Día ${punto.dia} — ${ZONAS_INFO[zona].etiqueta}` })
-  );
-
-  peZonasDetalle.appendChild(
-    crearEl('div', { class: 'reportes-dia-detalle__fila' }, [
-      crearEl('div', { class: 'reportes-dia-detalle__nombre', texto: 'Ganancia acumulada' }),
-      crearEl('div', { class: 'reportes-dia-detalle__precio', texto: formatearMoneda(ganancia) }),
-    ])
-  );
-
-  let etiquetaFaltante = null;
-  let montoFaltante = 0;
-  if (zona === 'negocio') {
-    etiquetaFaltante = 'Falta para cubrir el negocio';
-    montoFaltante = -ganancia;
-  } else if (zona === 'personal') {
-    etiquetaFaltante = 'Falta para cubrir lo personal';
-    montoFaltante = gastoPersonalMensual - ganancia;
-  } else if (zona === 'ahorro') {
-    etiquetaFaltante = 'Falta para tu meta de ahorro';
-    montoFaltante = metaAhorro - ganancia;
-  } else {
-    etiquetaFaltante = 'Libertad extra acumulada';
-    montoFaltante = ganancia - metaAhorro;
-  }
-
-  peZonasDetalle.appendChild(
-    crearEl('div', { class: 'reportes-dia-detalle__fila' }, [
-      crearEl('div', { class: 'reportes-dia-detalle__nombre', texto: etiquetaFaltante }),
-      crearEl('div', { class: 'reportes-dia-detalle__precio', texto: formatearMoneda(Math.max(0, montoFaltante)) }),
-    ])
-  );
-
-  peZonasDetalle.hidden = false;
-}
-
-function manejarSeleccionDiaZona(dia) {
-  diaZonaSeleccionado = diaZonaSeleccionado === dia ? null : dia;
-  renderizarListaZonas();
-  if (diaZonaSeleccionado) {
-    mostrarDetalleZonaDia();
-  } else {
-    peZonasDetalle.hidden = true;
-  }
-}
-
-function actualizarCaptionZonas() {
-  if (serieZonasActual.length === 0) {
-    peZonasCaption.textContent = '';
-    return;
-  }
-
-  const { gastoPersonalMensual, metaAhorroMensual } = zonasConfigActual;
-  const metaAhorro = gastoPersonalMensual + metaAhorroMensual;
-  const ultimo = serieZonasActual[serieZonasActual.length - 1];
-  const ganancia = ultimo.ingresoAcum - ultimo.gastoAcum;
-  const zona = clasificarZonaDia(ganancia, gastoPersonalMensual, metaAhorroMensual);
-
-  if (zona === 'negocio') {
-    peZonasCaption.textContent = `Hoy vas cubriendo el negocio — faltan ${formatearMoneda(-ganancia)} para cruzar el punto de equilibrio.`;
-  } else if (zona === 'personal') {
-    peZonasCaption.textContent = `Ya cubriste el negocio. Vas cubriendo lo personal — faltan ${formatearMoneda(gastoPersonalMensual - ganancia)} para cubrir lo que necesitas para vivir.`;
-  } else if (zona === 'ahorro') {
-    peZonasCaption.textContent = `Ya cubriste lo personal. Vas ahorrando — faltan ${formatearMoneda(metaAhorro - ganancia)} para tu meta de ahorro del mes.`;
-  } else {
-    peZonasCaption.textContent = `Ya cumpliste tu meta de ahorro del mes — tienes ${formatearMoneda(ganancia - metaAhorro)} de libertad extra.`;
-  }
-}
-
-function renderizarZonasMes(serie, config) {
-  serieZonasActual = serie;
-  const metaAhorroMensual = config.ingresoEstandarMensual * (config.porcentajeAhorroObjetivo / 100);
-  zonasConfigActual = { gastoPersonalMensual: config.gastoPersonalMensual, metaAhorroMensual };
-
-  if (!serie.some((p) => p.dia === diaZonaSeleccionado)) {
-    diaZonaSeleccionado = null;
-    peZonasDetalle.hidden = true;
-  }
-
-  renderizarListaZonas();
-  actualizarCaptionZonas();
-  if (diaZonaSeleccionado) mostrarDetalleZonaDia();
-}
-
-// ----- Ritmo diario y semanal -----
-// Las mismas cuatro metas de Zonas del mes (negocio, personal/vida, ahorro,
-// ingreso estándar), repartidas entre los días que se van a trabajar este
-// mes. A diferencia de Zonas del mes (que acumula por día de calendario),
-// aquí el checkpoint es "el día N que trabajaste" — se suma todo lo ganado
-// en el mes hasta ese día y se compara contra N veces la meta diaria. Así
-// un solo día bueno no dispara "Libertad" solo: tiene que sostenerse en
-// varios días trabajados. Los días sin ningún registro ni siquiera aparecen
-// — no son "mal día", son un día que no se trabajó.
-
-const campoDiasTrabajo = document.getElementById('config-dias-trabajo');
-const ritmoCaptionHoy = document.getElementById('ritmo-caption-hoy');
-const ritmoCaptionMes = document.getElementById('ritmo-caption-mes');
-const ritmoDiaGrafica = document.getElementById('ritmo-dia-grafica');
-const ritmoDiaDetalle = document.getElementById('ritmo-dia-detalle');
-const ritmoSemanaGrafica = document.getElementById('ritmo-semana-grafica');
-const ritmoSemanaDetalle = document.getElementById('ritmo-semana-detalle');
-
-const ZONAS_RITMO_INFO = {
-  rojo: { etiqueta: 'Bajo el negocio', clase: 'zona-rojo' },
-  amarillo: { etiqueta: 'Cubre el negocio', clase: 'zona-amarillo' },
-  verde: { etiqueta: 'Cubre lo personal', clase: 'zona-verde' },
-  azul: { etiqueta: 'Cumple ahorro', clase: 'zona-azul' },
-  morado: { etiqueta: 'Libertad', clase: 'zona-morado' },
-};
-
-let diasTrabajoActual = 12;
-let metasRitmoDiariasActuales = { negocio: 0, vida: 0, ahorro: 0, libertad: 0 };
-let serieDiaRitmoActual = []; // [{dia, ingresoDia, ingresoAcum, diasTrabajadosAcum, metaAcum}]
-let serieSemanaRitmoActual = []; // [{semana, ingresoAcum, diasTrabajadosAcum, metaAcum}]
-let diaRitmoSeleccionado = null;
-let semanaRitmoSeleccionada = null;
-
-function clasificarZonaRitmo(monto, metas) {
-  if (monto < metas.negocio) return 'rojo';
-  if (monto < metas.vida) return 'amarillo';
-  if (monto < metas.ahorro) return 'verde';
-  if (monto < metas.libertad) return 'azul';
-  return 'morado';
-}
-
-function escalarMetas(metas, factor) {
-  return {
-    negocio: metas.negocio * factor,
-    vida: metas.vida * factor,
-    ahorro: metas.ahorro * factor,
-    libertad: metas.libertad * factor,
-  };
-}
-
-// Ingreso de cada día de calendario por separado (servicios + venta de
-// producto) — el punto de partida antes de acumular por días trabajados.
-function calcularIngresoPorDiaCalendario(visitas, productosVisitas, diaHoy) {
-  const ingresoPorDia = {};
-  for (const visita of visitas) {
-    const dia = Number(visita.fecha.split('-')[2]);
-    ingresoPorDia[dia] = (ingresoPorDia[dia] || 0) + visita.precio;
-  }
-  for (const item of productosVisitas) {
-    if (item.tipo !== 'venta') continue;
-    const dia = Number(item.fecha.split('-')[2]);
-    ingresoPorDia[dia] = (ingresoPorDia[dia] || 0) + item.precio;
-  }
-
-  const serie = [];
-  for (let dia = 1; dia <= diaHoy; dia++) {
-    serie.push({ dia, ingreso: ingresoPorDia[dia] || 0 });
-  }
-  return serie;
-}
-
-// Un punto por cada día en que sí se registró algo: ingreso acumulado del
-// mes hasta ese día, comparado contra (días trabajados hasta ahí) × meta diaria.
-function calcularSerieDiaRitmo(diaCalendario, metasDiarias) {
-  const diasConActividad = diaCalendario.filter((p) => p.ingreso > 0);
-
-  let ingresoAcum = 0;
-  return diasConActividad.map((punto, indice) => {
-    ingresoAcum += punto.ingreso;
-    const diasTrabajadosAcum = indice + 1;
-    return {
-      dia: punto.dia,
-      ingresoDia: punto.ingreso,
-      ingresoAcum,
-      diasTrabajadosAcum,
-      metaAcum: escalarMetas(metasDiarias, diasTrabajadosAcum),
-    };
-  });
-}
-
-// Un checkpoint al final de cada semana de calendario: mismo acumulado,
-// pero agrupado por semana en vez de por cada día trabajado.
-function calcularSerieSemanaRitmo(diaCalendario, metasDiarias) {
-  if (diaCalendario.length === 0) return [];
-  const semanaMax = Math.ceil(diaCalendario[diaCalendario.length - 1].dia / 7);
-
-  let ingresoAcum = 0;
-  let diasTrabajadosAcum = 0;
-  const serie = [];
-  for (let semana = 1; semana <= semanaMax; semana++) {
-    const diasDeEstaSemana = diaCalendario.filter((p) => Math.ceil(p.dia / 7) === semana);
-    for (const punto of diasDeEstaSemana) {
-      ingresoAcum += punto.ingreso;
-      if (punto.ingreso > 0) diasTrabajadosAcum += 1;
-    }
-    serie.push({ semana, ingresoAcum, diasTrabajadosAcum, metaAcum: escalarMetas(metasDiarias, diasTrabajadosAcum) });
-  }
-  return serie;
-}
-
-function renderizarBarraRitmo(contenedor, puntos, claveDe, etiquetaDe, seleccionActual, onSeleccion) {
-  contenedor.innerHTML = '';
-  const techoMax = puntos.length > 0 ? puntos[puntos.length - 1].metaAcum.libertad : 1;
-  const maxEscala = Math.max(1, techoMax, ...puntos.map((p) => p.ingresoAcum)) * 1.1;
-
-  for (const punto of puntos) {
-    const clave = claveDe(punto);
-    const zona = clasificarZonaRitmo(punto.ingresoAcum, punto.metaAcum);
-    const pct = Math.max(2, Math.round((punto.ingresoAcum / maxEscala) * 100));
-    const seleccionado = clave === seleccionActual;
-
-    contenedor.appendChild(
-      crearEl('div', {
-        class: seleccionado ? 'comparativo-mes comparativo-mes--seleccionado' : 'comparativo-mes',
-        onclick: () => onSeleccion(clave),
-      }, [
-        crearEl('div', { class: 'comparativo-mes__barras' }, [
-          crearEl('div', {
-            class: `comparativo-mes__barra comparativo-mes__barra--${ZONAS_RITMO_INFO[zona].clase}`,
-            style: `height: ${pct}%`,
-          }),
-        ]),
-        crearEl('div', { class: 'comparativo-mes__etiqueta', texto: etiquetaDe(punto) }),
-      ])
-    );
-  }
-}
-
-function detalleRitmoGenerico(contenedor, titulo, punto) {
-  contenedor.innerHTML = '';
-  const { ingresoAcum, metaAcum, diasTrabajadosAcum } = punto;
-  const zona = clasificarZonaRitmo(ingresoAcum, metaAcum);
-
-  contenedor.appendChild(
-    crearEl('div', { class: 'reportes-dia-detalle__titulo', texto: `${titulo} — ${ZONAS_RITMO_INFO[zona].etiqueta}` })
-  );
-  contenedor.appendChild(
-    crearEl('div', { class: 'reportes-dia-detalle__fila' }, [
-      crearEl('div', { class: 'reportes-dia-detalle__nombre', texto: `Acumulado en ${diasTrabajadosAcum} ${diasTrabajadosAcum === 1 ? 'día trabajado' : 'días trabajados'}` }),
-      crearEl('div', { class: 'reportes-dia-detalle__precio', texto: formatearMoneda(ingresoAcum) }),
-    ])
-  );
-
-  let etiquetaFaltante;
-  let montoFaltante;
-  if (zona === 'rojo') {
-    etiquetaFaltante = 'Falta para cubrir el negocio';
-    montoFaltante = metaAcum.negocio - ingresoAcum;
-  } else if (zona === 'amarillo') {
-    etiquetaFaltante = 'Falta para cubrir lo personal';
-    montoFaltante = metaAcum.vida - ingresoAcum;
-  } else if (zona === 'verde') {
-    etiquetaFaltante = 'Falta para tu meta de ahorro';
-    montoFaltante = metaAcum.ahorro - ingresoAcum;
-  } else if (zona === 'azul') {
-    etiquetaFaltante = 'Falta para tu ingreso estándar';
-    montoFaltante = metaAcum.libertad - ingresoAcum;
-  } else {
-    etiquetaFaltante = 'Libertad extra';
-    montoFaltante = ingresoAcum - metaAcum.libertad;
-  }
-
-  contenedor.appendChild(
-    crearEl('div', { class: 'reportes-dia-detalle__fila' }, [
-      crearEl('div', { class: 'reportes-dia-detalle__nombre', texto: etiquetaFaltante }),
-      crearEl('div', { class: 'reportes-dia-detalle__precio', texto: formatearMoneda(Math.max(0, montoFaltante)) }),
-    ])
-  );
-
-  contenedor.hidden = false;
-}
-
-function renderizarRitmoDiario() {
-  renderizarBarraRitmo(
-    ritmoDiaGrafica, serieDiaRitmoActual,
-    (p) => p.dia, (p) => String(p.dia), diaRitmoSeleccionado, manejarSeleccionDiaRitmo
-  );
-}
-
-function mostrarDetalleDiaRitmo() {
-  const punto = serieDiaRitmoActual.find((p) => p.dia === diaRitmoSeleccionado);
-  if (!punto) {
-    ritmoDiaDetalle.innerHTML = '';
-    ritmoDiaDetalle.hidden = true;
-    return;
-  }
-  detalleRitmoGenerico(ritmoDiaDetalle, `Día ${punto.dia}`, punto);
-}
-
-function manejarSeleccionDiaRitmo(dia) {
-  diaRitmoSeleccionado = diaRitmoSeleccionado === dia ? null : dia;
-  renderizarRitmoDiario();
-  mostrarDetalleDiaRitmo();
-}
-
-function renderizarRitmoSemanal() {
-  renderizarBarraRitmo(
-    ritmoSemanaGrafica, serieSemanaRitmoActual,
-    (p) => p.semana, (p) => `Sem ${p.semana}`, semanaRitmoSeleccionada, manejarSeleccionSemanaRitmo
-  );
-}
-
-function mostrarDetalleSemanaRitmo() {
-  const punto = serieSemanaRitmoActual.find((p) => p.semana === semanaRitmoSeleccionada);
-  if (!punto) {
-    ritmoSemanaDetalle.innerHTML = '';
-    ritmoSemanaDetalle.hidden = true;
-    return;
-  }
-  detalleRitmoGenerico(ritmoSemanaDetalle, `Semana ${punto.semana}`, punto);
-}
-
-function manejarSeleccionSemanaRitmo(semana) {
-  semanaRitmoSeleccionada = semanaRitmoSeleccionada === semana ? null : semana;
-  renderizarRitmoSemanal();
-  mostrarDetalleSemanaRitmo();
-}
-
-function actualizarRitmoCaptionMes(ingresoMesActual, metasMensuales) {
-  const zona = clasificarZonaRitmo(ingresoMesActual, metasMensuales);
-  ritmoCaptionMes.textContent =
-    `Si el ritmo se mantiene todo el mes (${diasTrabajoActual} días), vas en zona "${ZONAS_RITMO_INFO[zona].etiqueta}" — ${formatearMoneda(ingresoMesActual)} de ingreso hasta hoy.`;
-}
-
-function actualizarRitmoCaptionHoy() {
-  const ultimo = serieDiaRitmoActual[serieDiaRitmoActual.length - 1];
-  if (!ultimo) {
-    ritmoCaptionHoy.textContent = 'Todavía no registras nada este mes.';
-    return;
-  }
-
-  const zona = clasificarZonaRitmo(ultimo.ingresoAcum, ultimo.metaAcum);
-  ritmoCaptionHoy.textContent =
-    `Llevas ${ultimo.diasTrabajadosAcum} ${ultimo.diasTrabajadosAcum === 1 ? 'día trabajado' : 'días trabajados'} y vas en zona "${ZONAS_RITMO_INFO[zona].etiqueta}" — ${formatearMoneda(ultimo.ingresoAcum)} acumulados.`;
-}
-
-async function manejarGuardarDiasTrabajo() {
-  const valor = Number(campoDiasTrabajo.value);
-  if (!campoDiasTrabajo.value || Number.isNaN(valor) || valor < 1) return;
-
-  try {
-    await DB.actualizarDiasTrabajoMes(mesActualISO(), valor);
-    mostrarMensaje('Días de trabajo actualizados');
-    cargarPuntoEquilibrio();
-  } catch (error) {
-    mostrarMensaje('No se pudo guardar: ' + (error.message || 'intenta de nuevo'));
-    console.error(error);
-  }
-}
-
-async function cargarRitmo(mes, r) {
-  let registro;
-  try {
-    registro = await DB.asegurarDiasTrabajoMes(mes);
-  } catch (error) {
-    registro = { dias: diasTrabajoActual };
-    console.error(error);
-  }
-
-  diasTrabajoActual = registro.dias;
-  campoDiasTrabajo.value = diasTrabajoActual;
-
-  const metaAhorroMensual = r.config.ingresoEstandarMensual * (r.config.porcentajeAhorroObjetivo / 100);
-  metasRitmoDiariasActuales = {
-    negocio: r.gastoTotalMes / diasTrabajoActual,
-    vida: (r.gastoTotalMes + r.config.gastoPersonalMensual) / diasTrabajoActual,
-    ahorro: (r.gastoTotalMes + r.config.gastoPersonalMensual + metaAhorroMensual) / diasTrabajoActual,
-    libertad: r.config.ingresoEstandarMensual / diasTrabajoActual,
-  };
-
-  const diaHoyNum = Number(fechaHoyISO().split('-')[2]);
-  const diaCalendario = calcularIngresoPorDiaCalendario(r.visitas, r.productosVisitas, diaHoyNum);
-  serieDiaRitmoActual = calcularSerieDiaRitmo(diaCalendario, metasRitmoDiariasActuales);
-  serieSemanaRitmoActual = calcularSerieSemanaRitmo(diaCalendario, metasRitmoDiariasActuales);
-
-  if (!serieDiaRitmoActual.some((p) => p.dia === diaRitmoSeleccionado)) diaRitmoSeleccionado = null;
-  if (!serieSemanaRitmoActual.some((p) => p.semana === semanaRitmoSeleccionada)) semanaRitmoSeleccionada = null;
-
-  renderizarRitmoDiario();
-  renderizarRitmoSemanal();
-  mostrarDetalleDiaRitmo();
-  mostrarDetalleSemanaRitmo();
-
-  actualizarRitmoCaptionMes(r.ingresoMes, escalarMetas(metasRitmoDiariasActuales, diasTrabajoActual));
-  actualizarRitmoCaptionHoy();
 }
 
 // ----- Ticket promedio y margen por tratamiento -----
@@ -1654,14 +1220,12 @@ async function cargarPuntoEquilibrio() {
     ultimoResumenPe = { visitas: r.visitas, hoy, costoMaterialActual: r.costoMaterialActual };
 
     renderizarTiraCifras(r.ingresoMes, r.gastoTotalMes, r.gananciaMes);
-    renderizarGraficaEquilibrio(r.serie, r.diasMes);
+    renderizarGraficaEquilibrio(r.serie, r.diasMes, r.config);
     renderizarBarraProgreso(r.numServicios, r.serviciosParaEquilibrio, r.margenPorServicio);
     renderizarDosTarjetas(r.ticketPromedio, r.numServicios, r.margenPorServicio);
     renderizarGraficaSemanal(r.visitas, Number(hoy.split('-')[2]));
     renderizarProductos(r.regalos, r.ventasProducto);
     renderizarDesgloseGastos(r.gastosFijos, r.nomina, r.gastosExtras, r.gastoMaterialMes, r.gastoProductosRegaloMes, r.costoProductosVentaMes);
-    renderizarZonasMes(r.serie, r.config);
-    await cargarRitmo(mes, r);
 
     if (periodoPeActivo !== 'mes') cambiarPeriodoPe(periodoPeActivo);
 
@@ -1678,7 +1242,6 @@ function inicializar() {
   campoGastoPersonal.addEventListener('change', manejarGuardarGastoPersonal);
   campoIngresoEstandar.addEventListener('change', manejarGuardarIngresoEstandar);
   campoPorcentajeAhorro.addEventListener('change', manejarGuardarPorcentajeAhorro);
-  campoDiasTrabajo.addEventListener('change', manejarGuardarDiasTrabajo);
   cargarConfig();
 
   document.getElementById('boton-abrir-gastos-fijos').addEventListener('click', abrirGastosFijos);

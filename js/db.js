@@ -647,46 +647,6 @@ async function actualizarPorcentajeAhorroObjetivo(porcentaje) {
   if (error) throw error;
 }
 
-// ----- Días de trabajo del mes (para repartir las metas de Ritmo diario) -----
-
-const TABLA_DIAS_TRABAJO_MES = 'dias_trabajo_mes';
-const DIAS_TRABAJO_POR_DEFECTO = 12;
-
-function filaADiasTrabajoMes(fila) {
-  return { id: fila.id, mes: fila.mes, dias: fila.dias };
-}
-
-async function asegurarDiasTrabajoMes(mes) {
-  const { data, error } = await GrafectoAuth.cliente
-    .from(TABLA_DIAS_TRABAJO_MES)
-    .select('*')
-    .eq('sucursal', SUCURSAL)
-    .eq('mes', mes)
-    .maybeSingle();
-
-  if (error) throw error;
-  if (data) return filaADiasTrabajoMes(data);
-
-  const { data: creado, error: errorCrear } = await GrafectoAuth.cliente
-    .from(TABLA_DIAS_TRABAJO_MES)
-    .insert({ sucursal: SUCURSAL, mes, dias: DIAS_TRABAJO_POR_DEFECTO })
-    .select()
-    .single();
-
-  if (errorCrear) throw errorCrear;
-  return filaADiasTrabajoMes(creado);
-}
-
-async function actualizarDiasTrabajoMes(mes, dias) {
-  const { error } = await GrafectoAuth.cliente
-    .from(TABLA_DIAS_TRABAJO_MES)
-    .update({ dias })
-    .eq('sucursal', SUCURSAL)
-    .eq('mes', mes);
-
-  if (error) throw error;
-}
-
 // ----- Gastos fijos -----
 // Nómina NO vive aquí (tiene su propia tabla, porque varía cada semana).
 
@@ -1175,8 +1135,6 @@ window.GrafectoDB = {
   actualizarGastoPersonalMensual,
   actualizarIngresoEstandarMensual,
   actualizarPorcentajeAhorroObjetivo,
-  asegurarDiasTrabajoMes,
-  actualizarDiasTrabajoMes,
   listarGastosFijosDelMes,
   asegurarGastosFijosDelMes,
   agregarGastoFijo,
