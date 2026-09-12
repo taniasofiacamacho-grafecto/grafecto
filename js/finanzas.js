@@ -603,21 +603,19 @@ function calcularSerieDiaria(visitas, gastosExtras, productosVisitas, gastoBaseD
 }
 
 // Además de ingreso/gasto, dibuja tres líneas de referencia: cuánto
-// necesitas para vivir, tu meta de ahorro (% de tu ingreso estándar) y tu
-// ingreso estándar como techo de "libertad" — todas encima del gasto real
-// acumulado, salvo libertad que es un monto fijo del mes completo.
+// necesitas para vivir, tu meta de ahorro (% de tu ingreso estándar) y
+// libertad — un 5% arriba de la línea de ahorro, una vez que ya se cumplió
+// esa meta. Vida/ahorro/libertad van encima del gasto real acumulado.
 function renderizarGraficaEquilibrio(serie, diasMes, config) {
   const w = 320;
   const h = 150;
 
   const gastoPersonal = config.gastoPersonalMensual;
   const metaAhorro = config.ingresoEstandarMensual * (config.porcentajeAhorroObjetivo / 100);
-  const ingresoEstandar = config.ingresoEstandarMensual;
 
   const maxValor = Math.max(
     1,
-    ingresoEstandar,
-    ...serie.map((p) => Math.max(p.ingresoAcum, p.gastoAcum + gastoPersonal + metaAhorro))
+    ...serie.map((p) => Math.max(p.ingresoAcum, (p.gastoAcum + gastoPersonal + metaAhorro) * 1.05))
   ) * 1.08;
 
   function x(dia) {
@@ -633,7 +631,9 @@ function renderizarGraficaEquilibrio(serie, diasMes, config) {
   const puntosAhorro = serie
     .map((p) => `${x(p.dia).toFixed(1)},${y(p.gastoAcum + gastoPersonal + metaAhorro).toFixed(1)}`)
     .join(' ');
-  const yLibertad = y(ingresoEstandar).toFixed(1);
+  const puntosLibertad = serie
+    .map((p) => `${x(p.dia).toFixed(1)},${y((p.gastoAcum + gastoPersonal + metaAhorro) * 1.05).toFixed(1)}`)
+    .join(' ');
 
   let diaCruce = null;
   for (const punto of serie) {
@@ -655,8 +655,8 @@ function renderizarGraficaEquilibrio(serie, diasMes, config) {
 
   peGraficaSvg.innerHTML = `
     <line x1="0" y1="${h}" x2="${w}" y2="${h}" stroke="var(--color-borde)" stroke-width="1"></line>
-    <line x1="0" y1="${yLibertad}" x2="${w}" y2="${yLibertad}" stroke="var(--color-primario)"
-      stroke-width="1.5" stroke-dasharray="5 3"></line>
+    <polyline points="${puntosLibertad}" fill="none" stroke="var(--color-primario)"
+      stroke-width="2" stroke-dasharray="5 3" stroke-linecap="round" stroke-linejoin="round"></polyline>
     <polyline points="${puntosAhorro}" fill="none" stroke="var(--color-azul-grisaceo)"
       stroke-width="2" stroke-dasharray="5 3" stroke-linecap="round" stroke-linejoin="round"></polyline>
     <polyline points="${puntosVida}" fill="none" stroke="var(--color-alerta)"
