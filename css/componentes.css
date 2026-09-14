@@ -860,8 +860,15 @@
 .pe-leyenda__punto--ahorro { background: var(--color-azul-grisaceo); }
 .pe-leyenda__punto--libertad { background: var(--color-primario); }
 
-.pe-progreso-contenedor {
+.pe-progreso-item {
   margin-top: var(--espacio-lg);
+}
+
+.pe-progreso-item__titulo {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-texto);
+  margin-bottom: 2px;
 }
 
 .pe-reducido-grid {
@@ -957,10 +964,6 @@
   border-radius: 999px;
   background: var(--color-magenta-suave);
   width: 0%;
-}
-
-.barra-progreso__relleno--logrado {
-  background: var(--color-exito);
 }
 
 .barra-progreso__marca {

@@ -677,37 +677,74 @@ function renderizarGraficaEquilibrio(serie, diasMes, config) {
   }
 }
 
-// ----- Barra de progreso de tratamientos hacia el equilibrio -----
+// ----- Barras de progreso de tratamientos hacia cada meta -----
+// Una barra por línea de la gráfica de arriba (negocio, vida, ahorro,
+// libertad), con el mismo color que su línea — para ver cuántos
+// tratamientos hacen falta para cada una, no solo para el negocio.
 
-const peBarraRelleno = document.getElementById('pe-barra-relleno');
-const peBarraMarca = document.getElementById('pe-barra-marca');
-const peBarraMarcaEtiqueta = document.getElementById('pe-barra-marca-etiqueta');
-const peProgresoCaption = document.getElementById('pe-progreso-caption');
+const peProgresosLista = document.getElementById('pe-progresos-lista');
 
-function renderizarBarraProgreso(numServicios, serviciosParaEquilibrio, margenPorServicio) {
-  if (serviciosParaEquilibrio === null) {
-    peBarraRelleno.style.width = '0%';
-    peBarraMarcaEtiqueta.textContent = '';
-    peProgresoCaption.textContent =
-      'El ticket promedio todavía no cubre el costo de material — no se puede calcular cuántos tratamientos hacen falta.';
+const METAS_PROGRESO = [
+  { clave: 'negocio', titulo: 'Para cubrir el negocio', color: 'var(--color-azul-grisaceo-claro)' },
+  { clave: 'vida', titulo: 'Para cubrir lo personal', color: 'var(--color-alerta)' },
+  { clave: 'ahorro', titulo: 'Para cumplir tu ahorro', color: 'var(--color-azul-grisaceo)' },
+  { clave: 'libertad', titulo: 'Para llegar a libertad', color: 'var(--color-primario)' },
+];
+
+function crearBarraProgreso(meta, numServicios, serviciosNecesarios, margenPorServicio) {
+  const contenedor = crearEl('div', { class: 'pe-progreso-item' }, [
+    crearEl('div', { class: 'pe-progreso-item__titulo', texto: meta.titulo }),
+  ]);
+
+  const maxEscala = Math.max(serviciosNecesarios, numServicios) * 1.15;
+  const pctRelleno = Math.min(100, (numServicios / maxEscala) * 100);
+  const pctMarca = Math.min(100, (serviciosNecesarios / maxEscala) * 100);
+  const logrado = numServicios >= serviciosNecesarios;
+
+  contenedor.appendChild(
+    crearEl('div', { class: 'barra-progreso' }, [
+      crearEl('div', { class: 'barra-progreso__relleno', style: `width: ${pctRelleno}%; background: ${meta.color};` }),
+      crearEl('div', { class: 'barra-progreso__marca', style: `left: ${pctMarca}%` }, [
+        crearEl('span', { class: 'barra-progreso__marca-etiqueta', texto: String(serviciosNecesarios) }),
+      ]),
+    ])
+  );
+
+  const caption = logrado
+    ? `✓ Ya lo lograste — ${numServicios} tratamientos hechos.`
+    : `${numServicios} de ${serviciosNecesarios} tratamientos. Cada tratamiento adicional deja ${formatearMoneda(margenPorServicio)} limpios.`;
+  contenedor.appendChild(crearEl('p', { class: 'campo__ayuda', style: 'margin-top: 8px;', texto: caption }));
+
+  return contenedor;
+}
+
+function renderizarBarraProgreso(numServicios, gastoFijoMes, margenPorServicio, config) {
+  peProgresosLista.innerHTML = '';
+
+  if (margenPorServicio <= 0) {
+    peProgresosLista.appendChild(
+      crearEl('p', {
+        class: 'campo__ayuda',
+        style: 'margin-top: var(--espacio-lg);',
+        texto: 'El ticket promedio todavía no cubre el costo de material — no se puede calcular cuántos tratamientos hacen falta.',
+      })
+    );
     return;
   }
 
-  const maxEscala = Math.max(serviciosParaEquilibrio, numServicios) * 1.15;
-  const pctRelleno = Math.min(100, (numServicios / maxEscala) * 100);
-  const pctMarca = Math.min(100, (serviciosParaEquilibrio / maxEscala) * 100);
-  const logrado = numServicios >= serviciosParaEquilibrio;
+  const metaAhorro = config.ingresoEstandarMensual * (config.porcentajeAhorroObjetivo / 100);
+  const objetivoAhorro = gastoFijoMes + config.gastoPersonalMensual + metaAhorro;
+  const objetivos = {
+    negocio: gastoFijoMes,
+    vida: gastoFijoMes + config.gastoPersonalMensual,
+    ahorro: objetivoAhorro,
+    libertad: objetivoAhorro * 1.05,
+  };
 
-  peBarraRelleno.style.width = `${pctRelleno}%`;
-  peBarraRelleno.className = logrado
-    ? 'barra-progreso__relleno barra-progreso__relleno--logrado'
-    : 'barra-progreso__relleno';
-  peBarraMarca.style.left = `${pctMarca}%`;
-  peBarraMarcaEtiqueta.textContent = `${serviciosParaEquilibrio} · equilibrio`;
-
-  peProgresoCaption.textContent =
-    `${numServicios} tratamientos hechos de ${serviciosParaEquilibrio} necesarios. ` +
-    `Cada tratamiento adicional deja ${formatearMoneda(margenPorServicio)} limpios.`;
+  for (const meta of METAS_PROGRESO) {
+    const serviciosNecesarios = Math.ceil(objetivos[meta.clave] / margenPorServicio);
+    peProgresosLista.appendChild(crearBarraProgreso(meta, numServicios, serviciosNecesarios, margenPorServicio));
+  }
 }
 
 // ----- Ticket promedio y margen por tratamiento -----
@@ -1092,7 +1129,6 @@ async function calcularResumenMes(mes, diaCorte) {
   const numServicios = visitas.length;
   const ticketPromedio = numServicios > 0 ? ingresoServiciosMes / numServicios : 0;
   const margenPorServicio = ticketPromedio - costoMaterialActual;
-  const serviciosParaEquilibrio = margenPorServicio > 0 ? Math.ceil(gastoFijoMes / margenPorServicio) : null;
 
   const diaCorteISO = `${mes.slice(0, 8)}${String(diaCorte).padStart(2, '0')}`;
   const serie = calcularSerieDiaria(visitas, gastosExtras, productosVisitas, gastoBaseDelMes, costoMaterialActual, diaCorteISO);
@@ -1111,7 +1147,7 @@ async function calcularResumenMes(mes, diaCorte) {
     gastoBaseDelMes, gastoFijoMes, costoMaterialActual, gastoMaterialMes, gastoTotalMes,
     gastoProductosRegaloMes, ingresoProductosMes, costoProductosVentaMes,
     ingresoServiciosMes, ingresoMes, gananciaMes, numServicios, ticketPromedio, margenPorServicio,
-    serviciosParaEquilibrio, serie, diaCruce,
+    serie, diaCruce,
   };
 }
 
@@ -1221,7 +1257,7 @@ async function cargarPuntoEquilibrio() {
 
     renderizarTiraCifras(r.ingresoMes, r.gastoTotalMes, r.gananciaMes);
     renderizarGraficaEquilibrio(r.serie, r.diasMes, r.config);
-    renderizarBarraProgreso(r.numServicios, r.serviciosParaEquilibrio, r.margenPorServicio);
+    renderizarBarraProgreso(r.numServicios, r.gastoFijoMes, r.margenPorServicio, r.config);
     renderizarDosTarjetas(r.ticketPromedio, r.numServicios, r.margenPorServicio);
     renderizarGraficaSemanal(r.visitas, Number(hoy.split('-')[2]));
     renderizarProductos(r.regalos, r.ventasProducto);
