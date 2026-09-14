@@ -64,6 +64,10 @@
     <section id="vista-hoy" hidden>
       <main class="contenido contenido--sin-buscador">
         <div id="resumen-hoy" class="resumen-ingresos"></div>
+        <div id="rebooks-seccion" class="calendario-seccion" hidden>
+          <div class="calendario-seccion__titulo">Recordatorios de rebook</div>
+          <div id="rebooks-lista"></div>
+        </div>
         <div id="lista-hoy" class="lista-agenda"></div>
       </main>
     </section>
@@ -353,6 +357,7 @@
       <div class="hoja__manija"></div>
       <div class="hoja__titulo" id="cobro-titulo">Cobro</div>
       <div id="cobro-resumen" class="cobro-resumen"></div>
+      <p class="campo__ayuda" id="cobro-rebook-nota" hidden><strong>Esta cita tiene 20% de descuento por rebook.</strong></p>
 
       <form id="formulario-cobro">
         <div class="campo">
@@ -405,6 +410,10 @@
             <button type="button" id="cobro-notas-dictado" class="boton-dictado" aria-label="Dictar por voz" hidden>🎤</button>
           </div>
           <textarea id="cobro-notas" placeholder="Qué se hizo, observaciones…"></textarea>
+        </div>
+
+        <div class="campo">
+          <button type="button" id="boton-cobro-rebook" class="boton boton--secundario boton--ancho-completo">+ Agendar siguiente cita (20% descuento)</button>
         </div>
 
         <div class="fila-botones">

@@ -119,6 +119,22 @@ function generarEnlaceRecordatorio(cita) {
   return enlaceWa(cita.clientaTelefono, mensaje);
 }
 
+// ===== Recordatorio de rebook (10 días antes de la cita agendada con descuento) =====
+
+function generarEnlaceRecordatorioRebook(cita) {
+  const nombre = cita.clientaNombre.split(' ')[0];
+
+  const mensaje =
+    `¡Hola ${nombre}! 💜\n\n` +
+    `Te escribimos para recordarte que tienes tu siguiente cita en GRAFECTO agendada para el ` +
+    `${UI.formatearFechaLarga(cita.fecha)} a las ${UI.formatearHora12(cita.hora)}` +
+    `${cita.tratamientoNombre ? ` — ${cita.tratamientoNombre}` : ''}, con tu 20% de descuento por haberla ` +
+    `agendado desde tu última visita.\n\n` +
+    `¿La quieres dejar tal como está, o prefieres moverla a otra fecha? Contéstanos y con gusto te ayudamos.`;
+
+  return enlaceWa(cita.clientaTelefono, mensaje);
+}
+
 // ===== Mensaje de salida (después del checkout, agradecimiento + cuidados) =====
 
 function generarEnlaceMensajeSalida(cita) {
@@ -176,6 +192,7 @@ window.WhatsApp = {
   generarEnlaceConfirmacion,
   generarEnlaceDeepCleanse,
   generarEnlaceRecordatorio,
+  generarEnlaceRecordatorioRebook,
   generarEnlaceMensajeSalida,
   generarTextoDisponibilidad,
   generarEnlaceDisponibilidad,

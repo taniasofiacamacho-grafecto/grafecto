@@ -5,11 +5,13 @@
 
 (function () {
 
-const { crearEl, mostrarMensaje, fechaHoyISO, formatearMoneda } = window.UI;
+const { crearEl, mostrarMensaje, fechaHoyISO, formatearFechaLarga, formatearHora12, formatearMoneda } = window.UI;
 const DB = window.GrafectoDB;
 
 const listaEl = document.getElementById('lista-hoy');
 const resumenEl = document.getElementById('resumen-hoy');
+const rebooksSeccion = document.getElementById('rebooks-seccion');
+const rebooksLista = document.getElementById('rebooks-lista');
 
 function fechaISODesdeDate(fecha) {
   const mes = String(fecha.getMonth() + 1).padStart(2, '0');
@@ -77,6 +79,77 @@ async function cargarResumen() {
   }
 }
 
+// Se queda en la lista hasta que se marquen las dos cosas — mensaje enviado
+// y confirmado — lo que pase después, no basta con una sola.
+function crearFilaRebook(cita) {
+  const textoFecha = `${formatearFechaLarga(cita.fecha)} · ${formatearHora12(cita.hora)}` +
+    (cita.tratamientoNombre ? ` · ${cita.tratamientoNombre}` : '');
+
+  const enlaceWhats = WhatsApp.generarEnlaceRecordatorioRebook(cita);
+
+  const botonEnviar = cita.rebookRecordatorioEnviado
+    ? crearEl('span', { class: 'campo__ayuda', texto: '✓ Recordatorio enviado' })
+    : crearEl('a', {
+        class: 'boton boton--secundario',
+        href: enlaceWhats || undefined,
+        target: '_blank',
+        rel: 'noopener',
+        texto: enlaceWhats ? 'Enviar recordatorio' : 'Sin teléfono',
+        onclick: async (evento) => {
+          if (!enlaceWhats) { evento.preventDefault(); return; }
+          try {
+            await DB.actualizarRebookRecordatorioEnviado(cita.id, true);
+            await cargarRecordatoriosRebook();
+          } catch (error) {
+            console.error(error);
+          }
+        },
+      });
+
+  const botonConfirmar = cita.rebookConfirmado
+    ? crearEl('span', { class: 'campo__ayuda', texto: '✓ Confirmado' })
+    : crearEl('button', {
+        type: 'button',
+        class: 'boton boton--secundario',
+        texto: 'Marcar como confirmado',
+        onclick: async () => {
+          try {
+            await DB.actualizarRebookConfirmado(cita.id, true);
+            await cargarRecordatoriosRebook();
+          } catch (error) {
+            console.error(error);
+          }
+        },
+      });
+
+  return crearEl('div', { class: 'reportes-dia-detalle__fila', style: 'flex-direction: column; align-items: stretch; gap: 6px; cursor: default;' }, [
+    crearEl('div', {}, [
+      crearEl('div', { class: 'reportes-dia-detalle__nombre', texto: cita.clientaNombre }),
+      crearEl('div', { class: 'reportes-dia-detalle__extra', texto: textoFecha }),
+    ]),
+    crearEl('div', { class: 'fila-botones' }, [botonEnviar, botonConfirmar]),
+  ]);
+}
+
+async function cargarRecordatoriosRebook() {
+  try {
+    const rebooks = await DB.listarRebooksPendientes();
+    rebooksLista.innerHTML = '';
+
+    if (rebooks.length === 0) {
+      rebooksSeccion.hidden = true;
+      return;
+    }
+
+    for (const cita of rebooks) {
+      rebooksLista.appendChild(crearFilaRebook(cita));
+    }
+    rebooksSeccion.hidden = false;
+  } catch (error) {
+    console.error(error);
+  }
+}
+
 function renderizarCitasHoy(citas) {
   listaEl.innerHTML = '';
 
@@ -103,6 +176,7 @@ function renderizarCitasHoy(citas) {
 
 async function mostrar() {
   await cargarResumen();
+  await cargarRecordatoriosRebook();
   try {
     const todas = await DB.listarCitas();
     const hoy = fechaHoyISO();

@@ -30,6 +30,8 @@ let ventaItems = [];
 const fondoHoja = document.getElementById('fondo-hoja-cobro');
 const tituloHoja = document.getElementById('cobro-titulo');
 const resumen = document.getElementById('cobro-resumen');
+const rebookNota = document.getElementById('cobro-rebook-nota');
+const botonRebook = document.getElementById('boton-cobro-rebook');
 const formulario = document.getElementById('formulario-cobro');
 const botonGuardar = formulario.querySelector('button[type="submit"]');
 const campoPrecio = document.getElementById('cobro-precio');
@@ -163,6 +165,7 @@ async function abrir(cita, onGuardado) {
   resumen.textContent =
     `${cita.clientaNombre} — ${formatearFechaLarga(cita.fecha)} ${formatearHora12(cita.hora)}` +
     (cita.tratamientoNombre ? ` — ${cita.tratamientoNombre}` : '');
+  rebookNota.hidden = !cita.esRebook;
 
   poblarLongitud(cita.tratamientoNombre);
 
@@ -332,6 +335,14 @@ async function manejarGuardar(evento) {
 function inicializar() {
   document.getElementById('boton-cerrar-hoja-cobro').addEventListener('click', manejarCancelar);
   formulario.addEventListener('submit', manejarGuardar);
+
+  botonRebook.addEventListener('click', () => {
+    if (!citaActual) return;
+    window.AgendaUI.abrirParaRebook(
+      { id: citaActual.clientaId, nombre: citaActual.clientaNombre },
+      citaActual.tratamientoId
+    );
+  });
 
   botonesPromocion.forEach((boton) => {
     boton.addEventListener('click', () => {

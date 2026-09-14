@@ -21,6 +21,7 @@ let tratamientosCache = [];
 let clientasCache = [];
 let temporizadorOcultarResultados = null;
 let mostrandoAgendaPasada = false;
+let modoRebookActual = false;
 
 const DIAS_AGENDA_PASADA = 60;
 
@@ -239,6 +240,8 @@ async function cargarHorasDisponibles(fecha, horaActual) {
 
 async function abrirHojaCita(cita = null) {
   idEnEdicion = cita ? cita.id : null;
+  modoRebookActual = false;
+  campoFecha.removeAttribute('max');
   hojaTitulo.textContent = cita ? 'Editar cita' : 'Nueva cita';
 
   await cargarClientasCache();
@@ -258,6 +261,36 @@ async function abrirHojaCita(cita = null) {
   fondoHoja.classList.add('abierta');
 }
 
+// Se abre desde el Cobro para agendar la siguiente cita de la misma clienta
+// con 20% de descuento — mismo selector de horas disponibles, pero con la
+// fecha topada a 5 meses adelante y marcada como rebook al guardar.
+async function abrirHojaCitaRebook(clienta, tratamientoId) {
+  idEnEdicion = null;
+  modoRebookActual = true;
+  hojaTitulo.textContent = 'Agendar siguiente cita (20% descuento)';
+
+  await cargarClientasCache();
+  await llenarSelectTratamientos(tratamientoId || null);
+
+  campoClientaBuscar.value = clienta.nombre;
+  campoClienta.value = clienta.id;
+  ocultarResultadosClienta();
+
+  campoFecha.value = '';
+  campoHora.value = '';
+  campoNotas.value = 'Rebook — 20% de descuento';
+  botonEliminar.hidden = true;
+
+  const hoy = new Date();
+  const maxFecha = new Date(hoy.getFullYear(), hoy.getMonth() + 5, hoy.getDate());
+  campoFecha.max =
+    `${maxFecha.getFullYear()}-${String(maxFecha.getMonth() + 1).padStart(2, '0')}-${String(maxFecha.getDate()).padStart(2, '0')}`;
+
+  await cargarHorasDisponibles(campoFecha.value, campoHora.value);
+
+  fondoHoja.classList.add('abierta');
+}
+
 function cerrarHojaCita() {
   fondoHoja.classList.remove('abierta');
   formulario.reset();
@@ -265,6 +298,8 @@ function cerrarHojaCita() {
   postGuardado.hidden = true;
   ocultarResultadosClienta();
   idEnEdicion = null;
+  modoRebookActual = false;
+  campoFecha.removeAttribute('max');
 }
 
 // Tras agendar una cita nueva (no al editar), ofrece mandar de una vez los
@@ -327,6 +362,7 @@ async function manejarGuardar(evento) {
     fecha: campoFecha.value,
     hora: campoHora.value,
     notas: campoNotas.value,
+    esRebook: modoRebookActual,
   };
 
   try {
@@ -392,6 +428,7 @@ window.AgendaUI = {
   inicializar: inicializarAgenda,
   abrirNuevo: () => abrirHojaCita(null),
   editar: (cita) => abrirHojaCita(cita),
+  abrirParaRebook: (clienta, tratamientoId) => abrirHojaCitaRebook(clienta, tratamientoId),
   mostrar: () => cargarCitas(),
 };
 

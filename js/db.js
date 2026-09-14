@@ -127,6 +127,9 @@ function filaACita(fila) {
     fotoPath: fila.foto_path || null,
     estilista: fila.estilista || '',
     mensajeSalidaEnviado: fila.mensaje_salida_enviado || false,
+    esRebook: fila.es_rebook || false,
+    rebookRecordatorioEnviado: fila.rebook_recordatorio_enviado || false,
+    rebookConfirmado: fila.rebook_confirmado || false,
   };
 }
 
@@ -169,6 +172,7 @@ async function agregarCita(datos) {
       fecha: datos.fecha,
       hora: datos.hora,
       notas: (datos.notas || '').trim(),
+      es_rebook: datos.esRebook || false,
     })
     .select(SELECT_CITA_CON_CLIENTA)
     .single();
@@ -224,6 +228,44 @@ async function actualizarMensajeSalidaEnviado(id, enviado) {
   const { error } = await GrafectoAuth.cliente
     .from(TABLA_CITAS)
     .update({ mensaje_salida_enviado: enviado })
+    .eq('id', id);
+
+  if (error) throw error;
+}
+
+// Citas agendadas como rebook (con 20% de descuento) a las que ya les toca
+// su recordatorio de 10 días — se quedan en la lista hasta que se marquen
+// tanto el mensaje enviado como la confirmación, lo que pase después.
+async function listarRebooksPendientes() {
+  const limite = new Date();
+  limite.setDate(limite.getDate() + 10);
+  const limiteISO = `${limite.getFullYear()}-${String(limite.getMonth() + 1).padStart(2, '0')}-${String(limite.getDate()).padStart(2, '0')}`;
+
+  const { data, error } = await GrafectoAuth.cliente
+    .from(TABLA_CITAS)
+    .select(SELECT_CITA_CON_CLIENTA)
+    .eq('es_rebook', true)
+    .lte('fecha', limiteISO)
+    .or('rebook_recordatorio_enviado.eq.false,rebook_confirmado.eq.false')
+    .order('fecha', { ascending: true });
+
+  if (error) throw error;
+  return data.map(filaACita);
+}
+
+async function actualizarRebookRecordatorioEnviado(id, enviado) {
+  const { error } = await GrafectoAuth.cliente
+    .from(TABLA_CITAS)
+    .update({ rebook_recordatorio_enviado: enviado })
+    .eq('id', id);
+
+  if (error) throw error;
+}
+
+async function actualizarRebookConfirmado(id, confirmado) {
+  const { error } = await GrafectoAuth.cliente
+    .from(TABLA_CITAS)
+    .update({ rebook_confirmado: confirmado })
     .eq('id', id);
 
   if (error) throw error;
@@ -1112,6 +1154,9 @@ window.GrafectoDB = {
   actualizarEstadoCita,
   actualizarEstilistaCita,
   actualizarMensajeSalidaEnviado,
+  listarRebooksPendientes,
+  actualizarRebookRecordatorioEnviado,
+  actualizarRebookConfirmado,
   actualizarNotasVisita,
   subirFotoVisita,
   obtenerUrlFoto,
