@@ -264,7 +264,7 @@ async function abrirHojaCita(cita = null) {
 
 // Se abre desde el Cobro para agendar la siguiente cita de la misma clienta
 // con 20% de descuento — mismo selector de horas disponibles, pero con la
-// fecha topada a 5 meses adelante y marcada como rebook al guardar.
+// fecha topada a 6 meses adelante y marcada como rebook al guardar.
 async function abrirHojaCitaRebook(clienta, tratamientoId) {
   idEnEdicion = null;
   modoRebookActual = true;
@@ -283,7 +283,7 @@ async function abrirHojaCitaRebook(clienta, tratamientoId) {
   botonEliminar.hidden = true;
 
   const hoy = new Date();
-  const maxFecha = new Date(hoy.getFullYear(), hoy.getMonth() + 5, hoy.getDate());
+  const maxFecha = new Date(hoy.getFullYear(), hoy.getMonth() + 6, hoy.getDate());
   campoFecha.max =
     `${maxFecha.getFullYear()}-${String(maxFecha.getMonth() + 1).padStart(2, '0')}-${String(maxFecha.getDate()).padStart(2, '0')}`;
 
