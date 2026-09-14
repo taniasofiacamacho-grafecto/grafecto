@@ -226,6 +226,13 @@
   pointer-events: auto;
 }
 
+/* Para cuando se abre una hoja encima de otra ya abierta (p. ej. agendar el
+   rebook desde el Cobro) — sin esto, el orden en el HTML decide cuál gana,
+   sin importar cuál se abrió después. */
+.fondo-hoja--encima {
+  z-index: 40;
+}
+
 .hoja {
   width: 100%;
   max-width: 560px;

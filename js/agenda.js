@@ -242,6 +242,7 @@ async function abrirHojaCita(cita = null) {
   idEnEdicion = cita ? cita.id : null;
   modoRebookActual = false;
   campoFecha.removeAttribute('max');
+  fondoHoja.classList.remove('fondo-hoja--encima');
   hojaTitulo.textContent = cita ? 'Editar cita' : 'Nueva cita';
 
   await cargarClientasCache();
@@ -288,11 +289,11 @@ async function abrirHojaCitaRebook(clienta, tratamientoId) {
 
   await cargarHorasDisponibles(campoFecha.value, campoHora.value);
 
-  fondoHoja.classList.add('abierta');
+  fondoHoja.classList.add('abierta', 'fondo-hoja--encima');
 }
 
 function cerrarHojaCita() {
-  fondoHoja.classList.remove('abierta');
+  fondoHoja.classList.remove('abierta', 'fondo-hoja--encima');
   formulario.reset();
   formulario.hidden = false;
   postGuardado.hidden = true;
