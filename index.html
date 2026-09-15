@@ -73,7 +73,18 @@
     </section>
 
     <section id="vista-agenda" hidden>
-      <main class="contenido contenido--sin-buscador">
+      <div class="buscador">
+        <input
+          id="agenda-buscador-input"
+          type="search"
+          placeholder="Buscar clienta por nombre…"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="words"
+        />
+      </div>
+
+      <main class="contenido">
         <button type="button" id="boton-ver-agenda-pasada" class="boton boton--secundario boton--ancho-completo">Ver días anteriores</button>
         <div id="lista-agenda" class="lista-agenda"></div>
       </main>

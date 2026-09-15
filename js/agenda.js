@@ -22,6 +22,9 @@ let clientasCache = [];
 let temporizadorOcultarResultados = null;
 let mostrandoAgendaPasada = false;
 let modoRebookActual = false;
+let citasActuales = [];
+let textoBusquedaAgenda = '';
+const diasExpandidos = new Set();
 
 const DIAS_AGENDA_PASADA = 60;
 
@@ -36,6 +39,7 @@ function fechaHaceDiasISO(dias) {
 
 const listaEl = document.getElementById('lista-agenda');
 const botonVerAgendaPasada = document.getElementById('boton-ver-agenda-pasada');
+const campoBusquedaAgenda = document.getElementById('agenda-buscador-input');
 const fondoHoja = document.getElementById('fondo-hoja-cita');
 const hojaTitulo = document.getElementById('hoja-cita-titulo');
 const formulario = document.getElementById('formulario-cita');
@@ -62,7 +66,8 @@ async function cargarCitas() {
         ? DB.listarCitasEnRango(fechaHaceDiasISO(DIAS_AGENDA_PASADA), fechaHaceDiasISO(1))
         : Promise.resolve([]),
     ]);
-    renderizarLista([...citasPasadas, ...citas]);
+    citasActuales = [...citasPasadas, ...citas];
+    renderizarLista();
     citasCargadas = true;
   } catch (error) {
     mostrarMensaje('No se pudo cargar la agenda. Intenta de nuevo.');
@@ -76,10 +81,91 @@ function manejarVerAgendaPasada() {
   cargarCitas();
 }
 
-function renderizarLista(citas) {
+function manejarBuscarAgenda() {
+  textoBusquedaAgenda = campoBusquedaAgenda.value;
+  renderizarLista();
+}
+
+// Agrupa manteniendo el orden en que ya vienen las citas (por fecha, hora).
+function agruparCitasPorFecha(citas) {
+  const mapa = new Map();
+  for (const cita of citas) {
+    if (!mapa.has(cita.fecha)) mapa.set(cita.fecha, []);
+    mapa.get(cita.fecha).push(cita);
+  }
+  return mapa;
+}
+
+function renderizarResultadosBusqueda(citas) {
+  if (citas.length === 0) {
+    listaEl.appendChild(
+      crearEl('div', { class: 'estado-vacio' }, [
+        crearEl('div', { class: 'estado-vacio__titulo', texto: 'No se encontraron citas' }),
+      ])
+    );
+    return;
+  }
+
+  for (const cita of citas) {
+    const detalle = [formatearFechaLarga(cita.fecha), formatearHora12(cita.hora), cita.tratamientoNombre]
+      .filter(Boolean)
+      .join(' · ');
+
+    listaEl.appendChild(
+      crearEl('div', { class: 'tarjeta-clienta', onclick: () => abrirHojaCita(cita) }, [
+        crearEl('div', { class: 'tarjeta-clienta__info' }, [
+          crearEl('div', { class: 'tarjeta-clienta__nombre', texto: cita.clientaNombre }),
+          crearEl('div', { class: 'tarjeta-clienta__detalle', texto: detalle }),
+        ]),
+        crearEl('div', { class: 'tarjeta-clienta__flecha', texto: '›' }),
+      ])
+    );
+  }
+}
+
+function renderizarGruposPorDia(citas) {
+  const hoy = fechaHoyISO();
+  const grupos = agruparCitasPorFecha(citas);
+
+  for (const [fecha, citasDelDia] of grupos) {
+    const esHoy = fecha === hoy;
+    const expandido = diasExpandidos.has(fecha);
+    const horas = citasDelDia.map((c) => formatearHora12(c.hora)).join(', ');
+
+    listaEl.appendChild(
+      crearEl('div', {
+        class: esHoy ? 'agenda-fecha--clicable agenda-fecha--hoy' : 'agenda-fecha--clicable',
+        onclick: () => {
+          if (diasExpandidos.has(fecha)) diasExpandidos.delete(fecha);
+          else diasExpandidos.add(fecha);
+          renderizarLista();
+        },
+      }, [
+        crearEl('div', {}, [
+          crearEl('div', { texto: esHoy ? `Hoy · ${formatearFechaLarga(fecha)}` : formatearFechaLarga(fecha) }),
+          crearEl('div', {
+            class: 'agenda-fecha__preview',
+            texto: `${citasDelDia.length} ${citasDelDia.length === 1 ? 'cita' : 'citas'} · ${horas}`,
+          }),
+        ]),
+        crearEl('span', { class: 'agenda-fecha__flecha', texto: expandido ? '▾' : '▸' }),
+      ])
+    );
+
+    if (expandido) {
+      for (const cita of citasDelDia) {
+        listaEl.appendChild(
+          TarjetaCita.crear(cita, { onEditar: abrirHojaCita, onCambio: cargarCitas })
+        );
+      }
+    }
+  }
+}
+
+function renderizarLista() {
   listaEl.innerHTML = '';
 
-  if (citas.length === 0) {
+  if (citasActuales.length === 0) {
     const vacio = crearEl('div', { class: 'estado-vacio' }, [
       crearEl('div', { class: 'estado-vacio__titulo', texto: 'No tienes citas agendadas' }),
       crearEl('p', { texto: 'Toca el botón + para agregar la primera.' }),
@@ -88,25 +174,14 @@ function renderizarLista(citas) {
     return;
   }
 
-  let fechaAnterior = null;
-  const hoy = fechaHoyISO();
-
-  for (const cita of citas) {
-    if (cita.fecha !== fechaAnterior) {
-      const esHoy = cita.fecha === hoy;
-      listaEl.appendChild(
-        crearEl('div', {
-          class: esHoy ? 'agenda-fecha agenda-fecha--hoy' : 'agenda-fecha',
-          texto: esHoy ? `Hoy · ${formatearFechaLarga(cita.fecha)}` : formatearFechaLarga(cita.fecha),
-        })
-      );
-      fechaAnterior = cita.fecha;
-    }
-
-    listaEl.appendChild(
-      TarjetaCita.crear(cita, { onEditar: abrirHojaCita, onCambio: cargarCitas })
-    );
+  const filtro = DB.normalizarTexto(textoBusquedaAgenda);
+  if (filtro) {
+    const encontradas = citasActuales.filter((cita) => DB.normalizarTexto(cita.clientaNombre).includes(filtro));
+    renderizarResultadosBusqueda(encontradas);
+    return;
   }
+
+  renderizarGruposPorDia(citasActuales);
 }
 
 async function cargarClientasCache() {
@@ -401,6 +476,7 @@ async function manejarEliminar() {
 
 function inicializarAgenda() {
   botonVerAgendaPasada.addEventListener('click', manejarVerAgendaPasada);
+  campoBusquedaAgenda.addEventListener('input', manejarBuscarAgenda);
   document.getElementById('boton-cerrar-hoja-cita').addEventListener('click', manejarCancelarCita);
   formulario.addEventListener('submit', manejarGuardar);
   botonEliminar.addEventListener('click', manejarEliminar);
