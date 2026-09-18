@@ -683,6 +683,7 @@ function renderizarGraficaEquilibrio(serie, diasMes, config) {
 // tratamientos hacen falta para cada una, no solo para el negocio.
 
 const peProgresosLista = document.getElementById('pe-progresos-lista');
+const peProgresosResumen = document.getElementById('pe-progresos-resumen');
 
 const METAS_PROGRESO = [
   { clave: 'negocio', titulo: 'Para cubrir el negocio', color: 'var(--color-azul-grisaceo-claro)' },
@@ -710,9 +711,10 @@ function crearBarraProgreso(meta, numServicios, serviciosNecesarios, margenPorSe
     ])
   );
 
+  const faltantes = serviciosNecesarios - numServicios;
   const caption = logrado
     ? `✓ Ya lo lograste — ${numServicios} tratamientos hechos.`
-    : `${numServicios} de ${serviciosNecesarios} tratamientos. Cada tratamiento adicional deja ${formatearMoneda(margenPorServicio)} limpios.`;
+    : `Te faltan ${faltantes} de ${serviciosNecesarios} tratamientos para llegar a este punto. Cada tratamiento adicional deja ${formatearMoneda(margenPorServicio)} limpios.`;
   contenedor.appendChild(crearEl('p', { class: 'campo__ayuda', style: 'margin-top: 8px;', texto: caption }));
 
   return contenedor;
@@ -720,6 +722,7 @@ function crearBarraProgreso(meta, numServicios, serviciosNecesarios, margenPorSe
 
 function renderizarBarraProgreso(numServicios, gastoFijoMes, margenPorServicio, config) {
   peProgresosLista.innerHTML = '';
+  peProgresosResumen.textContent = `Llevas ${numServicios} ${numServicios === 1 ? 'tratamiento' : 'tratamientos'} este mes.`;
 
   if (margenPorServicio <= 0) {
     peProgresosLista.appendChild(
