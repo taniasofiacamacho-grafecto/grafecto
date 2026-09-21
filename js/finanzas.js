@@ -713,7 +713,7 @@ function crearBarraProgreso(meta, numServicios, serviciosNecesarios, margenPorSe
 
   const faltantes = serviciosNecesarios - numServicios;
   const caption = logrado
-    ? `✓ Ya lo lograste — ${numServicios} tratamientos hechos.`
+    ? `✓ Ya lo lograste — lo cruzaste alrededor del tratamiento ${serviciosNecesarios}.`
     : `Te faltan ${faltantes} de ${serviciosNecesarios} tratamientos para llegar a este punto. Cada tratamiento adicional deja ${formatearMoneda(margenPorServicio)} limpios.`;
   contenedor.appendChild(crearEl('p', { class: 'campo__ayuda', style: 'margin-top: 8px;', texto: caption }));
 
@@ -751,9 +751,14 @@ function renderizarBarraProgreso(numServicios, gananciaMes, margenPorServicio, c
   };
 
   for (const meta of METAS_PROGRESO) {
-    const faltantePesos = Math.max(0, umbralesGanancia[meta.clave] - gananciaMes);
+    // Sin recortar en 0: si ya se logró, esto da un número NEGATIVO de
+    // "faltantes", que restado del total actual aterriza en el tratamiento
+    // aproximado donde de verdad se cruzó esta meta — no en el total de
+    // hoy, que solo diría "ya lo lograste" pegado al número más reciente
+    // aunque se haya cruzado hace muchos tratamientos.
+    const faltantePesos = umbralesGanancia[meta.clave] - gananciaMes;
     const serviciosFaltantes = Math.ceil(faltantePesos / margenPorServicio);
-    const serviciosNecesarios = numServicios + serviciosFaltantes;
+    const serviciosNecesarios = Math.max(0, numServicios + serviciosFaltantes);
     peProgresosLista.appendChild(crearBarraProgreso(meta, numServicios, serviciosNecesarios, margenPorServicio));
   }
 }
