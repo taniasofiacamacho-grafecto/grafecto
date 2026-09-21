@@ -995,16 +995,18 @@ function mostrarDetalleMesComparativo() {
   );
 
   const filas = [
-    ['Ingreso', registro.ingreso],
-    ['Gasto', registro.gasto],
-    ['Ganancia', registro.ganancia],
+    ['Ingreso', formatearMoneda(registro.ingreso)],
+    ['Gasto', formatearMoneda(registro.gasto)],
+    ['Ganancia', formatearMoneda(registro.ganancia)],
+    ['Servicios', `${registro.numServicios} ${registro.numServicios === 1 ? 'tratamiento' : 'tratamientos'}`],
+    ['Ticket promedio', formatearMoneda(registro.ticketPromedio)],
   ];
 
-  for (const [nombre, monto] of filas) {
+  for (const [nombre, texto] of filas) {
     peComparativoDetalle.appendChild(
       crearEl('div', { class: 'reportes-dia-detalle__fila' }, [
         crearEl('div', { class: 'reportes-dia-detalle__nombre', texto: nombre }),
-        crearEl('div', { class: 'reportes-dia-detalle__precio', texto: formatearMoneda(monto) }),
+        crearEl('div', { class: 'reportes-dia-detalle__precio', texto }),
       ])
     );
   }
