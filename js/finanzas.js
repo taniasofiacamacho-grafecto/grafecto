@@ -720,7 +720,13 @@ function crearBarraProgreso(meta, numServicios, serviciosNecesarios, margenPorSe
   return contenedor;
 }
 
-function renderizarBarraProgreso(numServicios, gastoFijoMes, margenPorServicio, config) {
+// Los umbrales se expresan en términos de GANANCIA (igual que Zonas del mes
+// y la gráfica de arriba) y no como un total de servicios recalculado
+// aparte — así quedan siempre acordes al ticket promedio real y a la
+// ganancia real del mes (que ya trae dentro productos, descuentos y el
+// costo de material real de cada visita), en vez de un promedio teórico
+// que se podía desfasar de lo que en realidad se lleva ganado.
+function renderizarBarraProgreso(numServicios, gananciaMes, margenPorServicio, config) {
   peProgresosLista.innerHTML = '';
   peProgresosResumen.textContent = `Llevas ${numServicios} ${numServicios === 1 ? 'tratamiento' : 'tratamientos'} este mes.`;
 
@@ -736,16 +742,18 @@ function renderizarBarraProgreso(numServicios, gastoFijoMes, margenPorServicio, 
   }
 
   const metaAhorro = config.ingresoEstandarMensual * (config.porcentajeAhorroObjetivo / 100);
-  const objetivoAhorro = gastoFijoMes + config.gastoPersonalMensual + metaAhorro;
-  const objetivos = {
-    negocio: gastoFijoMes,
-    vida: gastoFijoMes + config.gastoPersonalMensual,
-    ahorro: objetivoAhorro,
-    libertad: objetivoAhorro * 1.05,
+  const umbralAhorro = config.gastoPersonalMensual + metaAhorro;
+  const umbralesGanancia = {
+    negocio: 0,
+    vida: config.gastoPersonalMensual,
+    ahorro: umbralAhorro,
+    libertad: umbralAhorro * 1.05,
   };
 
   for (const meta of METAS_PROGRESO) {
-    const serviciosNecesarios = Math.ceil(objetivos[meta.clave] / margenPorServicio);
+    const faltantePesos = Math.max(0, umbralesGanancia[meta.clave] - gananciaMes);
+    const serviciosFaltantes = Math.ceil(faltantePesos / margenPorServicio);
+    const serviciosNecesarios = numServicios + serviciosFaltantes;
     peProgresosLista.appendChild(crearBarraProgreso(meta, numServicios, serviciosNecesarios, margenPorServicio));
   }
 }
@@ -1260,7 +1268,7 @@ async function cargarPuntoEquilibrio() {
 
     renderizarTiraCifras(r.ingresoMes, r.gastoTotalMes, r.gananciaMes);
     renderizarGraficaEquilibrio(r.serie, r.diasMes, r.config);
-    renderizarBarraProgreso(r.numServicios, r.gastoFijoMes, r.margenPorServicio, r.config);
+    renderizarBarraProgreso(r.numServicios, r.gananciaMes, r.margenPorServicio, r.config);
     renderizarDosTarjetas(r.ticketPromedio, r.numServicios, r.margenPorServicio);
     renderizarGraficaSemanal(r.visitas, Number(hoy.split('-')[2]));
     renderizarProductos(r.regalos, r.ventasProducto);
