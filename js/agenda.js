@@ -50,6 +50,10 @@ const campoTratamiento = document.getElementById('cita-tratamiento');
 const campoTratamientoDuracion = document.getElementById('cita-tratamiento-duracion');
 const campoFecha = document.getElementById('cita-fecha');
 const campoHora = document.getElementById('cita-hora');
+const campoHoraManual = document.getElementById('cita-hora-manual');
+const selectHoraH = document.getElementById('cita-hora-h');
+const selectHoraM = document.getElementById('cita-hora-m');
+const selectHoraAmpm = document.getElementById('cita-hora-ampm');
 const campoHorasDisponibles = document.getElementById('cita-horas-disponibles');
 const campoNotas = document.getElementById('cita-notas');
 const botonEliminar = document.getElementById('boton-eliminar-cita');
@@ -251,6 +255,52 @@ function actualizarAyudaDuracion() {
     : '';
 }
 
+// "Otro horario" usaba un <input type="time">, pero el control nativo de
+// hora resultó muy difícil de manejar en el celular (una barra para
+// arrastrar entre 60 minutos) — se reemplaza por tres selects normales
+// (hora, minutos, a.m./p.m.), mucho más fáciles de tocar.
+function poblarSelectsHoraManual() {
+  selectHoraH.innerHTML = '';
+  selectHoraH.appendChild(crearEl('option', { value: '', texto: 'Hora' }));
+  for (let h = 1; h <= 12; h++) {
+    selectHoraH.appendChild(crearEl('option', { value: String(h), texto: String(h) }));
+  }
+
+  selectHoraM.innerHTML = '';
+  selectHoraM.appendChild(crearEl('option', { value: '', texto: 'Min' }));
+  for (let m = 0; m < 60; m += 5) {
+    const texto = String(m).padStart(2, '0');
+    selectHoraM.appendChild(crearEl('option', { value: texto, texto }));
+  }
+}
+poblarSelectsHoraManual();
+
+// Lee los tres selects y arma "HH:MM" en 24 horas; vacío si falta elegir
+// hora o minutos, para no guardar un valor por accidente sin haberlo tocado.
+function leerHoraManual() {
+  const h = selectHoraH.value;
+  const m = selectHoraM.value;
+  if (!h || !m) return '';
+
+  let hora24 = Number(h) % 12;
+  if (selectHoraAmpm.value === 'p.m.') hora24 += 12;
+  return `${String(hora24).padStart(2, '0')}:${m}`;
+}
+
+function sincronizarSelectsDesdeHora24(hora24) {
+  if (!hora24) {
+    selectHoraH.value = '';
+    selectHoraM.value = '';
+    selectHoraAmpm.value = 'a.m.';
+    return;
+  }
+
+  const [h, m] = horaCorta(hora24).split(':').map(Number);
+  selectHoraAmpm.value = h >= 12 ? 'p.m.' : 'a.m.';
+  selectHoraH.value = String(h % 12 === 0 ? 12 : h % 12);
+  selectHoraM.value = String(m).padStart(2, '0');
+}
+
 // Cruza "fechas habilitadas" contra las citas ya agendadas (igual que en
 // Horario) para ofrecer solo las horas realmente libres de ese día, con un
 // botón "Otro horario" para seguir pudiendo escribirlo a mano.
@@ -259,19 +309,21 @@ function seleccionarHoraDisponible(hora, botonActivo) {
   botonActivo.classList.add('pastilla-opcion--activa');
 
   if (hora === null) {
-    campoHora.hidden = false;
+    campoHoraManual.hidden = false;
+    sincronizarSelectsDesdeHora24('');
     campoHora.value = '';
-    campoHora.focus();
+    selectHoraH.focus();
   } else {
     campoHora.value = horaCorta(hora);
-    campoHora.hidden = true;
+    campoHoraManual.hidden = true;
   }
 }
 
 async function cargarHorasDisponibles(fecha, horaActual) {
   campoHorasDisponibles.innerHTML = '';
   campoHorasDisponibles.hidden = true;
-  campoHora.hidden = false;
+  campoHoraManual.hidden = false;
+  sincronizarSelectsDesdeHora24(horaActual);
 
   if (!fecha) return;
 
@@ -310,7 +362,7 @@ async function cargarHorasDisponibles(fecha, horaActual) {
   campoHorasDisponibles.appendChild(botonOtro);
 
   campoHorasDisponibles.hidden = false;
-  campoHora.hidden = coincide;
+  campoHoraManual.hidden = coincide;
 }
 
 async function abrirHojaCita(cita = null) {
@@ -432,6 +484,11 @@ async function manejarGuardar(evento) {
     return;
   }
 
+  if (!campoHora.value) {
+    mostrarMensaje('Elige la hora');
+    return;
+  }
+
   const datos = {
     clientaId: campoClienta.value,
     tratamientoId: campoTratamiento.value || null,
@@ -483,6 +540,12 @@ function inicializarAgenda() {
   botonPostGuardadoListo.addEventListener('click', cerrarHojaCita);
   campoTratamiento.addEventListener('change', actualizarAyudaDuracion);
   campoFecha.addEventListener('change', () => cargarHorasDisponibles(campoFecha.value, ''));
+
+  [selectHoraH, selectHoraM, selectHoraAmpm].forEach((select) => {
+    select.addEventListener('change', () => {
+      campoHora.value = leerHoraManual();
+    });
+  });
 
   campoClientaBuscar.addEventListener('input', () => {
     campoClienta.value = '';

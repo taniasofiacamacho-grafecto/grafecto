@@ -308,6 +308,29 @@
   color: var(--color-texto);
 }
 
+.fila-hora-manual {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fila-hora-manual select {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--toque-min);
+  border-radius: var(--radio-sm);
+  border: 1px solid var(--color-borde);
+  background: var(--color-superficie);
+  padding: 0 8px;
+  font-size: 1rem;
+  color: var(--color-texto);
+}
+
+.fila-hora-manual__dos-puntos {
+  font-weight: 700;
+  color: var(--color-texto-suave);
+}
+
 .campo__ayuda {
   font-size: 0.8rem;
   color: var(--color-texto-suave);

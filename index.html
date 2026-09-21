@@ -335,7 +335,16 @@
         <div class="campo">
           <label>Hora *</label>
           <div id="cita-horas-disponibles" class="grupo-pastillas" style="margin-bottom: 8px;" hidden></div>
-          <input id="cita-hora" type="time" required />
+          <input type="hidden" id="cita-hora" />
+          <div id="cita-hora-manual" class="fila-hora-manual" hidden>
+            <select id="cita-hora-h" aria-label="Hora"></select>
+            <span class="fila-hora-manual__dos-puntos">:</span>
+            <select id="cita-hora-m" aria-label="Minutos"></select>
+            <select id="cita-hora-ampm" aria-label="a.m. o p.m.">
+              <option value="a.m.">a.m.</option>
+              <option value="p.m.">p.m.</option>
+            </select>
+          </div>
         </div>
 
         <div class="campo">
