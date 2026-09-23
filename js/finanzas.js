@@ -960,6 +960,7 @@ const MESES_LARGOS_PE = [
 
 let historialComparativoActual = [];
 let mesComparativoSeleccionado = null;
+let ultimoTicketPromedioActual = 0;
 
 function renderizarEstadoVacioComparativo() {
   peComparativo.innerHTML = '';
@@ -994,13 +995,20 @@ function mostrarDetalleMesComparativo() {
     crearEl('div', { class: 'reportes-dia-detalle__titulo', texto: etiquetaMesLargoPe(registro.mes) })
   );
 
-  const filas = [
-    ['Ingreso', formatearMoneda(registro.ingreso)],
-    ['Gasto', formatearMoneda(registro.gasto)],
-    ['Ganancia', formatearMoneda(registro.ganancia)],
-    ['Servicios', `${registro.numServicios} ${registro.numServicios === 1 ? 'tratamiento' : 'tratamientos'}`],
-    ['Ticket promedio', formatearMoneda(registro.ticketPromedio)],
-  ];
+  const filas = registro.esEstimado
+    ? [
+        ['Ingreso', formatearMoneda(registro.ingreso)],
+        ['Servicios', `${registro.numServicios} ${registro.numServicios === 1 ? 'tratamiento' : 'tratamientos'}`],
+        ['Ticket promedio', formatearMoneda(registro.ticketPromedio)],
+        ['Gasto / Ganancia', 'No disponible (mes de antes de la app)'],
+      ]
+    : [
+        ['Ingreso', formatearMoneda(registro.ingreso)],
+        ['Gasto', formatearMoneda(registro.gasto)],
+        ['Ganancia', formatearMoneda(registro.ganancia)],
+        ['Servicios', `${registro.numServicios} ${registro.numServicios === 1 ? 'tratamiento' : 'tratamientos'}`],
+        ['Ticket promedio', formatearMoneda(registro.ticketPromedio)],
+      ];
 
   for (const [nombre, texto] of filas) {
     peComparativoDetalle.appendChild(
@@ -1038,16 +1046,21 @@ function renderizarListaComparativo() {
   const lista = crearEl('div', { class: 'comparativo-lista' });
   for (const registro of historialComparativoActual) {
     const [anio, mesNum] = registro.mes.split('-').map(Number);
-    const etiqueta = `${MESES_CORTOS_PE[mesNum - 1]} ${String(anio).slice(2)}`;
+    const etiqueta = `${MESES_CORTOS_PE[mesNum - 1]} ${String(anio).slice(2)}${registro.esEstimado ? '*' : ''}`;
     const gananciaPositiva = registro.ganancia >= 0;
     const seleccionado = registro.mes === mesComparativoSeleccionado;
 
-    lista.appendChild(
-      crearEl('div', {
-        class: seleccionado ? 'comparativo-mes comparativo-mes--seleccionado' : 'comparativo-mes',
-        onclick: () => manejarSeleccionMesComparativo(registro.mes),
-      }, [
-        crearEl('div', { class: 'comparativo-mes__barras' }, [
+    // Los meses de antes de la app no tienen gasto/ganancia reales — solo se
+    // dibuja la barra de ingreso, para no mostrar un gasto/ganancia en $0
+    // como si fuera un dato real.
+    const barras = registro.esEstimado
+      ? [
+          crearEl('div', {
+            class: 'comparativo-mes__barra comparativo-mes__barra--ingreso',
+            style: `height: ${Math.max(2, Math.round((registro.ingreso / maxMonto) * 100))}%`,
+          }),
+        ]
+      : [
           crearEl('div', {
             class: 'comparativo-mes__barra comparativo-mes__barra--ingreso',
             style: `height: ${Math.max(2, Math.round((registro.ingreso / maxMonto) * 100))}%`,
@@ -1060,12 +1073,110 @@ function renderizarListaComparativo() {
             class: `comparativo-mes__barra ${gananciaPositiva ? 'comparativo-mes__barra--ganancia-positiva' : 'comparativo-mes__barra--ganancia-negativa'}`,
             style: `height: ${Math.max(2, Math.round((Math.abs(registro.ganancia) / maxMonto) * 100))}%`,
           }),
-        ]),
+        ];
+
+    lista.appendChild(
+      crearEl('div', {
+        class: seleccionado ? 'comparativo-mes comparativo-mes--seleccionado' : 'comparativo-mes',
+        onclick: () => manejarSeleccionMesComparativo(registro.mes),
+      }, [
+        crearEl('div', { class: 'comparativo-mes__barras' }, barras),
         crearEl('div', { class: 'comparativo-mes__etiqueta', texto: etiqueta }),
       ])
     );
   }
   peComparativo.appendChild(lista);
+
+  if (historialComparativoActual.some((m) => m.esEstimado)) {
+    peComparativo.appendChild(
+      crearEl('p', { class: 'campo__ayuda', style: 'margin-top: 6px;', texto: '* Mes de antes de la app — solo ingreso y servicios, sin gasto ni ganancia.' })
+    );
+  }
+}
+
+// ----- Agregar un mes de antes de la app (solo ingreso/servicios) -----
+
+const fondoMesEstimado = document.getElementById('fondo-hoja-mes-estimado');
+const campoMesEstimadoMes = document.getElementById('mes-estimado-mes');
+const campoMesEstimadoServicios = document.getElementById('mes-estimado-servicios');
+const campoMesEstimadoIngreso = document.getElementById('mes-estimado-ingreso');
+const mesEstimadoReferencia = document.getElementById('mes-estimado-referencia');
+
+function obtenerTicketPromedioReferencia() {
+  const reales = historialComparativoActual.filter((m) => !m.esEstimado);
+  if (reales.length > 0) return reales[reales.length - 1].ticketPromedio;
+  return ultimoTicketPromedioActual || 0;
+}
+
+function abrirMesEstimado() {
+  campoMesEstimadoMes.value = '';
+  campoMesEstimadoServicios.value = '';
+  campoMesEstimadoIngreso.value = '';
+
+  const referencia = obtenerTicketPromedioReferencia();
+  mesEstimadoReferencia.textContent = referencia > 0
+    ? `Si dejas el ingreso en blanco, se calcula con el ticket promedio más reciente: ${formatearMoneda(referencia)} por clienta.`
+    : 'Todavía no hay un ticket promedio de referencia — escribe el ingreso directamente si lo sabes.';
+
+  fondoMesEstimado.classList.add('abierta');
+}
+
+function cerrarMesEstimado() {
+  fondoMesEstimado.classList.remove('abierta');
+}
+
+function manejarCancelarMesEstimado() {
+  const hayContenido = campoMesEstimadoMes.value || campoMesEstimadoServicios.value || campoMesEstimadoIngreso.value;
+  if (hayContenido && !window.confirm('¿Descartar sin guardar?')) return;
+  cerrarMesEstimado();
+}
+
+async function manejarGuardarMesEstimado() {
+  const mesValor = campoMesEstimadoMes.value;
+  const numServicios = Number(campoMesEstimadoServicios.value);
+
+  if (!mesValor) {
+    mostrarMensaje('Elige el mes');
+    return;
+  }
+  if (!campoMesEstimadoServicios.value || Number.isNaN(numServicios) || numServicios <= 0) {
+    mostrarMensaje('Escribe cuántas clientas atendieron');
+    return;
+  }
+
+  let ingreso;
+  let ticketPromedio;
+
+  if (campoMesEstimadoIngreso.value) {
+    ingreso = Number(campoMesEstimadoIngreso.value);
+    ticketPromedio = ingreso / numServicios;
+  } else {
+    const referencia = obtenerTicketPromedioReferencia();
+    if (referencia <= 0) {
+      mostrarMensaje('Escribe el ingreso directamente, o registra primero un mes real para tener un ticket promedio de referencia');
+      return;
+    }
+    ingreso = numServicios * referencia;
+    ticketPromedio = referencia;
+  }
+
+  const mesISO = `${mesValor}-01`;
+
+  try {
+    const existente = await DB.obtenerResumenMensual(mesISO);
+    if (existente) {
+      mostrarMensaje('Ese mes ya está registrado');
+      return;
+    }
+
+    await DB.agregarMesHistoricoEstimado(mesISO, numServicios, ingreso, ticketPromedio);
+    mostrarMensaje('Mes agregado');
+    cerrarMesEstimado();
+    await renderizarComparativo(mesActualISO());
+  } catch (error) {
+    mostrarMensaje('No se pudo guardar: ' + (error.message || 'intenta de nuevo'));
+    console.error(error);
+  }
 }
 
 async function renderizarComparativo(mesActual) {
@@ -1272,6 +1383,7 @@ async function cargarPuntoEquilibrio() {
   try {
     const r = await calcularResumenMes(mes, Number(hoy.split('-')[2]));
     ultimoResumenPe = { visitas: r.visitas, hoy, costoMaterialActual: r.costoMaterialActual };
+    ultimoTicketPromedioActual = r.ticketPromedio;
 
     renderizarTiraCifras(r.ingresoMes, r.gastoTotalMes, r.gananciaMes);
     renderizarGraficaEquilibrio(r.serie, r.diasMes, r.config);
@@ -1309,6 +1421,10 @@ function inicializar() {
   document.getElementById('boton-abrir-gastos-extras').addEventListener('click', abrirGastosExtras);
   document.getElementById('boton-cerrar-hoja-gastos-extras').addEventListener('click', cerrarGastosExtras);
   document.getElementById('boton-agregar-gasto-extra').addEventListener('click', manejarAgregarGastoExtra);
+
+  document.getElementById('boton-agregar-mes-estimado').addEventListener('click', abrirMesEstimado);
+  document.getElementById('boton-cerrar-hoja-mes-estimado').addEventListener('click', manejarCancelarMesEstimado);
+  document.getElementById('boton-guardar-mes-estimado').addEventListener('click', manejarGuardarMesEstimado);
 
   peTabs.forEach((boton) => {
     boton.addEventListener('click', () => cambiarPeriodoPe(boton.dataset.periodo));

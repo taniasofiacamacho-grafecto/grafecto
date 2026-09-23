@@ -169,6 +169,7 @@
             <p class="campo__ayuda">Toca un mes para ver sus números.</p>
             <div id="pe-comparativo"></div>
             <div id="pe-comparativo-detalle" class="reportes-dia-detalle" hidden></div>
+            <button type="button" id="boton-agregar-mes-estimado" class="boton boton--secundario boton--ancho-completo" style="margin-top: 12px;">+ Agregar mes anterior (estimado)</button>
           </div>
         </div>
 
@@ -735,6 +736,34 @@
       <div id="catalogo-productos-lista"></div>
       <button type="button" id="boton-agregar-producto-catalogo" class="boton boton--secundario boton--ancho-completo" style="margin-top: 4px;">+ Agregar producto</button>
       <button type="button" id="boton-cerrar-hoja-catalogo-productos" class="boton boton--primario boton--ancho-completo" style="margin-top: 16px;">Listo</button>
+    </div>
+  </div>
+
+  <!-- Hoja modal: agregar un mes anterior (antes de la app) como estimado -->
+  <div id="fondo-hoja-mes-estimado" class="fondo-hoja">
+    <div class="hoja">
+      <div class="hoja__manija"></div>
+      <div class="hoja__titulo">Agregar mes anterior</div>
+      <p class="campo__ayuda">Para meses antes de usar la app — solo dinos cuántas clientas atendieron y calculamos un ingreso aproximado con el ticket promedio más reciente.</p>
+
+      <div class="campo">
+        <label for="mes-estimado-mes">Mes</label>
+        <input id="mes-estimado-mes" type="month" />
+      </div>
+      <div class="campo">
+        <label for="mes-estimado-servicios">Clientas atendidas</label>
+        <input id="mes-estimado-servicios" type="number" inputmode="numeric" min="1" step="1" placeholder="Ej. 171" />
+      </div>
+      <div class="campo">
+        <label for="mes-estimado-ingreso">Ingreso total (si lo sabes)</label>
+        <input id="mes-estimado-ingreso" type="number" inputmode="decimal" min="0" step="0.01" placeholder="Déjalo en blanco para calcularlo" />
+      </div>
+      <p class="campo__ayuda" id="mes-estimado-referencia"></p>
+
+      <div class="fila-botones">
+        <button type="button" id="boton-cerrar-hoja-mes-estimado" class="boton boton--secundario">Cancelar</button>
+        <button type="button" id="boton-guardar-mes-estimado" class="boton boton--primario">Guardar</button>
+      </div>
     </div>
   </div>
 

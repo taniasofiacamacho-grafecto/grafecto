@@ -935,6 +935,7 @@ function filaAResumenMensual(fila) {
     ticketPromedio: Number(fila.ticket_promedio),
     numServicios: fila.num_servicios,
     diaCruce: fila.dia_cruce,
+    esEstimado: fila.es_estimado || false,
   };
 }
 
@@ -962,6 +963,27 @@ async function guardarResumenMensual(mes, datos) {
     ticket_promedio: datos.ticketPromedio,
     num_servicios: datos.numServicios,
     dia_cruce: datos.diaCruce,
+  });
+
+  if (error) throw error;
+}
+
+// Para meses anteriores a que existiera la app — la usuaria da el número de
+// clientas atendidas y, si lo sabe, el ingreso real; si no, se calcula un
+// aproximado con el ticket promedio de referencia (el del mes real más
+// reciente). Gasto/ganancia no se conocen para estos meses, así que se
+// guardan en 0 y la pantalla los oculta gracias a esEstimado.
+async function agregarMesHistoricoEstimado(mes, numServicios, ingreso, ticketPromedio) {
+  const { error } = await GrafectoAuth.cliente.from(TABLA_RESUMEN_MENSUAL).insert({
+    sucursal: SUCURSAL,
+    mes,
+    ingreso,
+    gasto: 0,
+    ganancia: 0,
+    ticket_promedio: ticketPromedio,
+    num_servicios: numServicios,
+    dia_cruce: null,
+    es_estimado: true,
   });
 
   if (error) throw error;
@@ -1195,6 +1217,7 @@ window.GrafectoDB = {
   eliminarGastoExtra,
   obtenerResumenMensual,
   guardarResumenMensual,
+  agregarMesHistoricoEstimado,
   listarResumenMensualUltimos12,
   listarProductos,
   asegurarProductosPorDefecto,
