@@ -108,10 +108,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if ('serviceWorker' in navigator) {
     // updateViaCache: 'none' evita que el navegador use una copia guardada
-    // del propio service-worker.js al revisar si hay versión nueva — sin
-    // esto, a veces ni se daba cuenta de que había una actualización.
+    // del propio service-worker.js al revisar si hay versión nueva — pero
+    // eso solo cubre el caché del navegador. GitHub Pages sirve los
+    // archivos detrás de un CDN que los cachea unos minutos por su cuenta,
+    // así que aunque el navegador pida "de nuevo", puede recibir una copia
+    // vieja de ese CDN. Por eso se agrega ?v= al final: cada versión pide
+    // una URL distinta, y una URL distinta nunca puede venir de una copia
+    // vieja en caché de nadie. SW_VERSION debe subirse junto con
+    // CACHE_VERSION en service-worker.js en cada cambio.
+    const SW_VERSION = 'v75';
     navigator.serviceWorker
-      .register('service-worker.js', { updateViaCache: 'none' })
+      .register(`service-worker.js?v=${SW_VERSION}`, { updateViaCache: 'none' })
       .then((registro) => {
         registro.update();
 
