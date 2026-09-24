@@ -1185,13 +1185,20 @@ async function manejarGuardarMesEstimado() {
 // subiendo, bajando o igual — clientas e ingreso, cada quien su gráfica.
 // Ancho fijo por mes (en vez de 100%) para que quepan las etiquetas sin
 // amontonarse; la tarjeta que la envuelve scrollea horizontal si hace falta.
+// La altura usa raíz cuadrada en vez de escala lineal: si un mes se dispara
+// muy por encima de los demás (por ejemplo, uno con una venta grande), en
+// lineal ese mes "aplasta" a los demás y todos se ven casi iguales entre sí.
+// Con raíz cuadrada el mes alto sigue siendo el más grande, pero las
+// diferencias entre los demás meses se alcanzan a notar. El número exacto
+// arriba de cada barra siempre es el real, la raíz solo afecta el dibujo.
 function renderizarGraficaTendencia(contenedor, historial, obtenerValor, formatearValor) {
   contenedor.innerHTML = '';
   const maxValor = Math.max(1, ...historial.map(obtenerValor));
+  const maxRaiz = Math.sqrt(maxValor);
 
   for (const registro of historial) {
     const valor = obtenerValor(registro);
-    const pct = Math.max(2, Math.round((valor / maxValor) * 100));
+    const pct = Math.max(2, Math.round((Math.sqrt(valor) / maxRaiz) * 100));
     const [anio, mesNum] = registro.mes.split('-').map(Number);
     const etiqueta = `${MESES_CORTOS_PE[mesNum - 1]} ${String(anio).slice(2)}${registro.esEstimado ? '*' : ''}`;
 
