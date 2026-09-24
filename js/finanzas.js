@@ -1194,14 +1194,12 @@ async function manejarGuardarMesEstimado() {
 // note que está "fuera de escala") y así los demás meses sí se reparten
 // bien el resto de la altura. El número exacto arriba de cada barra
 // siempre es el real, esto solo afecta el dibujo.
-// La pista mide ALTURA_PISTA_PX de alto (ver componentes.css). La altura de
-// la barra se calcula aquí ya en píxeles, en vez de usar un porcentaje en
-// el estilo — un porcentaje sobre un hijo de un contenedor flex resultó
-// muy poco confiable entre navegadores (a veces se queda en 0), mientras
-// que un valor fijo en píxeles siempre se respeta.
-const ALTURA_PISTA_PX = 100;
-
-function renderizarGraficaTendencia(contenedor, historial, obtenerValor, formatearValor) {
+// Misma estructura que el comparativo mes-a-mes de arriba (.comparativo-mes
+// / .comparativo-mes__barras / .comparativo-mes__barra), que sí se ve bien
+// — ahí no hay nada compitiendo por el alto de la barra. El número va
+// posicionado con position:absolute (mismo truco que la marca de la barra
+// de progreso), así nunca puede empujar ni achicar la barra.
+function renderizarGraficaTendencia(contenedor, historial, obtenerValor, formatearValor, claseColor) {
   contenedor.innerHTML = '';
   const valores = historial.map(obtenerValor);
   const ordenados = [...valores].sort((a, b) => a - b);
@@ -1211,20 +1209,23 @@ function renderizarGraficaTendencia(contenedor, historial, obtenerValor, formate
     const valor = obtenerValor(registro);
     const fueraDeEscala = valor > escalaMax;
     const pct = Math.max(2, Math.min(100, Math.round((valor / escalaMax) * 100)));
-    const alturaPx = Math.round((pct / 100) * ALTURA_PISTA_PX);
     const [anio, mesNum] = registro.mes.split('-').map(Number);
     const etiqueta = `${MESES_CORTOS_PE[mesNum - 1]} ${String(anio).slice(2)}${registro.esEstimado ? '*' : ''}`;
 
     contenedor.appendChild(
-      crearEl('div', { class: 'tendencia-columna' }, [
-        crearEl('div', { class: 'tendencia-columna__monto', texto: formatearValor(valor) }),
-        crearEl('div', { class: 'tendencia-columna__pista' }, [
+      crearEl('div', { class: 'comparativo-mes' }, [
+        crearEl('div', { class: 'comparativo-mes__barras' }, [
           crearEl('div', {
-            class: fueraDeEscala ? 'tendencia-columna__barra tendencia-columna__barra--fuera-de-escala' : 'tendencia-columna__barra',
-            style: `height: ${alturaPx}px`,
+            class: fueraDeEscala ? `comparativo-mes__barra ${claseColor} comparativo-mes__barra--fuera-de-escala` : `comparativo-mes__barra ${claseColor}`,
+            style: `height: ${pct}%`,
+          }),
+          crearEl('div', {
+            class: 'comparativo-mes__monto-flotante',
+            style: `bottom: calc(${pct}% + 4px)`,
+            texto: formatearValor(valor),
           }),
         ]),
-        crearEl('div', { class: 'tendencia-columna__etiqueta', texto: etiqueta }),
+        crearEl('div', { class: 'comparativo-mes__etiqueta', texto: etiqueta }),
       ])
     );
   }
@@ -1250,8 +1251,8 @@ async function renderizarComparativo(mesActual) {
 
     renderizarListaComparativo();
     mostrarDetalleMesComparativo();
-    renderizarGraficaTendencia(peTendenciaClientas, historial, (m) => m.numServicios, (v) => String(v));
-    renderizarGraficaTendencia(peTendenciaIngreso, historial, (m) => m.ingreso, formatearMoneda);
+    renderizarGraficaTendencia(peTendenciaClientas, historial, (m) => m.numServicios, (v) => String(v), 'comparativo-mes__barra--tendencia-clientas');
+    renderizarGraficaTendencia(peTendenciaIngreso, historial, (m) => m.ingreso, formatearMoneda, 'comparativo-mes__barra--tendencia-ingreso');
   } catch (error) {
     renderizarEstadoVacioComparativo();
     console.error(error);

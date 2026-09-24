@@ -116,7 +116,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // una URL distinta, y una URL distinta nunca puede venir de una copia
     // vieja en caché de nadie. SW_VERSION debe subirse junto con
     // CACHE_VERSION en service-worker.js en cada cambio.
-    const SW_VERSION = 'v76';
+    const SW_VERSION = 'v77';
     navigator.serviceWorker
       .register(`service-worker.js?v=${SW_VERSION}`, { updateViaCache: 'none' })
       .then((registro) => {
