@@ -1185,44 +1185,24 @@ async function manejarGuardarMesEstimado() {
 // subiendo, bajando o igual — clientas e ingreso, cada quien su gráfica.
 // Ancho fijo por mes (en vez de 100%) para que quepan las etiquetas sin
 // amontonarse; la tarjeta que la envuelve scrollea horizontal si hace falta.
-function renderizarGraficaTendencia(svgEl, historial, obtenerValor, color) {
-  const anchoPorMes = 46;
-  const w = Math.max(320, historial.length * anchoPorMes);
-  const h = 100;
+function renderizarGraficaTendencia(contenedor, historial, obtenerValor, formatearValor) {
+  contenedor.innerHTML = '';
+  const maxValor = Math.max(1, ...historial.map(obtenerValor));
 
-  svgEl.setAttribute('viewBox', `0 0 ${w} 130`);
-  svgEl.setAttribute('width', w);
+  for (const registro of historial) {
+    const valor = obtenerValor(registro);
+    const pct = Math.max(2, Math.round((valor / maxValor) * 100));
+    const [anio, mesNum] = registro.mes.split('-').map(Number);
+    const etiqueta = `${MESES_CORTOS_PE[mesNum - 1]} ${String(anio).slice(2)}${registro.esEstimado ? '*' : ''}`;
 
-  const valores = historial.map(obtenerValor);
-  const maxValor = Math.max(1, ...valores) * 1.1;
-
-  function x(indice) {
-    return historial.length === 1 ? w / 2 : (indice / (historial.length - 1)) * w;
+    contenedor.appendChild(
+      crearEl('div', { class: 'grafica-barras__columna' }, [
+        crearEl('div', { class: 'grafica-barras__monto', texto: formatearValor(valor) }),
+        crearEl('div', { class: 'grafica-barras__barra', style: `height: ${pct}%` }),
+        crearEl('div', { class: 'grafica-barras__etiqueta', texto: etiqueta }),
+      ])
+    );
   }
-  function y(valor) {
-    return h - (valor / maxValor) * h;
-  }
-
-  const puntos = historial.map((_, i) => `${x(i).toFixed(1)},${y(valores[i]).toFixed(1)}`).join(' ');
-
-  const circulos = historial
-    .map((_, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(valores[i]).toFixed(1)}" r="3" fill="${color}"></circle>`)
-    .join('');
-
-  const etiquetas = historial
-    .map((registro, i) => {
-      const [anio, mesNum] = registro.mes.split('-').map(Number);
-      const texto = `${MESES_CORTOS_PE[mesNum - 1]} ${String(anio).slice(2)}`;
-      return `<text x="${x(i).toFixed(1)}" y="${h + 16}" font-size="9" fill="var(--color-texto-suave)" text-anchor="middle">${texto}</text>`;
-    })
-    .join('');
-
-  svgEl.innerHTML = `
-    <line x1="0" y1="${h}" x2="${w}" y2="${h}" stroke="var(--color-borde)" stroke-width="1"></line>
-    <polyline points="${puntos}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></polyline>
-    ${circulos}
-    ${etiquetas}
-  `;
 }
 
 async function renderizarComparativo(mesActual) {
@@ -1245,8 +1225,8 @@ async function renderizarComparativo(mesActual) {
 
     renderizarListaComparativo();
     mostrarDetalleMesComparativo();
-    renderizarGraficaTendencia(peTendenciaClientas, historial, (m) => m.numServicios, 'var(--color-alerta)');
-    renderizarGraficaTendencia(peTendenciaIngreso, historial, (m) => m.ingreso, 'var(--color-magenta)');
+    renderizarGraficaTendencia(peTendenciaClientas, historial, (m) => m.numServicios, (v) => String(v));
+    renderizarGraficaTendencia(peTendenciaIngreso, historial, (m) => m.ingreso, formatearMoneda);
   } catch (error) {
     renderizarEstadoVacioComparativo();
     console.error(error);
