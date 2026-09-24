@@ -1185,27 +1185,35 @@ async function manejarGuardarMesEstimado() {
 // subiendo, bajando o igual — clientas e ingreso, cada quien su gráfica.
 // Ancho fijo por mes (en vez de 100%) para que quepan las etiquetas sin
 // amontonarse; la tarjeta que la envuelve scrollea horizontal si hace falta.
-// La altura usa raíz cuadrada en vez de escala lineal: si un mes se dispara
-// muy por encima de los demás (por ejemplo, uno con una venta grande), en
-// lineal ese mes "aplasta" a los demás y todos se ven casi iguales entre sí.
-// Con raíz cuadrada el mes alto sigue siendo el más grande, pero las
-// diferencias entre los demás meses se alcanzan a notar. El número exacto
-// arriba de cada barra siempre es el real, la raíz solo afecta el dibujo.
+// Si los meses "normales" están muy cerca entre sí (por ejemplo, entre
+// $60,000 y $90,000) pero uno solo se dispara muy por encima (como un mes
+// con una venta grande de $350,000), ni la raíz cuadrada alcanza a separar
+// esas diferencias chicas cuando la escala completa la define el disparado.
+// Por eso la escala se calcula contra el SEGUNDO valor más alto — el mes
+// más alto se recorta a la barra completa (con textura de rayas para que se
+// note que está "fuera de escala") y así los demás meses sí se reparten
+// bien el resto de la altura. El número exacto arriba de cada barra
+// siempre es el real, esto solo afecta el dibujo.
 function renderizarGraficaTendencia(contenedor, historial, obtenerValor, formatearValor) {
   contenedor.innerHTML = '';
-  const maxValor = Math.max(1, ...historial.map(obtenerValor));
-  const maxRaiz = Math.sqrt(maxValor);
+  const valores = historial.map(obtenerValor);
+  const ordenados = [...valores].sort((a, b) => a - b);
+  const escalaMax = Math.max(1, ordenados.length >= 2 ? ordenados[ordenados.length - 2] : ordenados[0]);
 
   for (const registro of historial) {
     const valor = obtenerValor(registro);
-    const pct = Math.max(2, Math.round((Math.sqrt(valor) / maxRaiz) * 100));
+    const fueraDeEscala = valor > escalaMax;
+    const pct = Math.max(2, Math.min(100, Math.round((valor / escalaMax) * 100)));
     const [anio, mesNum] = registro.mes.split('-').map(Number);
     const etiqueta = `${MESES_CORTOS_PE[mesNum - 1]} ${String(anio).slice(2)}${registro.esEstimado ? '*' : ''}`;
 
     contenedor.appendChild(
       crearEl('div', { class: 'grafica-barras__columna' }, [
         crearEl('div', { class: 'grafica-barras__monto', texto: formatearValor(valor) }),
-        crearEl('div', { class: 'grafica-barras__barra', style: `height: ${pct}%` }),
+        crearEl('div', {
+          class: fueraDeEscala ? 'grafica-barras__barra grafica-barras__barra--fuera-de-escala' : 'grafica-barras__barra',
+          style: `height: ${pct}%`,
+        }),
         crearEl('div', { class: 'grafica-barras__etiqueta', texto: etiqueta }),
       ])
     );

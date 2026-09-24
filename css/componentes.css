@@ -1243,6 +1243,19 @@
   background: var(--color-primario);
 }
 
+/* Mes fuera de escala en una tendencia: rayas en vez de color sólido, para
+   que se note que esa barra está "recortada" y no es directamente
+   comparable en altura con las demás (aunque el número arriba sí es real). */
+.grafica-barras__barra--fuera-de-escala {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--color-magenta-suave),
+    var(--color-magenta-suave) 4px,
+    var(--color-magenta) 4px,
+    var(--color-magenta) 8px
+  );
+}
+
 .grafica-barras__etiqueta {
   font-size: 0.68rem;
   color: var(--color-texto-suave);
