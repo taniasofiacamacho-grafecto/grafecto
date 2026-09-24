@@ -1194,6 +1194,13 @@ async function manejarGuardarMesEstimado() {
 // note que está "fuera de escala") y así los demás meses sí se reparten
 // bien el resto de la altura. El número exacto arriba de cada barra
 // siempre es el real, esto solo afecta el dibujo.
+// La pista mide ALTURA_PISTA_PX de alto (ver componentes.css). La altura de
+// la barra se calcula aquí ya en píxeles, en vez de usar un porcentaje en
+// el estilo — un porcentaje sobre un hijo de un contenedor flex resultó
+// muy poco confiable entre navegadores (a veces se queda en 0), mientras
+// que un valor fijo en píxeles siempre se respeta.
+const ALTURA_PISTA_PX = 100;
+
 function renderizarGraficaTendencia(contenedor, historial, obtenerValor, formatearValor) {
   contenedor.innerHTML = '';
   const valores = historial.map(obtenerValor);
@@ -1204,17 +1211,20 @@ function renderizarGraficaTendencia(contenedor, historial, obtenerValor, formate
     const valor = obtenerValor(registro);
     const fueraDeEscala = valor > escalaMax;
     const pct = Math.max(2, Math.min(100, Math.round((valor / escalaMax) * 100)));
+    const alturaPx = Math.round((pct / 100) * ALTURA_PISTA_PX);
     const [anio, mesNum] = registro.mes.split('-').map(Number);
     const etiqueta = `${MESES_CORTOS_PE[mesNum - 1]} ${String(anio).slice(2)}${registro.esEstimado ? '*' : ''}`;
 
     contenedor.appendChild(
-      crearEl('div', { class: 'grafica-barras__columna' }, [
-        crearEl('div', { class: 'grafica-barras__monto', texto: formatearValor(valor) }),
-        crearEl('div', {
-          class: fueraDeEscala ? 'grafica-barras__barra grafica-barras__barra--fuera-de-escala' : 'grafica-barras__barra',
-          style: `height: ${pct}%`,
-        }),
-        crearEl('div', { class: 'grafica-barras__etiqueta', texto: etiqueta }),
+      crearEl('div', { class: 'tendencia-columna' }, [
+        crearEl('div', { class: 'tendencia-columna__monto', texto: formatearValor(valor) }),
+        crearEl('div', { class: 'tendencia-columna__pista' }, [
+          crearEl('div', {
+            class: fueraDeEscala ? 'tendencia-columna__barra tendencia-columna__barra--fuera-de-escala' : 'tendencia-columna__barra',
+            style: `height: ${alturaPx}px`,
+          }),
+        ]),
+        crearEl('div', { class: 'tendencia-columna__etiqueta', texto: etiqueta }),
       ])
     );
   }

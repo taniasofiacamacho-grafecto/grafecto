@@ -1243,19 +1243,6 @@
   background: var(--color-primario);
 }
 
-/* Mes fuera de escala en una tendencia: rayas en vez de color sólido, para
-   que se note que esa barra está "recortada" y no es directamente
-   comparable en altura con las demás (aunque el número arriba sí es real). */
-.grafica-barras__barra--fuera-de-escala {
-  background: repeating-linear-gradient(
-    45deg,
-    var(--color-magenta-suave),
-    var(--color-magenta-suave) 4px,
-    var(--color-magenta) 4px,
-    var(--color-magenta) 8px
-  );
-}
-
 .grafica-barras__etiqueta {
   font-size: 0.68rem;
   color: var(--color-texto-suave);
@@ -1263,9 +1250,15 @@
   text-align: center;
 }
 
-/* Igual que .grafica-barras, pero con columnas de ancho fijo (en vez de
-   flex:1) y scroll horizontal — para cuando hay muchos meses y no se deben
-   amontonar. */
+/* Estructura propia (no reutiliza .grafica-barras): ahí el monto, la barra
+   y la etiqueta compiten por el mismo alto de columna en flexbox, y con
+   varias barras cerca del 100% el navegador las encoge a todas al mismo
+   tamaño para que quepan los textos — la barra terminaba viéndose igual
+   sin importar el porcentaje real. Aquí la barra vive en su propia "pista"
+   (.tendencia-columna__pista) que sí recibe una altura definida en
+   píxeles (todo lo que sobra después del monto y la etiqueta), y el
+   porcentaje de la barra se calcula sobre esa altura ya fija — sin pelear
+   por espacio con el texto. */
 .comparativo-tendencia-lista {
   display: flex;
   align-items: flex-end;
@@ -1275,9 +1268,54 @@
   padding-bottom: 2px;
 }
 
-.comparativo-tendencia-lista .grafica-barras__columna {
-  flex: none;
+.tendencia-columna {
+  flex-shrink: 0;
   width: 46px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.tendencia-columna__monto {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--color-texto-suave);
+  margin-bottom: 4px;
+  white-space: nowrap;
+}
+
+.tendencia-columna__pista {
+  height: 100px;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.tendencia-columna__barra {
+  width: 100%;
+  max-width: 30px;
+  background: var(--color-magenta-suave);
+  border-radius: 4px 4px 0 0;
+  min-height: 2px;
+}
+
+.tendencia-columna__barra--fuera-de-escala {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--color-magenta-suave),
+    var(--color-magenta-suave) 4px,
+    var(--color-magenta) 4px,
+    var(--color-magenta) 8px
+  );
+}
+
+.tendencia-columna__etiqueta {
+  font-size: 0.68rem;
+  color: var(--color-texto-suave);
+  margin-top: 6px;
+  text-align: center;
+  flex-shrink: 0;
 }
 
 /* ===== Servicios por estilista (pestaña Reportes) ===== */
