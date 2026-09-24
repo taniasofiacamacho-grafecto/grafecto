@@ -952,6 +952,8 @@ function renderizarProductos(regalos, ventasProducto) {
 
 const peComparativo = document.getElementById('pe-comparativo');
 const peComparativoDetalle = document.getElementById('pe-comparativo-detalle');
+const peTendenciaClientas = document.getElementById('pe-tendencia-clientas');
+const peTendenciaIngreso = document.getElementById('pe-tendencia-ingreso');
 const MESES_CORTOS_PE = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const MESES_LARGOS_PE = [
   'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
@@ -1179,6 +1181,50 @@ async function manejarGuardarMesEstimado() {
   }
 }
 
+// Una línea simple por mes (no acumulada) para ver de un vistazo si vamos
+// subiendo, bajando o igual — clientas e ingreso, cada quien su gráfica.
+// Ancho fijo por mes (en vez de 100%) para que quepan las etiquetas sin
+// amontonarse; la tarjeta que la envuelve scrollea horizontal si hace falta.
+function renderizarGraficaTendencia(svgEl, historial, obtenerValor, color) {
+  const anchoPorMes = 46;
+  const w = Math.max(320, historial.length * anchoPorMes);
+  const h = 100;
+
+  svgEl.setAttribute('viewBox', `0 0 ${w} 130`);
+  svgEl.setAttribute('width', w);
+
+  const valores = historial.map(obtenerValor);
+  const maxValor = Math.max(1, ...valores) * 1.1;
+
+  function x(indice) {
+    return historial.length === 1 ? w / 2 : (indice / (historial.length - 1)) * w;
+  }
+  function y(valor) {
+    return h - (valor / maxValor) * h;
+  }
+
+  const puntos = historial.map((_, i) => `${x(i).toFixed(1)},${y(valores[i]).toFixed(1)}`).join(' ');
+
+  const circulos = historial
+    .map((_, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(valores[i]).toFixed(1)}" r="3" fill="${color}"></circle>`)
+    .join('');
+
+  const etiquetas = historial
+    .map((registro, i) => {
+      const [anio, mesNum] = registro.mes.split('-').map(Number);
+      const texto = `${MESES_CORTOS_PE[mesNum - 1]} ${String(anio).slice(2)}`;
+      return `<text x="${x(i).toFixed(1)}" y="${h + 16}" font-size="9" fill="var(--color-texto-suave)" text-anchor="middle">${texto}</text>`;
+    })
+    .join('');
+
+  svgEl.innerHTML = `
+    <line x1="0" y1="${h}" x2="${w}" y2="${h}" stroke="var(--color-borde)" stroke-width="1"></line>
+    <polyline points="${puntos}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></polyline>
+    ${circulos}
+    ${etiquetas}
+  `;
+}
+
 async function renderizarComparativo(mesActual) {
   try {
     const historial = await DB.listarResumenMensualUltimos12(mesActual);
@@ -1186,6 +1232,8 @@ async function renderizarComparativo(mesActual) {
       historialComparativoActual = [];
       renderizarEstadoVacioComparativo();
       peComparativoDetalle.hidden = true;
+      peTendenciaClientas.innerHTML = '';
+      peTendenciaIngreso.innerHTML = '';
       return;
     }
 
@@ -1197,6 +1245,8 @@ async function renderizarComparativo(mesActual) {
 
     renderizarListaComparativo();
     mostrarDetalleMesComparativo();
+    renderizarGraficaTendencia(peTendenciaClientas, historial, (m) => m.numServicios, 'var(--color-alerta)');
+    renderizarGraficaTendencia(peTendenciaIngreso, historial, (m) => m.ingreso, 'var(--color-magenta)');
   } catch (error) {
     renderizarEstadoVacioComparativo();
     console.error(error);
