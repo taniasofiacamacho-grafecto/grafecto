@@ -337,6 +337,11 @@
   margin-top: 4px;
 }
 
+.campo__ayuda--alerta {
+  color: var(--color-peligro);
+  font-weight: 700;
+}
+
 .campo__encabezado {
   display: flex;
   align-items: center;
@@ -1690,7 +1695,8 @@
   gap: var(--espacio-sm);
 }
 
-.fila-agregar-producto select {
+.fila-agregar-producto select,
+.fila-agregar-producto input {
   flex: 1;
   min-height: 40px;
   border-radius: var(--radio-sm);

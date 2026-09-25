@@ -1012,6 +1012,7 @@ function filaAProducto(fila) {
     precio: Number(fila.precio),
     costo: Number(fila.costo),
     activo: fila.activo,
+    stock: fila.stock || 0,
   };
 }
 
@@ -1076,6 +1077,50 @@ async function actualizarProducto(id, datos) {
 async function eliminarProducto(id) {
   const { error } = await GrafectoAuth.cliente.from(TABLA_PRODUCTOS).delete().eq('id', id);
   if (error) throw error;
+}
+
+// Suma (llegó mercancía nueva) o resta (se vendió/regaló una unidad) stock
+// de un producto. Se lee el valor actual antes de escribir, en vez de un
+// incremento atómico en la base de datos, porque esta app es de un solo
+// usuario a la vez — no hay riesgo real de que dos escrituras choquen.
+async function agregarStockProducto(id, cantidad) {
+  const { data: actual, error: errorLeer } = await GrafectoAuth.cliente
+    .from(TABLA_PRODUCTOS)
+    .select('stock')
+    .eq('id', id)
+    .single();
+
+  if (errorLeer) throw errorLeer;
+
+  const nuevoStock = (actual.stock || 0) + cantidad;
+  const { error } = await GrafectoAuth.cliente
+    .from(TABLA_PRODUCTOS)
+    .update({ stock: nuevoStock })
+    .eq('id', id);
+
+  if (error) throw error;
+  return nuevoStock;
+}
+
+// No baja de 0 — en 0 ya se avisa "sin stock", no hace falta que se vaya a
+// negativo para transmitir lo mismo.
+async function descontarStockProducto(id, cantidad) {
+  const { data: actual, error: errorLeer } = await GrafectoAuth.cliente
+    .from(TABLA_PRODUCTOS)
+    .select('stock')
+    .eq('id', id)
+    .single();
+
+  if (errorLeer) throw errorLeer;
+
+  const nuevoStock = Math.max(0, (actual.stock || 0) - cantidad);
+  const { error } = await GrafectoAuth.cliente
+    .from(TABLA_PRODUCTOS)
+    .update({ stock: nuevoStock })
+    .eq('id', id);
+
+  if (error) throw error;
+  return nuevoStock;
 }
 
 // ----- Productos usados en una visita (regalo de promoción o venta) -----
@@ -1224,6 +1269,8 @@ window.GrafectoDB = {
   agregarProducto,
   actualizarProducto,
   eliminarProducto,
+  agregarStockProducto,
+  descontarStockProducto,
   listarProductosDeVisita,
   guardarProductosDeVisita,
   agregarVentaProductoSuelta,

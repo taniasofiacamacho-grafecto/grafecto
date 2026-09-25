@@ -81,12 +81,44 @@ function crearFilaProducto(producto) {
     },
   });
 
+  const textoStock = crearEl('span', {
+    class: producto.stock > 0 ? 'campo__ayuda' : 'campo__ayuda campo__ayuda--alerta',
+    texto: producto.stock > 0 ? `${producto.stock} en stock` : 'Sin stock',
+  });
+
+  const campoAgregarStock = crearEl('input', {
+    type: 'number', inputmode: 'numeric', min: '1', step: '1', placeholder: 'Unidades',
+  });
+
+  const botonAgregarStock = crearEl('button', {
+    type: 'button',
+    class: 'boton boton--secundario',
+    texto: '+ Agregar',
+    onclick: async () => {
+      const cantidad = Number(campoAgregarStock.value);
+      if (!campoAgregarStock.value || Number.isNaN(cantidad) || cantidad <= 0) return;
+      try {
+        const nuevoStock = await DB.agregarStockProducto(producto.id, cantidad);
+        producto.stock = nuevoStock;
+        textoStock.textContent = nuevoStock > 0 ? `${nuevoStock} en stock` : 'Sin stock';
+        textoStock.className = nuevoStock > 0 ? 'campo__ayuda' : 'campo__ayuda campo__ayuda--alerta';
+        campoAgregarStock.value = '';
+        mostrarMensaje('Stock actualizado');
+      } catch (error) {
+        mostrarMensaje('No se pudo actualizar el stock');
+        console.error(error);
+      }
+    },
+  });
+
   const filaEl = crearEl('div', { class: 'gasto-fila-editable' }, [
     crearEl('div', { class: 'gasto-fila-editable__encabezado' }, [campoNombre, botonEliminar]),
     crearEl('div', { class: 'gasto-fila-editable__campos' }, [
       crearEl('div', { class: 'gasto-fila-editable__campo' }, [crearEl('label', { texto: 'Precio' }), campoPrecio]),
       crearEl('div', { class: 'gasto-fila-editable__campo' }, [crearEl('label', { texto: 'Costo' }), campoCosto]),
     ]),
+    textoStock,
+    crearEl('div', { class: 'fila-agregar-producto', style: 'margin-top: 6px;' }, [campoAgregarStock, botonAgregarStock]),
   ]);
 
   return filaEl;

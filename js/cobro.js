@@ -71,7 +71,7 @@ function renderizarRegaloOpciones() {
     const boton = crearEl('button', {
       type: 'button',
       class: regaloSeleccionados.has(producto.id) ? 'pastilla-opcion pastilla-opcion--activa' : 'pastilla-opcion',
-      texto: producto.nombre,
+      texto: producto.stock > 0 ? producto.nombre : `${producto.nombre} (sin stock)`,
     });
     boton.addEventListener('click', () => {
       if (regaloSeleccionados.has(producto.id)) regaloSeleccionados.delete(producto.id);
@@ -86,8 +86,9 @@ function poblarSelectVenta() {
   selectVentaProducto.innerHTML = '';
   selectVentaProducto.appendChild(crearEl('option', { value: '', texto: 'Elige un producto…' }));
   for (const producto of catalogoProductos) {
+    const sinStock = producto.stock <= 0 ? ' — sin stock' : '';
     selectVentaProducto.appendChild(
-      crearEl('option', { value: producto.id, texto: `${producto.nombre} — ${formatearMoneda(producto.precio)}` })
+      crearEl('option', { value: producto.id, texto: `${producto.nombre} — ${formatearMoneda(producto.precio)}${sinStock}` })
     );
   }
 }
@@ -289,6 +290,8 @@ async function manejarGuardar(evento) {
     return;
   }
 
+  const esNuevo = !visitaEnEdicion;
+
   try {
     let visitaId;
     if (visitaEnEdicion) {
@@ -321,7 +324,21 @@ async function manejarGuardar(evento) {
       mostrarMensaje('Cobro guardado');
     }
 
-    await DB.guardarProductosDeVisita(visitaId, citaActual.fecha, resolverProductosParaGuardar());
+    const productosAGuardar = resolverProductosParaGuardar();
+    await DB.guardarProductosDeVisita(visitaId, citaActual.fecha, productosAGuardar);
+
+    // Solo se descuenta stock la primera vez que se registra (no al editar
+    // un cobro ya guardado) — para no restar dos veces por el mismo producto.
+    if (esNuevo) {
+      for (const item of productosAGuardar) {
+        if (!item.productoId) continue;
+        try {
+          await DB.descontarStockProducto(item.productoId, 1);
+        } catch (error) {
+          console.error(error);
+        }
+      }
+    }
 
     const cb = callbackAlGuardar;
     cerrar();

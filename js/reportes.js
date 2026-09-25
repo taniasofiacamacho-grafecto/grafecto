@@ -427,7 +427,7 @@ function renderizarRegaloOpciones() {
     const boton = crearEl('button', {
       type: 'button',
       class: regaloSeleccionados.has(producto.id) ? 'pastilla-opcion pastilla-opcion--activa' : 'pastilla-opcion',
-      texto: producto.nombre,
+      texto: producto.stock > 0 ? producto.nombre : `${producto.nombre} (sin stock)`,
     });
     boton.addEventListener('click', () => {
       if (regaloSeleccionados.has(producto.id)) regaloSeleccionados.delete(producto.id);
@@ -442,8 +442,9 @@ function poblarSelectVentaProducto() {
   selectVentaProducto.innerHTML = '';
   selectVentaProducto.appendChild(crearEl('option', { value: '', texto: 'Elige un producto…' }));
   for (const producto of catalogoProductos) {
+    const sinStock = producto.stock <= 0 ? ' — sin stock' : '';
     selectVentaProducto.appendChild(
-      crearEl('option', { value: producto.id, texto: `${producto.nombre} — ${formatearMoneda(producto.precio)}` })
+      crearEl('option', { value: producto.id, texto: `${producto.nombre} — ${formatearMoneda(producto.precio)}${sinStock}` })
     );
   }
 }
@@ -652,6 +653,8 @@ async function manejarGuardar(evento) {
     return;
   }
 
+  const esNuevo = !visitaVentaEnEdicion;
+
   try {
     let visitaId;
     if (visitaVentaEnEdicion) {
@@ -683,7 +686,19 @@ async function manejarGuardar(evento) {
       mostrarMensaje('Venta registrada');
     }
 
-    await DB.guardarProductosDeVisita(visitaId, campoFecha.value, resolverProductosParaGuardar());
+    const productosAGuardar = resolverProductosParaGuardar();
+    await DB.guardarProductosDeVisita(visitaId, campoFecha.value, productosAGuardar);
+
+    if (esNuevo) {
+      for (const item of productosAGuardar) {
+        if (!item.productoId) continue;
+        try {
+          await DB.descontarStockProducto(item.productoId, 1);
+        } catch (error) {
+          console.error(error);
+        }
+      }
+    }
 
     cerrar();
     await cargarResumen();
@@ -699,8 +714,9 @@ function poblarSelectVentaSuelta() {
   selectVentaSuelta.innerHTML = '';
   selectVentaSuelta.appendChild(crearEl('option', { value: '', texto: 'Elige un producto…' }));
   for (const producto of catalogoVentaSuelta) {
+    const sinStock = producto.stock <= 0 ? ' — sin stock' : '';
     selectVentaSuelta.appendChild(
-      crearEl('option', { value: producto.id, texto: `${producto.nombre} — ${formatearMoneda(producto.precio)}` })
+      crearEl('option', { value: producto.id, texto: `${producto.nombre} — ${formatearMoneda(producto.precio)}${sinStock}` })
     );
   }
 }
@@ -784,6 +800,16 @@ async function manejarGuardarVentaSuelta() {
 
   try {
     await DB.agregarVentaProductoSuelta(campoVentaSueltaFecha.value, ventaSueltaItems);
+
+    for (const item of ventaSueltaItems) {
+      if (!item.productoId) continue;
+      try {
+        await DB.descontarStockProducto(item.productoId, 1);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
     mostrarMensaje('Venta registrada');
     cerrarVentaSuelta();
     await cargarResumen();
