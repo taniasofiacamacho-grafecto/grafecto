@@ -1199,6 +1199,11 @@ async function manejarGuardarMesEstimado() {
 // — ahí no hay nada compitiendo por el alto de la barra. El número va
 // posicionado con position:absolute (mismo truco que la marca de la barra
 // de progreso), así nunca puede empujar ni achicar la barra.
+// La barra nunca llega al 100% del contenedor — se deja un margen arriba
+// (ALTURA_MAXIMA_BARRA) para que el número flotante siempre tenga dónde
+// dibujarse sin salirse por arriba, ni en el mes más alto.
+const ALTURA_MAXIMA_BARRA = 70;
+
 function renderizarGraficaTendencia(contenedor, historial, obtenerValor, formatearValor, claseColor) {
   contenedor.innerHTML = '';
   const valores = historial.map(obtenerValor);
@@ -1208,7 +1213,7 @@ function renderizarGraficaTendencia(contenedor, historial, obtenerValor, formate
   for (const registro of historial) {
     const valor = obtenerValor(registro);
     const fueraDeEscala = valor > escalaMax;
-    const pct = Math.max(2, Math.min(100, Math.round((valor / escalaMax) * 100)));
+    const pct = Math.max(2, Math.min(ALTURA_MAXIMA_BARRA, Math.round((valor / escalaMax) * ALTURA_MAXIMA_BARRA)));
     const [anio, mesNum] = registro.mes.split('-').map(Number);
     const etiqueta = `${MESES_CORTOS_PE[mesNum - 1]} ${String(anio).slice(2)}${registro.esEstimado ? '*' : ''}`;
 
