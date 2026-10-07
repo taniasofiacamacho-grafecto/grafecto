@@ -149,13 +149,27 @@ function crearBotonEstilista(cita, onCambio) {
 
 // Se firma solo una vez al año, así que aquí se ve de un vistazo si a esta
 // clienta ya le toca — y si le falta, se marca sin tener que abrir su ficha.
+const MESES_CORTOS_CONSENTIMIENTO = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
+function fechaCortaConAnio(fechaISO) {
+  const [anio, mes, dia] = fechaISO.split('-').map(Number);
+  return `${dia} ${MESES_CORTOS_CONSENTIMIENTO[mes - 1]} ${anio}`;
+}
+
 function crearBadgeConsentimiento(cita, onCambio) {
   const estado = estadoConsentimiento(cita.clientaConsentimientoFecha);
+  const fechaFirma = cita.clientaConsentimientoFecha ? fechaCortaConAnio(cita.clientaConsentimientoFecha) : null;
+
+  // Se muestra la fecha en que se firmó para que se vea de un vistazo desde
+  // cuándo cuenta, sin abrir la ficha — y, si está vencido, desde cuándo.
+  let texto = `⚠ Consentimiento: ${estado.texto}`;
+  if (estado.vigente) texto = `✓ Consentimiento · firmado ${fechaFirma}`;
+  else if (fechaFirma) texto = `⚠ Consentimiento vencido · firmado ${fechaFirma}`;
 
   return crearEl('button', {
     type: 'button',
     class: `badge-consentimiento badge-consentimiento--${estado.clase}`,
-    texto: estado.vigente ? '✓ Consentimiento' : `⚠ Consentimiento: ${estado.texto}`,
+    texto,
     onclick: async (evento) => {
       evento.stopPropagation();
       if (estado.vigente) return;
