@@ -174,8 +174,8 @@ async function cargarBloqueos() {
 // para no tener que escribirlas todas cada vez. Se quitan con su ✕ si ese
 // día no aplica alguna, y se puede seguir agregando cualquier otra a mano.
 const HORAS_HABITUALES = [
-  '09:15', '09:30', '10:00', '11:00', '11:40', '12:20',
-  '13:00', '13:40', '14:20', '15:00', '15:30', '16:30',
+  '09:15', '09:30', '10:00', '11:00', '11:30', '12:00', '12:30',
+  '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30',
 ];
 
 const fondoHojaExcepcion = document.getElementById('fondo-hoja-excepcion');
