@@ -419,16 +419,29 @@ function poblarLongitud(tratamientoNombre) {
 // "Trío" (Buen Fin): un atajo dentro de los regalos que marca de una vez
 // Champú, Acondicionador y Serum — así cuentan su costo y su stock como
 // cualquier otro regalo, sin necesitar una promoción aparte.
-const NOMBRES_TRIO = ['champu', 'acondicionador', 'serum'];
+// Palabras con las que se reconoce cada producto del trío en el catálogo
+// (por si se llama "Shampoo" en vez de "Champú", o lleva "Wonder" en el
+// nombre). Si hay varios que coinciden, se prefiere el que dice "Wonder".
+const PRODUCTOS_TRIO = [
+  { etiqueta: 'Champú', palabras: ['champu', 'shampoo'] },
+  { etiqueta: 'Acondicionador', palabras: ['acondicionador', 'conditioner'] },
+  { etiqueta: 'Serum', palabras: ['serum', 'suero'] },
+];
 
 function buscarProductosTrio() {
   const individuales = catalogoProductos.filter((p) => p.categoria === 'individual');
-  return NOMBRES_TRIO
-    .map((nombre) => (
-      individuales.find((p) => DB.normalizarTexto(p.nombre) === nombre) ||
-      individuales.find((p) => DB.normalizarTexto(p.nombre).startsWith(nombre))
-    ))
-    .filter(Boolean);
+  return PRODUCTOS_TRIO.map(({ etiqueta, palabras }) => {
+    const candidatos = individuales.filter((p) => {
+      const nombre = DB.normalizarTexto(p.nombre);
+      return palabras.some((palabra) => nombre.includes(palabra));
+    });
+    const elegido =
+      candidatos.find((p) => DB.normalizarTexto(p.nombre).includes('wonder')) ||
+      candidatos.find((p) => palabras.includes(DB.normalizarTexto(p.nombre))) ||
+      candidatos[0] ||
+      null;
+    return { etiqueta, producto: elegido };
+  });
 }
 
 function actualizarVisibilidadRegalo() {
@@ -439,12 +452,13 @@ function renderizarRegaloOpciones() {
   campoRegaloProductos.innerHTML = '';
   const individuales = catalogoProductos.filter((p) => p.categoria === 'individual');
   const botonesPorId = new Map();
-  const productosTrio = buscarProductosTrio();
+  const trioBuscado = buscarProductosTrio();
+  const productosTrio = trioBuscado.map((t) => t.producto).filter(Boolean);
   let botonTrio = null;
 
   function actualizarBotonTrio() {
     if (!botonTrio) return;
-    const completo = productosTrio.every((p) => regaloSeleccionados.has(p.id));
+    const completo = productosTrio.length === PRODUCTOS_TRIO.length && productosTrio.every((p) => regaloSeleccionados.has(p.id));
     botonTrio.classList.toggle('pastilla-opcion--activa', completo);
   }
 
@@ -464,20 +478,23 @@ function renderizarRegaloOpciones() {
     campoRegaloProductos.appendChild(boton);
   }
 
-  if (productosTrio.length === NOMBRES_TRIO.length) {
-    botonTrio = crearEl('button', { type: 'button', class: 'pastilla-opcion', texto: 'Trío (Champú + Acondicionador + Serum)' });
-    botonTrio.addEventListener('click', () => {
-      const yaCompleto = productosTrio.every((p) => regaloSeleccionados.has(p.id));
-      for (const p of productosTrio) {
-        if (yaCompleto) regaloSeleccionados.delete(p.id);
-        else regaloSeleccionados.add(p.id);
-        botonesPorId.get(p.id).classList.toggle('pastilla-opcion--activa', !yaCompleto);
-      }
-      actualizarBotonTrio();
-    });
-    campoRegaloProductos.appendChild(botonTrio);
+  botonTrio = crearEl('button', { type: 'button', class: 'pastilla-opcion', texto: 'Trío (Champú + Acondicionador + Serum)' });
+  botonTrio.addEventListener('click', () => {
+    const faltan = trioBuscado.filter((t) => !t.producto).map((t) => t.etiqueta);
+    if (faltan.length > 0) {
+      mostrarMensaje(`No encuentro en el catálogo: ${faltan.join(', ')}`);
+      return;
+    }
+    const yaCompleto = productosTrio.every((p) => regaloSeleccionados.has(p.id));
+    for (const p of productosTrio) {
+      if (yaCompleto) regaloSeleccionados.delete(p.id);
+      else regaloSeleccionados.add(p.id);
+      botonesPorId.get(p.id).classList.toggle('pastilla-opcion--activa', !yaCompleto);
+    }
     actualizarBotonTrio();
-  }
+  });
+  campoRegaloProductos.appendChild(botonTrio);
+  actualizarBotonTrio();
 }
 
 function poblarSelectVentaProducto() {
