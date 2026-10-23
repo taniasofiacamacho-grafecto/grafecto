@@ -60,8 +60,27 @@ function poblarLongitud(tratamientoNombre) {
 // Sin inventario — solo se cuenta cuántos se regalaron/vendieron y su costo,
 // para descontarlo en el punto de equilibrio.
 
+const trioNota = document.getElementById('cobro-trio-nota');
+
+// Promoción "Trío gratis" (Buen Fin): se regalan champú, acondicionador y
+// serum del catálogo, sin tener que elegirlos uno por uno.
+const NOMBRES_TRIO = ['champu', 'acondicionador', 'serum'];
+
+function resolverTrio() {
+  return NOMBRES_TRIO
+    .map((nombre) => {
+      const individuales = catalogoProductos.filter((p) => p.categoria === 'individual');
+      return (
+        individuales.find((p) => DB.normalizarTexto(p.nombre) === nombre) ||
+        individuales.find((p) => DB.normalizarTexto(p.nombre).startsWith(nombre))
+      );
+    })
+    .filter(Boolean);
+}
+
 function actualizarVisibilidadRegalo() {
   campoRegaloCampo.hidden = promocionSeleccionada !== 'producto';
+  trioNota.hidden = promocionSeleccionada !== 'trio';
 }
 
 function renderizarRegaloOpciones() {
@@ -135,9 +154,16 @@ function manejarAgregarVenta() {
 }
 
 function resolverProductosParaGuardar() {
-  const regalos = [...regaloSeleccionados]
-    .map((id) => catalogoProductos.find((p) => p.id === id))
-    .filter(Boolean)
+  let productosRegalo = [];
+  if (promocionSeleccionada === 'trio') {
+    productosRegalo = resolverTrio();
+  } else if (promocionSeleccionada === 'producto') {
+    productosRegalo = [...regaloSeleccionados]
+      .map((id) => catalogoProductos.find((p) => p.id === id))
+      .filter(Boolean);
+  }
+
+  const regalos = productosRegalo
     .map((producto) => ({
       productoId: producto.id,
       tipo: 'regalo',
@@ -287,6 +313,11 @@ async function manejarGuardar(evento) {
   if (!campoPrecio.value || Number.isNaN(precio) || precio < 0) {
     mostrarMensaje('Escribe el precio cobrado');
     campoPrecio.focus();
+    return;
+  }
+
+  if (promocionSeleccionada === 'trio' && resolverTrio().length < NOMBRES_TRIO.length) {
+    mostrarMensaje('Para el trío gratis, el catálogo necesita Champú, Acondicionador y Serum');
     return;
   }
 

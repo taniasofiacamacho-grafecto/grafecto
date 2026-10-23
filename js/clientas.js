@@ -76,6 +76,7 @@ const ETIQUETAS_PROMOCION = {
   ninguna: 'Ninguna',
   descuento: 'Descuento',
   producto: 'Producto gratis',
+  trio: 'Trío gratis',
 };
 
 // Cada visita se ve resumida (fecha, tratamiento, precio) y se toca para

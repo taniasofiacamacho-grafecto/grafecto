@@ -416,8 +416,27 @@ function poblarLongitud(tratamientoNombre) {
 
 // ===== Productos: regalo de la promoción y venta aparte (mismo patrón que Cobro) =====
 
+const trioNota = document.getElementById('venta-trio-nota');
+
+// Promoción "Trío gratis" (Buen Fin): se regalan champú, acondicionador y
+// serum del catálogo, sin tener que elegirlos uno por uno.
+const NOMBRES_TRIO = ['champu', 'acondicionador', 'serum'];
+
+function resolverTrio() {
+  return NOMBRES_TRIO
+    .map((nombre) => {
+      const individuales = catalogoProductos.filter((p) => p.categoria === 'individual');
+      return (
+        individuales.find((p) => DB.normalizarTexto(p.nombre) === nombre) ||
+        individuales.find((p) => DB.normalizarTexto(p.nombre).startsWith(nombre))
+      );
+    })
+    .filter(Boolean);
+}
+
 function actualizarVisibilidadRegalo() {
   campoRegaloCampo.hidden = promocionSeleccionada !== 'producto';
+  trioNota.hidden = promocionSeleccionada !== 'trio';
 }
 
 function renderizarRegaloOpciones() {
@@ -491,9 +510,16 @@ function manejarAgregarVentaProducto() {
 }
 
 function resolverProductosParaGuardar() {
-  const regalos = [...regaloSeleccionados]
-    .map((id) => catalogoProductos.find((p) => p.id === id))
-    .filter(Boolean)
+  let productosRegalo = [];
+  if (promocionSeleccionada === 'trio') {
+    productosRegalo = resolverTrio();
+  } else if (promocionSeleccionada === 'producto') {
+    productosRegalo = [...regaloSeleccionados]
+      .map((id) => catalogoProductos.find((p) => p.id === id))
+      .filter(Boolean);
+  }
+
+  const regalos = productosRegalo
     .map((producto) => ({
       productoId: producto.id,
       tipo: 'regalo',
@@ -650,6 +676,11 @@ async function manejarGuardar(evento) {
 
   if (!campoFecha.value) {
     mostrarMensaje('Elige la fecha');
+    return;
+  }
+
+  if (promocionSeleccionada === 'trio' && resolverTrio().length < NOMBRES_TRIO.length) {
+    mostrarMensaje('Para el trío gratis, el catálogo necesita Champú, Acondicionador y Serum');
     return;
   }
 
