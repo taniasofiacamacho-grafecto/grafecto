@@ -1,7 +1,7 @@
 // Cachea el "app shell" para que GRAFECTO funcione sin conexión.
 // Sube CACHE_VERSION cuando cambien los archivos, para forzar la actualización del cache.
 
-const CACHE_VERSION = 'grafecto-v84';
+const CACHE_VERSION = 'grafecto-v85';
 
 const ARCHIVOS_APP_SHELL = [
   './',
@@ -36,7 +36,19 @@ const ARCHIVOS_APP_SHELL = [
 
 self.addEventListener('install', (evento) => {
   evento.waitUntil(
-    caches.open(CACHE_VERSION).then((cache) => cache.addAll(ARCHIVOS_APP_SHELL))
+    caches.open(CACHE_VERSION).then((cache) =>
+      // cache: 'reload' obliga a pedir cada archivo a la red, sin usar la
+      // copia que el navegador ya tuviera guardada (cache.addAll sí la usa,
+      // y por eso una versión nueva podía instalarse con archivos viejos).
+      Promise.all(
+        ARCHIVOS_APP_SHELL.map((url) =>
+          fetch(new Request(url, { cache: 'reload' })).then((respuesta) => {
+            if (!respuesta.ok) throw new Error(`No se pudo bajar ${url}`);
+            return cache.put(url, respuesta);
+          })
+        )
+      )
+    )
   );
   self.skipWaiting();
 });
