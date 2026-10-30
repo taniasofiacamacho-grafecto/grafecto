@@ -11,7 +11,10 @@ const DB = window.GrafectoDB;
 const ESTADOS = [
   { valor: 'agendada', etiqueta: 'Agendada' },
   { valor: 'llego', etiqueta: 'Llegó' },
-  { valor: 'en_proceso', etiqueta: 'En proceso' },
+  // Aplicación se hace abajo; Planchado, en el segundo piso — así de un
+  // vistazo se ve quién está en cada piso.
+  { valor: 'aplicacion', etiqueta: 'Aplicación · abajo' },
+  { valor: 'planchado', etiqueta: 'Planchado · arriba' },
   { valor: 'checkout', etiqueta: 'Checkout' },
 ];
 

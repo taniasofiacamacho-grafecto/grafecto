@@ -833,9 +833,14 @@
   color: var(--color-magenta);
 }
 
-.pastilla-estado--en_proceso {
+.pastilla-estado--aplicacion {
   background: rgba(77, 47, 64, 0.12);
   color: var(--color-primario);
+}
+
+.pastilla-estado--planchado {
+  background: rgba(184, 134, 63, 0.18);
+  color: var(--color-alerta);
 }
 
 .pastilla-estado--checkout {
@@ -854,9 +859,14 @@
   border-color: rgba(164, 87, 122, 0.5);
 }
 
-.tarjeta-cita--en_proceso {
+.tarjeta-cita--aplicacion {
   background: rgba(77, 47, 64, 0.16);
   border-color: rgba(77, 47, 64, 0.5);
+}
+
+.tarjeta-cita--planchado {
+  background: rgba(184, 134, 63, 0.2);
+  border-color: rgba(184, 134, 63, 0.55);
 }
 
 .tarjeta-cita--checkout {

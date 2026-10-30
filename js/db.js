@@ -122,7 +122,9 @@ function filaACita(fila) {
     fecha: fila.fecha,
     hora: fila.hora,
     notas: fila.notas || '',
-    estado: fila.estado || 'agendada',
+    // 'en_proceso' era el estado único de antes de separar aplicación y
+    // planchado; las citas viejas que lo conservan se leen como aplicación.
+    estado: fila.estado === 'en_proceso' ? 'aplicacion' : (fila.estado || 'agendada'),
     notasVisita: fila.notas_visita || '',
     fotoPath: fila.foto_path || null,
     estilista: fila.estilista || '',
