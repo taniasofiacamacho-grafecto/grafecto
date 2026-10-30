@@ -111,7 +111,7 @@ function crearPastillaEstado(cita, onCambio) {
         await DB.actualizarEstadoCita(cita.id, nuevo);
         onCambio();
       } catch (error) {
-        mostrarMensaje('No se pudo actualizar el estado');
+        mostrarMensaje(`No se pudo actualizar el estado${error?.message ? ': ' + error.message : ''}`);
         console.error(error);
       }
     },
